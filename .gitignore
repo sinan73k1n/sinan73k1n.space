@@ -1,0 +1,29 @@
+# ⛔ Kişisel arşiv — ASLA push edilmez
+Arşiv/
+_arsiv/
+
+# Sırlar
+appsettings.Production.json
+appsettings.Local.json
+*.env
+.env
+*.key
+*.pfx
+secrets.json
+
+# .NET
+bin/
+obj/
+publish/
+*.user
+*.suo
+.vs/
+TestResults/
+
+# Playwright / geçici görsel doğrulama çıktıları
+ref-*.png
+shot-*.png
+node_modules/
+
+# macOS
+.DS_Store

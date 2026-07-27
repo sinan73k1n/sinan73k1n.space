@@ -1,0 +1,63 @@
+@*
+    _Layout — portfolyo ana kalıbı.
+    ⛔ CDN/dış istek YOK: fontlar self-host (wwwroot/fonts); bootstrap/jquery kaldırıldı.
+    Arka plan katmanı SABİT (position: fixed), içerik onun üstünde akar.
+*@
+<!DOCTYPE html>
+<html lang="@(ViewData["Lang"] as string ?? "tr")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    @* Ana sayfada yalnız ad; alt sayfalarda "Başlık · Sinan Tekin" *@
+    @{
+        var baslik = ViewData["Title"] as string ?? "";
+        var tamBaslik = string.IsNullOrEmpty(baslik) || baslik == "Sinan Tekin"
+            ? "Sinan Tekin" : $"{baslik} · Sinan Tekin";
+    }
+    <title>@tamBaslik</title>
+    <meta name="description" content="@(ViewData["Description"] as string ?? "")" />
+    <meta name="color-scheme" content="dark" />
+
+    <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/background.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/motion.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+
+    @* ⭐ Hareket kancası: `.anim` sınıfı SADECE reduced-motion kapalıysa eklenir.
+       CSS'teki başlangıç durumları (opacity:0 vb.) yalnız bu sınıf altında geçerli →
+       JS yoksa ya da kullanıcı hareketi azaltmışsa içerik görünür kalır, kilitlenmez.
+       CSS'ten ÖNCE değil, render'dan ÖNCE çalışması yeter (FOUC olmaz). *@
+    <script>
+        (function () {
+            try {
+                if (!window.matchMedia || !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+                    document.documentElement.classList.add("anim");
+                }
+            } catch (e) { }
+        })();
+    </script>
+</head>
+<body>
+    @* Sabit arka plan: radial taban + 3 ışık bulutu + 2 huzme + 16 veri hattı *@
+    <div class="bg-layer" aria-hidden="true">
+        <div class="bg-glow bg-glow--1"></div>
+        <div class="bg-glow bg-glow--2"></div>
+        <div class="bg-glow bg-glow--3"></div>
+
+        <div class="bg-beams">
+            <div class="bg-beam bg-beam--1"></div>
+            <div class="bg-beam bg-beam--2"></div>
+        </div>
+
+        <div class="bg-streams" data-streams></div>
+    </div>
+
+    <div class="page">
+        @RenderBody()
+    </div>
+
+    <script src="~/js/streams.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

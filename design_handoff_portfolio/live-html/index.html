@@ -1,0 +1,2744 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+(function(){
+// Sinan Tekin portfolyo — paylaşılan içerik katmanı.
+// Ana sayfa ve admin panel aynı veriyi buradan okur.
+// Kalıcılık: localStorage (tarayıcı) + JSON indir/yükle.
+
+const KEY = "st-content-v1";
+const LANGS = ["tr", "en", "ru"];
+
+const SEED = {
+  meta: {
+    name: "Sinan Tekin",
+    handle: "sinan.tekin",
+    mail: "hello@sinantekin.dev",
+    github: "https://github.com/sinan73k1n",
+    githubUser: "sinan73k1n",
+    play: "https://play.google.com/store/apps/dev?id=5968286876093646143"
+  },
+
+  i18n: {
+    tr: {
+      navAbout: "Hakkımda", navStack: "Teknolojiler", navGames: "Oyunlar", navDemos: "Demolar", navGithub: "GitHub",
+      heroTag: "yeni projelere açık",
+      heroLine2: "yazılım geliştirici",
+      roles: ["Unity ile mobil oyunlar", "yönetim panelleri & backend", "çalışan web demoları"],
+      heroLead: "Oyun geliştiriyorum, yönetim panelleri kuruyorum, arayüzleri kendim yazıyorum. Aşağıdaki her şey gerçekten çalışan işler.",
+      heroBtn1: "Demoları çalıştır", heroBtn2: "Kodlara bak",
+      scroll: "aşağı kaydır",
+      marquee: "unity  ·  c#  ·  javascript  ·  php  ·  mysql  ·  google play  ·  admin panel  ·  forum  ·  api  ·  demo  ·",
+      aboutTitle: "Fikirden yayına, tek başına.",
+      aboutBig: "Ekranda görüneni de arkada çalışanı da ben yazıyorum — tasarım, kod, yayın döngüsü aynı elde.",
+      aboutSmall: "Oyun tarafında Unity ile geliştirip Google Play'de yayınlıyorum; mağaza, sürüm ve oyuncu geri bildirimi süreçlerini kendim yönetiyorum. Web tarafında yönetim panelleri, forum ve etkileşim yoğun arayüzler kuruyorum. Bu sitedeki demolar ekran görüntüsü değil, tarayıcıda gerçekten açılan sürümler.",
+      stackTitle: "Çalıştığım teknolojiler",
+      stackLead: "Liste admin panelinden güncellenir.",
+      stackSlot: "yeni teknoloji",
+      gamesTitle: "Google Play oyunları",
+      demosTitle: "Çalışan demolar",
+      demosLead: "Satırların üstüne gel, önizleme değişir. Tıkla, demo tam ekran açılır.",
+      demosHint: "önizleme yer tutucudur — gerçek demo tam ekranda çalışır",
+      demosSlot: "boş demo alanı — admin panelinden eklenecek",
+      openDemo: "Tam ekran aç", close: "Kapat",
+      githubTitle: "Kaynak kodlar ve depolar",
+      githubLead: "Depoların ön izlemesi. Takip etmek isteyen doğrudan profilden ilerleyebilir.",
+      contactTitle: "İletişim", contactHead: "Bir işi konuşalım mı?",
+      footerNote: "tasarım ve kod bana ait",
+      imgSlot: "oyun görseli buraya"
+    },
+    en: {
+      navAbout: "About", navStack: "Stack", navGames: "Games", navDemos: "Demos", navGithub: "GitHub",
+      heroTag: "open to new projects",
+      heroLine2: "software developer",
+      roles: ["mobile games with Unity", "admin panels & backend", "web demos that actually run"],
+      heroLead: "I build games, ship admin panels and write the interfaces myself. Everything below is work that actually runs.",
+      heroBtn1: "Run the demos", heroBtn2: "Read the code",
+      scroll: "scroll down",
+      marquee: "unity  ·  c#  ·  javascript  ·  php  ·  mysql  ·  google play  ·  admin panel  ·  forum  ·  api  ·  demo  ·",
+      aboutTitle: "From idea to release, solo.",
+      aboutBig: "I write what you see on screen and what runs behind it — design, code and shipping in one pair of hands.",
+      aboutSmall: "On the game side I build with Unity and publish on Google Play, handling store presence, releases and player feedback myself. On the web side I build admin panels, forums and interaction-heavy interfaces. The demos here aren't screenshots — they open and run in your browser.",
+      stackTitle: "Technologies I work with",
+      stackLead: "This list is maintained from the admin panel.",
+      stackSlot: "new technology",
+      gamesTitle: "Google Play games",
+      demosTitle: "Running demos",
+      demosLead: "Hover a row and the preview follows. Click to open the demo full screen.",
+      demosHint: "the preview is a placeholder — the real demo runs full screen",
+      demosSlot: "empty demo slot — added from the admin panel",
+      openDemo: "Open full screen", close: "Close",
+      githubTitle: "Source code and repos",
+      githubLead: "A preview of the repositories. Anyone who wants to follow along can continue from the profile.",
+      contactTitle: "Contact", contactHead: "Got something to build?",
+      footerNote: "design and code by me",
+      imgSlot: "game artwork here"
+    },
+    ru: {
+      navAbout: "Обо мне", navStack: "Технологии", navGames: "Игры", navDemos: "Демо", navGithub: "GitHub",
+      heroTag: "открыт к новым проектам",
+      heroLine2: "разработчик ПО",
+      roles: ["мобильные игры на Unity", "админ-панели и бэкенд", "рабочие веб-демо"],
+      heroLead: "Делаю игры, собираю админ-панели и сам пишу интерфейсы. Всё ниже — проекты, которые реально работают.",
+      heroBtn1: "Запустить демо", heroBtn2: "Смотреть код",
+      scroll: "прокрутите вниз",
+      marquee: "unity  ·  c#  ·  javascript  ·  php  ·  mysql  ·  google play  ·  админ-панель  ·  форум  ·  api  ·  демо  ·",
+      aboutTitle: "От идеи до релиза — один.",
+      aboutBig: "Пишу и то, что видно на экране, и то, что работает за ним: дизайн, код и релиз в одних руках.",
+      aboutSmall: "В играх работаю на Unity и публикую в Google Play, сам занимаюсь магазином, релизами и обратной связью игроков. В вебе строю админ-панели, форумы и интерфейсы с плотным взаимодействием. Демо здесь — не скриншоты, они действительно запускаются в браузере.",
+      stackTitle: "Технологии, с которыми работаю",
+      stackLead: "Список обновляется из админ-панели.",
+      stackSlot: "новая технология",
+      gamesTitle: "Игры в Google Play",
+      demosTitle: "Рабочие демо",
+      demosLead: "Наведите на строку — предпросмотр меняется. Нажмите, чтобы открыть демо на весь экран.",
+      demosHint: "предпросмотр — заглушка, само демо работает на весь экран",
+      demosSlot: "пустой слот демо — добавится из админ-панели",
+      openDemo: "Открыть на весь экран", close: "Закрыть",
+      githubTitle: "Исходный код и репозитории",
+      githubLead: "Предпросмотр репозиториев. Кто хочет следить — переходите в профиль.",
+      contactTitle: "Контакты", contactHead: "Обсудим проект?",
+      footerNote: "дизайн и код мои",
+      imgSlot: "изображение игры"
+    }
+  },
+
+  logs: [
+    "$ sinan --whoami",
+    "→ unity · c# · javascript · php · mysql",
+    "$ ship --target play-store",
+    "✓ build passed   ✓ release live",
+    "$ serve ./demo/*",
+    "→ ServerAdminPanel  ready",
+    "→ ForumEtkilesim    ready",
+    "→ GameLauncher      ready",
+    "$ open portfolio ▸"
+  ],
+
+  facts: [
+    { value: 3, label: { tr: "Google Play'de yayında oyun", en: "games live on Google Play", ru: "игр в Google Play" } },
+    { value: 3, label: { tr: "yayınlanmış çalışan demo", en: "published running demos", ru: "опубликованных рабочих демо" } },
+    { value: 4, label: { tr: "aktif GitHub deposu", en: "active GitHub repositories", ru: "активных репозиториев GitHub" } }
+  ],
+
+  techs: [
+    { name: "Unity", note: "oyun motoru" },
+    { name: "C#", note: "gameplay · backend" },
+    { name: "JavaScript", note: "arayüz · demo" },
+    { name: "PHP", note: "panel · api" },
+    { name: "MySQL", note: "veri" },
+    { name: "HTML / CSS", note: "arayüz" },
+    { name: "Git", note: "sürüm" }
+  ],
+
+  games: [
+    { name: "Oyun 01", url: "", image: "", cover: "violet", desc: { tr: "Başlık, açıklama ve görsel admin panelinden gelecek.", en: "Title, description and artwork come from the admin panel.", ru: "Название, описание и обложка задаются в админ-панели." } },
+    { name: "Oyun 02", url: "", image: "", cover: "cyan", desc: { tr: "Google Play'de yayında olan projelerden biri.", en: "One of the projects live on Google Play.", ru: "Один из проектов, опубликованных в Google Play." } },
+    { name: "Oyun 03", url: "", image: "", cover: "magenta", desc: { tr: "Yeni oyunlar bu alana eklenecek.", en: "New games get added here.", ru: "Новые игры добавляются здесь." } }
+  ],
+
+  demos: [
+    { path: "demo/ServerAdminPanel", name: "Server Admin Panel", tags: ["HTML", "JS", "Dashboard"], html: "", desc: { tr: "Sunucu yönetimi, kullanıcı listesi ve log ekranlarını içeren panel demosu.", en: "Panel demo with server management, user list and log screens.", ru: "Демо панели: управление сервером, список пользователей и логи." } },
+    { path: "demo/ForumEtkilesim", name: "Forum Etkileşim", tags: ["HTML", "JS", "Community"], html: "", desc: { tr: "Konu akışı, oylama ve bildirim etkileşimleri olan forum arayüzü.", en: "Forum interface with topic feed, voting and notifications.", ru: "Интерфейс форума: лента тем, голосование и уведомления." } },
+    { path: "demo/GameLauncher", name: "Game Launcher", tags: ["HTML", "JS", "UI"], html: "", desc: { tr: "Oyun kütüphanesi ve güncelleme akışı olan masaüstü tarzı arayüz.", en: "Desktop-style interface with a game library and update flow.", ru: "Интерфейс в стиле десктопа: библиотека игр и обновления." } }
+  ],
+
+  repos: [
+    { name: "server-admin-panel", lang: "PHP", updated: "2026", url: "", desc: { tr: "PHP + MySQL tabanlı sunucu yönetim paneli.", en: "Server admin panel built on PHP + MySQL.", ru: "Панель управления сервером на PHP + MySQL." } },
+    { name: "unity-game-tools", lang: "C#", updated: "2026", url: "", desc: { tr: "Unity projelerinde tekrar kullandığım editör scriptleri.", en: "Editor scripts I reuse across Unity projects.", ru: "Скрипты редактора, которые я переиспользую в Unity." } },
+    { name: "forum-etkilesim", lang: "JavaScript", updated: "2026", url: "", desc: { tr: "Forum etkileşim arayüzü prototipi ve demoları.", en: "Forum interaction interface prototype and demos.", ru: "Прототип интерфейса форума и демо." } },
+    { name: "portfolio", lang: "HTML", updated: "2026", url: "", desc: { tr: "Bu sitenin kaynak kodu ve demo dosyaları.", en: "Source code of this site and its demo files.", ru: "Исходный код сайта и файлы демо." } }
+  ]
+};
+
+const COVERS = {
+  violet: ["oklch(0.42 0.15 300)", "oklch(0.26 0.09 280)"],
+  cyan: ["oklch(0.4 0.13 210)", "oklch(0.25 0.08 250)"],
+  magenta: ["oklch(0.44 0.14 340)", "oklch(0.26 0.08 300)"],
+  mint: ["oklch(0.42 0.13 165)", "oklch(0.25 0.07 200)"],
+  amber: ["oklch(0.46 0.13 72)", "oklch(0.27 0.07 50)"]
+};
+
+function clone(x) { return JSON.parse(JSON.stringify(x)); }
+
+function loadContent() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return clone(SEED);
+    const saved = JSON.parse(raw);
+    const base = clone(SEED);
+    return {
+      meta: Object.assign(base.meta, saved.meta || {}),
+      i18n: {
+        tr: Object.assign(base.i18n.tr, (saved.i18n || {}).tr || {}),
+        en: Object.assign(base.i18n.en, (saved.i18n || {}).en || {}),
+        ru: Object.assign(base.i18n.ru, (saved.i18n || {}).ru || {})
+      },
+      logs: saved.logs || base.logs,
+      facts: saved.facts || base.facts,
+      techs: saved.techs || base.techs,
+      games: saved.games || base.games,
+      demos: saved.demos || base.demos,
+      repos: saved.repos || base.repos
+    };
+  } catch (e) {
+    return clone(SEED);
+  }
+}
+
+function saveContent(data) {
+  try { localStorage.setItem(KEY, JSON.stringify(data)); return true; } catch (e) { return false; }
+}
+
+function resetContent() {
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  return clone(SEED);
+}
+
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename || "portfolio-content.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+function logColor(line) {
+  const s = (line || "").trim();
+  if (s.startsWith("✓")) return "oklch(0.8 0.15 150)";
+  if (s.startsWith("→")) return "var(--acc2)";
+  if (s.startsWith("$ open")) return "var(--acc)";
+  if (s.startsWith("$")) return "oklch(0.95 0.008 268)";
+  return "oklch(0.66 0.02 268)";
+}
+
+function demoStub(title) {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+ body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#14131c;color:#e8e8ef;font-family:ui-monospace,SFMono-Regular,monospace}
+ .c{text-align:center;padding:42px 46px;border:1px solid rgba(255,255,255,.14);border-radius:18px;background:rgba(255,255,255,.03)}
+ h1{margin:0 0 12px;font-size:18px;letter-spacing:.08em;color:#c9a6ff}
+ p{margin:0;font-size:13px;line-height:1.8;color:#8f8fa3}
+</style></head><body><div class="c"><h1>${title}</h1><p>Bu demo için HTML/JS henüz yapıştırılmadı.<br/>Admin panel → Demolar → HTML/JS alanı.</p></div></body></html>`;
+}
+
+window.__SITE_DATA = { KEY, LANGS, SEED, COVERS, loadContent, saveContent, resetContent, downloadJSON, logColor, demoStub };
+})();
+</script>
+<script>
+// GENERATED from dc-runtime/src/*.ts — do not edit. Rebuild with `cd dc-runtime && bun run build`.
+"use strict";
+(() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+  // src/react.ts
+  function getReact() {
+    const R = window.React;
+    if (!R) throw new Error("dc-runtime: window.React is not available yet");
+    return R;
+  }
+  function getReactDOM() {
+    const RD = window.ReactDOM;
+    if (!RD) throw new Error("dc-runtime: window.ReactDOM is not available yet");
+    return RD;
+  }
+  var h = ((...args) => getReact().createElement(
+    ...args
+  ));
+
+  // src/parse.ts
+  function parseDcDocument(doc) {
+    const dc = doc.querySelector("x-dc");
+    if (!dc) return null;
+    const scriptEl = doc.querySelector("script[data-dc-script]");
+    const { props, preview } = parseDataProps(
+      scriptEl?.getAttribute("data-props") ?? null
+    );
+    return {
+      template: dc.innerHTML,
+      js: scriptEl ? scriptEl.textContent || "" : "",
+      props,
+      preview
+    };
+  }
+  function parseDcText(src) {
+    const openMatch = /<x-dc(?:\s[^>]*)?>/.exec(src);
+    if (!openMatch) return null;
+    const close = src.lastIndexOf("</x-dc>");
+    if (close === -1 || close < openMatch.index) return null;
+    const template = src.slice(openMatch.index + openMatch[0].length, close);
+    const doc = new DOMParser().parseFromString(src, "text/html");
+    const scriptEl = doc.querySelector("script[data-dc-script]");
+    const { props, preview } = parseDataProps(
+      scriptEl?.getAttribute("data-props") ?? null
+    );
+    return {
+      template,
+      js: scriptEl ? scriptEl.textContent || "" : "",
+      props,
+      preview
+    };
+  }
+  function parseDataProps(raw) {
+    if (!raw) return { props: null, preview: null };
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { props: null, preview: null };
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { props: null, preview: null };
+    }
+    const obj = parsed;
+    const preview = obj.$preview && typeof obj.$preview === "object" ? obj.$preview : null;
+    const rest = {};
+    for (const k of Object.keys(obj)) {
+      if (k[0] !== "$") rest[k] = obj[k];
+    }
+    return { props: Object.keys(rest).length ? rest : null, preview };
+  }
+  function dcNameFromPath(pathname) {
+    let p = pathname || "";
+    try {
+      p = decodeURIComponent(p);
+    } catch {
+    }
+    const base = p.split("/").pop() || "Root";
+    return base.replace(/\.dc\.html$/, "").replace(/\.html?$/, "") || "Root";
+  }
+
+  // src/boot.ts
+  var BASE_CSS = `
+    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
+      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
+      border-radius:2px;box-sizing:border-box;overflow:hidden}
+    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
+    html.sc-dc-streaming .sc-placeholder,
+    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
+      background:color-mix(in srgb,currentColor 5%,transparent);
+      border-color:transparent}
+    html.sc-dc-streaming .sc-placeholder::before,
+    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
+      position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
+      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
+    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
+    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
+      background:color-mix(in srgb,currentColor 8%,transparent)}
+    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
+      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
+    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
+      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;color:transparent;
+      user-select:none}
+    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
+      color:color-mix(in srgb,currentColor 50%,transparent);
+      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
+      padding:0 3px}
+    .sc-host.sc-has-error{position:relative}
+    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
+      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
+      border-radius:4px;white-space:pre-wrap;pointer-events:none}
+    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts \u2014 keep both
+       in sync until dc-runtime regains a build step. */
+    @media print {
+      @page { margin: 0.5cm; }
+      figure, table { break-inside: avoid; }
+      #dc-root, #dc-root > .sc-host { height: auto; }
+      *, *::before, *::after {
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        animation-delay: -99s !important; animation-duration: .001s !important;
+        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+        animation-play-state: running !important; transition-duration: 0s !important;
+      }
+    }
+  `;
+  var FULL_PAGE_CSS = "html,body{height:100%;margin:0}#dc-root,#dc-root>.sc-host{height:100%}";
+  function rootNameForDocument(doc, loc) {
+    let bootPath = loc.pathname || "";
+    if (!/\.dc\.html?$/i.test(safeDecode(bootPath))) {
+      try {
+        bootPath = new URL(doc.baseURI || "/").pathname;
+      } catch {
+      }
+    }
+    return dcNameFromPath(bootPath);
+  }
+  function safeDecode(s) {
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return s;
+    }
+  }
+  function boot(runtime, doc = document) {
+    const parsed = parseDcDocument(doc);
+    if (!parsed) return null;
+    const React = getReact();
+    const rootName = rootNameForDocument(doc, location);
+    runtime.markFetched(rootName);
+    runtime.setRootName(rootName);
+    runtime.adoptParsed(rootName, parsed);
+    if (!window.__resources) {
+      fetch(location.href).then((res) => res.ok ? res.text() : "").then((t) => {
+        const raw = t ? parseDcText(t) : null;
+        if (raw?.template) runtime.updateHtml(rootName, raw.template);
+      }).catch(() => {
+      });
+    }
+    const dc = doc.querySelector("x-dc");
+    const hostEl = doc.createElement("div");
+    hostEl.id = "dc-root";
+    dc.replaceWith(hostEl);
+    if (!parsed.preview) {
+      const s = doc.createElement("style");
+      s.textContent = FULL_PAGE_CSS;
+      doc.head.appendChild(s);
+    }
+    const Root = runtime.getDC(rootName);
+    const entry = runtime.registry.get(rootName);
+    function StandaloneRoot() {
+      const [, setTick] = React.useState(0);
+      React.useEffect(() => {
+        const sub = () => setTick((n) => n + 1);
+        entry.subs.add(sub);
+        return () => {
+          entry.subs.delete(sub);
+        };
+      }, []);
+      const defaults = React.useMemo(() => {
+        const d = {};
+        for (const k in entry.propsMeta || {}) {
+          const v = entry.propsMeta?.[k]?.default;
+          if (v !== void 0) d[k] = v;
+        }
+        return d;
+      }, [entry.propsMeta]);
+      return h(Root, { ...defaults, ...entry.propOverrides || {} });
+    }
+    const ReactDOM = getReactDOM();
+    if (ReactDOM.createRoot)
+      ReactDOM.createRoot(hostEl).render(h(StandaloneRoot));
+    else ReactDOM.render(h(StandaloneRoot), hostEl);
+    return rootName;
+  }
+
+  // src/expr.ts
+  var IDENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*/;
+  var NUMBER_RE = /^-?\d+(\.\d+)?$/;
+  function resolve(vals, src) {
+    const expr = String(src).trim();
+    if (!expr) return void 0;
+    if (expr[0] === "(" && expr[expr.length - 1] === ")" && parensWrapWhole(expr)) {
+      return resolve(vals, expr.slice(1, -1));
+    }
+    const eq = findTopLevelEquality(expr);
+    if (eq) {
+      const lv = resolve(vals, expr.slice(0, eq.index));
+      const rv = resolve(vals, expr.slice(eq.index + eq.op.length));
+      switch (eq.op) {
+        case "===":
+          return lv === rv;
+        case "!==":
+          return lv !== rv;
+        case "==":
+          return lv == rv;
+        default:
+          return lv != rv;
+      }
+    }
+    if (expr[0] === "!") return !resolve(vals, expr.slice(1));
+    if (expr === "true") return true;
+    if (expr === "false") return false;
+    if (expr === "null") return null;
+    if (expr === "undefined") return void 0;
+    if (NUMBER_RE.test(expr)) return Number(expr);
+    if (expr.length >= 2 && (expr[0] === '"' || expr[0] === "'") && expr[expr.length - 1] === expr[0]) {
+      return expr.slice(1, -1);
+    }
+    return resolvePath(vals, expr);
+  }
+  function parensWrapWhole(expr) {
+    let depth = 0;
+    for (let i = 0; i < expr.length - 1; i++) {
+      if (expr[i] === "(") depth++;
+      else if (expr[i] === ")") {
+        depth--;
+        if (depth === 0) return false;
+      }
+    }
+    return true;
+  }
+  function findTopLevelEquality(expr) {
+    let depth = 0;
+    for (let i = 0; i < expr.length; i++) {
+      const c = expr[i];
+      if (c === "[" || c === "(") depth++;
+      else if (c === "]" || c === ")") depth--;
+      else if (depth === 0 && (c === "=" || c === "!") && expr[i + 1] === "=") {
+        if (i > 0 && (expr[i - 1] === "=" || expr[i - 1] === "!")) continue;
+        if (!expr.slice(0, i).trim()) continue;
+        const op = expr[i + 2] === "=" ? c + "==" : c + "=";
+        return { index: i, op };
+      }
+    }
+    return null;
+  }
+  function resolvePath(vals, expr) {
+    const head = expr.match(IDENT_RE);
+    if (!head) return void 0;
+    let cur = vals == null ? void 0 : vals[head[0]];
+    let i = head[0].length;
+    while (i < expr.length) {
+      if (expr[i] === ".") {
+        const m = expr.slice(i + 1).match(IDENT_RE) || expr.slice(i + 1).match(/^\d+/);
+        if (!m) return void 0;
+        cur = cur == null ? void 0 : cur[m[0]];
+        i += 1 + m[0].length;
+      } else if (expr[i] === "[") {
+        let depth = 1;
+        let j = i + 1;
+        while (j < expr.length && depth > 0) {
+          if (expr[j] === "[") depth++;
+          else if (expr[j] === "]") {
+            depth--;
+            if (depth === 0) break;
+          }
+          j++;
+        }
+        if (depth !== 0) return void 0;
+        const key = resolve(vals, expr.slice(i + 1, j));
+        cur = cur == null ? void 0 : cur[key];
+        i = j + 1;
+      } else {
+        return void 0;
+      }
+    }
+    return cur;
+  }
+
+  // src/encode.ts
+  var CAMEL_ATTR = "sc-camel-";
+  var INLINE_TEXT_TAGS = new Set(
+    "a abbr b bdi bdo br cite code del dfn em i ins kbd mark q s samp small span strike strong sub sup u var wbr".split(
+      " "
+    )
+  );
+  var RAW_WRAP = {
+    select: "sc-raw-select",
+    table: "sc-raw-table",
+    tbody: "sc-raw-tbody",
+    thead: "sc-raw-thead",
+    tfoot: "sc-raw-tfoot",
+    tr: "sc-raw-tr",
+    td: "sc-raw-td",
+    th: "sc-raw-th",
+    caption: "sc-raw-caption"
+  };
+  var RAW_UNWRAP = Object.fromEntries(
+    Object.entries(RAW_WRAP).map(([k, v]) => [v, k])
+  );
+  var EVENT_MAP = {
+    onclick: "onClick",
+    onchange: "onChange",
+    oninput: "onInput",
+    onsubmit: "onSubmit",
+    onkeydown: "onKeyDown",
+    onkeyup: "onKeyUp",
+    onkeypress: "onKeyPress",
+    onmousedown: "onMouseDown",
+    onmouseup: "onMouseUp",
+    onmouseenter: "onMouseEnter",
+    onmouseleave: "onMouseLeave",
+    onfocus: "onFocus",
+    onblur: "onBlur",
+    ondoubleclick: "onDoubleClick",
+    oncontextmenu: "onContextMenu",
+    onmousemove: "onMouseMove",
+    onmouseover: "onMouseOver",
+    onmouseout: "onMouseOut",
+    onpointerdown: "onPointerDown",
+    onpointerup: "onPointerUp",
+    onpointermove: "onPointerMove",
+    onpointerenter: "onPointerEnter",
+    onpointerleave: "onPointerLeave",
+    onpointercancel: "onPointerCancel",
+    onpointerover: "onPointerOver",
+    onpointerout: "onPointerOut",
+    ongotpointercapture: "onGotPointerCapture",
+    onlostpointercapture: "onLostPointerCapture",
+    ontouchstart: "onTouchStart",
+    ontouchend: "onTouchEnd",
+    ontouchmove: "onTouchMove",
+    ontouchcancel: "onTouchCancel",
+    ondragstart: "onDragStart",
+    ondragend: "onDragEnd",
+    ondragenter: "onDragEnter",
+    ondragleave: "onDragLeave",
+    ondragover: "onDragOver",
+    onanimationstart: "onAnimationStart",
+    onanimationend: "onAnimationEnd",
+    onanimationiteration: "onAnimationIteration",
+    ontransitionend: "onTransitionEnd"
+  };
+  var ATTRS = `(?:[^>"']|"[^"]*"|'[^']*')*`;
+  var IMPORT_SELF_CLOSE_RE = new RegExp(
+    "<(x-import|dc-import)(" + ATTRS + ")/>",
+    "gi"
+  );
+  var CAMEL_ATTR_RE = /(\s)([a-z]+[A-Z][A-Za-z0-9]*)(\s*=)/g;
+  function encodeCamelAttrs(html) {
+    return html.replace(
+      CAMEL_ATTR_RE,
+      (_, sp, name, eq) => sp + CAMEL_ATTR + name.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + eq
+    );
+  }
+  function encodeCase(html) {
+    html = html.replace(
+      IMPORT_SELF_CLOSE_RE,
+      (_, t, a) => "<" + t + a + "></" + t + ">"
+    );
+    html = html.replace(/<helmet(\s|>)/gi, "<sc-helmet$1");
+    html = html.replace(/<\/helmet\s*>/gi, "</sc-helmet>");
+    html = encodeCamelAttrs(html);
+    for (const [real, alias] of Object.entries(RAW_WRAP)) {
+      html = html.replace(
+        new RegExp("(</?)" + real + "(?=[\\s>])", "gi"),
+        "$1" + alias
+      );
+    }
+    return html;
+  }
+  function kebabToCamel(s) {
+    return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  }
+  function cssToObj(css) {
+    const o = {};
+    for (const decl of css.split(";")) {
+      const i = decl.indexOf(":");
+      if (i < 0) continue;
+      const prop = decl.slice(0, i).trim();
+      o[prop.startsWith("--") ? prop : kebabToCamel(prop)] = decl.slice(i + 1).trim();
+    }
+    return o;
+  }
+  function compileAttr(raw) {
+    const whole = raw.match(/^\s*\{\{([\s\S]+?)\}\}\s*$/);
+    if (whole) {
+      const path = whole[1];
+      return (vals) => resolve(vals, path);
+    }
+    if (raw.includes("{{")) {
+      const parts = raw.split(/\{\{([\s\S]+?)\}\}/g);
+      return (vals) => parts.map((s, i) => i & 1 ? resolve(vals, s) ?? "" : s).join("");
+    }
+    return () => raw;
+  }
+
+  // src/compile.ts
+  function collectProps(node, kind, host) {
+    const propGetters = [];
+    const pseudoClasses = [];
+    let hintSize = null;
+    for (const { name, value } of [...node.attributes]) {
+      if (name === "sc-name" || name === "data-dc-tpl") continue;
+      let key = name;
+      if (key.startsWith(CAMEL_ATTR))
+        key = kebabToCamel(key.slice(CAMEL_ATTR.length));
+      if (key === "hint-size") {
+        hintSize = value;
+        continue;
+      }
+      if (key.startsWith("style-")) {
+        pseudoClasses.push(host.pseudoClass(key.slice(6), value));
+        continue;
+      }
+      if (kind !== "dom") {
+        if (key.includes("-") && !(kind === "x-import" && (key.startsWith("aria-") || key.startsWith("data-"))))
+          key = kebabToCamel(key);
+      } else {
+        if (key === "class") key = "className";
+        else if (key === "for") key = "htmlFor";
+        else if (key.startsWith("on"))
+          key = EVENT_MAP[key] || "on" + key[2].toUpperCase() + key.slice(3);
+      }
+      propGetters.push([key, compileAttr(value)]);
+    }
+    return { propGetters, pseudoClasses, hintSize };
+  }
+  var HOST_STYLE_PROPS = /* @__PURE__ */ new Set([
+    "position",
+    "left",
+    "right",
+    "top",
+    "bottom",
+    "inset",
+    "width",
+    "height",
+    "z-index",
+    "transform"
+  ]);
+  function hostPositionStyle(style) {
+    const all = typeof style === "string" ? cssToObj(style) : style != null && typeof style === "object" ? style : null;
+    if (!all) return void 0;
+    const out = {};
+    for (const [k, v] of Object.entries(all)) {
+      const kebab = k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
+      if (HOST_STYLE_PROPS.has(kebab)) out[k] = v;
+    }
+    return Object.keys(out).length ? out : void 0;
+  }
+  function compileTemplate(html, host) {
+    const tpl = document.createElement("template");
+    //! nosemgrep: direct-inner-html-assignment
+    tpl.innerHTML = encodeCase(html);
+    let tplN = 0;
+    (function stamp(node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        node.setAttribute("data-dc-tpl", String(tplN++));
+      }
+      for (const c of node.childNodes) stamp(c);
+    })(tpl.content);
+    const builders = walkChildren(tpl.content, host);
+    const render = ((vals, ctx) => builders.map((b, i) => b(vals || {}, ctx, i)));
+    render.__annotated = tpl.innerHTML;
+    return render;
+  }
+  function walkChildren(node, host) {
+    return [...node.childNodes].map((c) => walk(c, host)).filter((b) => b != null);
+  }
+  var SLIDE_ID_VALUE_RE = /^[0-9a-f]{8}$/;
+  var DECK_CONTROL_FLOW_RE = /^(sc-if|sc-for|sc-else|dc-import|x-import)$/;
+  var DECK_AUX_RE = /^(template|script|style|sc-helmet|helmet)$/;
+  function isDeckMountTag(el) {
+    if (el.localName === "deck-stage") return true;
+    return el.localName === "x-import" && (el.getAttribute("component-from-global-scope") || "") === "deck-stage";
+  }
+  function walkDeckChildren(el, host) {
+    const pairs = [...el.childNodes].map((c) => ({ c, b: walk(c, host) })).filter((p) => p.b !== null);
+    const kids = pairs.map((p) => p.b);
+    const seen = /* @__PURE__ */ new Set();
+    const wsSeen = /* @__PURE__ */ new Map();
+    const keys = [];
+    const nextSlideId = new Array(pairs.length);
+    {
+      let upcoming = null;
+      for (let j = pairs.length - 1; j >= 0; j--) {
+        const n = pairs[j].c;
+        if (n.nodeType === Node.ELEMENT_NODE) {
+          const t = n.localName;
+          upcoming = !DECK_AUX_RE.test(t) && !DECK_CONTROL_FLOW_RE.test(t) ? n.getAttribute("data-om-slide-id") : null;
+        }
+        nextSlideId[j] = upcoming;
+      }
+    }
+    for (let j = 0; j < pairs.length; j++) {
+      const { c } = pairs[j];
+      if (c.nodeType === Node.TEXT_NODE) {
+        if ((c.nodeValue ?? "").trim() === "") {
+          const base = nextSlideId[j] ? "omid-ws:" + nextSlideId[j] : "omid-ws:aux";
+          const n = wsSeen.get(base) ?? 0;
+          wsSeen.set(base, n + 1);
+          keys.push(n === 0 ? base : base + ":" + n);
+          continue;
+        }
+        return { kids, keys: null };
+      }
+      if (c.nodeType !== Node.ELEMENT_NODE) {
+        keys.push(j);
+        continue;
+      }
+      const child = c;
+      const tag = child.localName;
+      if (DECK_AUX_RE.test(tag)) {
+        keys.push(j);
+        continue;
+      }
+      if (DECK_CONTROL_FLOW_RE.test(tag)) return { kids, keys: null };
+      const v = child.getAttribute("data-om-slide-id");
+      if (!v || !SLIDE_ID_VALUE_RE.test(v) || seen.has(v)) {
+        return { kids, keys: null };
+      }
+      seen.add(v);
+      keys.push("omid:" + v);
+    }
+    return { kids, keys };
+  }
+  function renderDeckKids(kids, kidKeys, vals, ctx) {
+    return kids.map((b, j) => {
+      const k = kidKeys ? kidKeys[j] : j;
+      const out = b(vals, ctx, k);
+      return kidKeys != null && typeof out === "string" ? h(getReact().Fragment, { key: k }, out) : out;
+    });
+  }
+  function walk(node, host) {
+    if (node.nodeType === Node.TEXT_NODE) return walkText(node);
+    if (node.nodeType !== Node.ELEMENT_NODE) return null;
+    const el = node;
+    const tag = el.tagName.toLowerCase();
+    if (tag === "sc-for") return walkFor(el, host);
+    if (tag === "sc-if") return walkIf(el, host);
+    if (tag === "x-import") return walkXImport(el, host);
+    if (tag === "sc-helmet") return host.helmet(el);
+    if (tag === "dc-import") return walkComponent(el, host);
+    return walkElement(el, host);
+  }
+  var warnedHoles = /* @__PURE__ */ new Set();
+  function warnUnresolved(ctx, what) {
+    const key = (ctx?.__name || "?") + "\0" + what;
+    if (warnedHoles.has(key)) return;
+    warnedHoles.add(key);
+    console.warn("[dc-runtime] " + (ctx?.__name || "template") + ": " + what);
+  }
+  function walkText(node) {
+    const txt = node.nodeValue ?? "";
+    if (!txt.includes("{{")) {
+      if (!txt.trim() && !txt.includes(" ")) return null;
+      return () => txt;
+    }
+    const parts = txt.split(/\{\{([\s\S]+?)\}\}/g);
+    return (vals, ctx, key) => h(
+      getReact().Fragment,
+      { key },
+      ...parts.map((p, i) => {
+        if (!(i & 1)) return p;
+        const v = resolve(vals, p);
+        if (v === void 0) {
+          if (!ctx?.__streamingNow) {
+            if (document.body?.hasAttribute("data-dc-editor-on")) {
+              return h(
+                "span",
+                { key: i, className: "sc-interp sc-unresolved" },
+                "{{ " + p.trim() + " }}"
+              );
+            }
+            warnUnresolved(
+              ctx,
+              "{{ " + p.trim() + " }} never resolved \u2014 rendered as empty"
+            );
+            return null;
+          }
+          return h(
+            "span",
+            { key: i, className: "sc-interp sc-missing" },
+            p.trim()
+          );
+        }
+        if (getReact().isValidElement(v) || Array.isArray(v)) {
+          return h(getReact().Fragment, { key: i }, v);
+        }
+        if (v === null || typeof v === "boolean") return null;
+        return h("span", { key: i, className: "sc-interp" }, String(v));
+      })
+    );
+  }
+  function walkFor(el, host) {
+    const listGet = compileAttr(el.getAttribute("list") || "");
+    const asName = el.getAttribute("as") || "item";
+    const hintN = parseInt(el.getAttribute("hint-placeholder-count") || "0", 10);
+    const kids = walkChildren(el, host);
+    const listSrc = el.getAttribute("list") || "";
+    return (vals, ctx, key) => {
+      let list = listGet(vals);
+      if (!Array.isArray(list)) {
+        if (!ctx?.__streamingNow) {
+          if (list !== void 0 && list !== null) {
+            warnUnresolved(
+              ctx,
+              'sc-for list="' + listSrc + '" is not an array (' + typeof list + ")"
+            );
+          }
+          list = [];
+        } else {
+          list = hintN > 0 ? Array(hintN).fill(void 0) : [];
+        }
+      }
+      return h(
+        getReact().Fragment,
+        { key },
+        list.map((item, i) => {
+          const sub = { ...vals, [asName]: item, $index: i };
+          return h(
+            getReact().Fragment,
+            { key: i },
+            kids.map((b, j) => b(sub, ctx, j))
+          );
+        })
+      );
+    };
+  }
+  function walkIf(el, host) {
+    const valGet = compileAttr(el.getAttribute("value") || "");
+    const hintRaw = el.getAttribute("hint-placeholder-val");
+    const hintGet = hintRaw != null ? compileAttr(hintRaw) : null;
+    const kids = walkChildren(el, host);
+    return (vals, ctx, key) => {
+      let v = valGet(vals);
+      if (v === void 0 && hintGet && ctx?.__streamingNow) v = hintGet(vals);
+      return v ? h(
+        getReact().Fragment,
+        { key },
+        kids.map((b, j) => b(vals, ctx, j))
+      ) : null;
+    };
+  }
+  function walkComponent(el, host) {
+    const name = el.getAttribute("name") || el.getAttribute("component") || "";
+    el.removeAttribute("name");
+    el.removeAttribute("component");
+    const tplId = el.getAttribute("data-dc-tpl");
+    const styleRaw = el.getAttribute("style");
+    el.removeAttribute("style");
+    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
+    const { propGetters, hintSize } = collectProps(el, "dc-import", host);
+    const kids = walkChildren(el, host);
+    return (vals, ctx, key) => {
+      const props = {
+        key,
+        __hintSize: hintSize,
+        __tplId: tplId,
+        __hostStyle: styleGet ? hostPositionStyle(styleGet(vals)) : void 0
+      };
+      for (const [k, g] of propGetters) {
+        const v = g(vals);
+        if (k === "dcProps") {
+          if (v && typeof v === "object") Object.assign(props, v);
+          continue;
+        }
+        props[k] = v;
+      }
+      if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
+      return h(host.component(name), props);
+    };
+  }
+  function walkXImport(el, host) {
+    const globalNameGet = compileAttr(
+      el.getAttribute("component-from-global-scope") || ""
+    );
+    const exportNameGet = compileAttr(
+      el.getAttribute("component") || el.getAttribute("name") || ""
+    );
+    const fromRaw = el.getAttribute("from") || (el.getAttribute("component-from-global-scope") ? "" : el.getAttribute("src") || el.getAttribute("import") || "");
+    const urls = fromRaw.trim() ? fromRaw.trim().split(/\s+/) : [];
+    const url = urls.length ? urls[urls.length - 1] : "";
+    const kindOf = (u) => /\.(jsx|tsx)(\?|#|$)/i.test(u) ? "jsx" : "js";
+    const tplId = el.getAttribute("data-dc-tpl");
+    const styleRaw = el.getAttribute("style");
+    el.removeAttribute("style");
+    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
+    const wrap = tplId != null || styleGet != null;
+    const { propGetters, hintSize } = collectProps(el, "x-import", host);
+    const hasContent = el.children.length > 0 || !!(el.textContent || "").trim();
+    const deckKeyed = hasContent && isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
+    const kids = deckKeyed ? deckKeyed.kids : hasContent ? walkChildren(el, host) : [];
+    const kidKeys = deckKeyed?.keys ?? null;
+    const urlBindable = fromRaw.includes("{{");
+    if (urls.length && !urlBindable) {
+      let prev;
+      for (const u of urls) prev = host.loadExternal(kindOf(u), u, prev);
+    }
+    const evalName = (g, vals) => {
+      const v = g(vals);
+      const s = v == null ? "" : String(v);
+      return s.includes("{{") ? "" : s;
+    };
+    return (vals, ctx, key) => {
+      const globalName = evalName(globalNameGet, vals);
+      const name = globalName || evalName(exportNameGet, vals);
+      const C = !name || urlBindable ? null : globalName ? host.resolveExternalGlobal(url, globalName) : host.resolveExternal(url, name);
+      const hostStyle = styleGet ? hostPositionStyle(styleGet(vals)) : void 0;
+      const wrapper = wrap ? {
+        key,
+        className: "sc-host-x",
+        "data-dc-tpl": tplId,
+        style: hostStyle || { display: "contents" }
+      } : null;
+      if (!C) {
+        const error = urlBindable ? "x-import `from` cannot contain {{ \u2026 }} \u2014 module URLs are resolved at parse time; use a literal URL" : host.resolveExternalError(url, name);
+        const ph = host.placeholder({
+          key: wrapper ? void 0 : key,
+          name,
+          hintSize,
+          error
+        });
+        return wrapper ? h("div", wrapper, ph) : ph;
+      }
+      const props = wrapper ? {} : { key };
+      let unresolvedHole = false;
+      for (const [k, g] of propGetters) {
+        if (k === "component" || k === "componentFromGlobalScope" || k === "from") {
+          continue;
+        }
+        const v = g(vals);
+        if (v === void 0) unresolvedHole = true;
+        if (k === "dcProps") {
+          if (v && typeof v === "object") Object.assign(props, v);
+          continue;
+        }
+        props[k] = v;
+      }
+      if (unresolvedHole && ctx?.__htmlStreamingNow) {
+        const ph = host.placeholder({
+          key: wrapper ? void 0 : key,
+          name,
+          hintSize,
+          error: null
+        });
+        return wrapper ? h("div", wrapper, ph) : ph;
+      }
+      if (kids.length) {
+        props.children = renderDeckKids(kids, kidKeys, vals, ctx);
+      }
+      return wrapper ? h("div", wrapper, h(C, props)) : h(C, props);
+    };
+  }
+  function contentKey(el) {
+    const clone = el.cloneNode(true);
+    for (const d of clone.querySelectorAll("*")) {
+      while (d.attributes.length) d.removeAttribute(d.attributes[0].name);
+    }
+    const s = clone.innerHTML;
+    let h2 = 5381;
+    for (let i = 0; i < s.length; i++) h2 = (h2 << 5) + h2 + s.charCodeAt(i) | 0;
+    return s.length + "." + (h2 >>> 0).toString(36);
+  }
+  var NEVER_CONTENT_KEYED = new Set(
+    "script style textarea option title select canvas iframe video audio".split(
+      " "
+    )
+  );
+  var NOT_INLINE_SELECTOR = ":not(" + [...INLINE_TEXT_TAGS].join(",") + ")";
+  function walkElement(el, host) {
+    const realTag = RAW_UNWRAP[el.localName] || el.localName;
+    const tplId = el.getAttribute("data-dc-tpl");
+    const inlineOnly = el.childNodes.length > 0 && !NEVER_CONTENT_KEYED.has(realTag) && el.querySelector(NOT_INLINE_SELECTOR) === null;
+    const keySuffix = inlineOnly ? "|" + contentKey(el) : "";
+    const { propGetters, pseudoClasses } = collectProps(el, "dom", host);
+    const deckKeyed = isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
+    const kids = deckKeyed ? deckKeyed.kids : walkChildren(el, host);
+    const kidKeys = deckKeyed?.keys ?? null;
+    return (vals, ctx, key) => {
+      const props = {
+        key: key + keySuffix,
+        "data-dc-tpl": tplId
+      };
+      for (const [k, g] of propGetters) {
+        let v = g(vals);
+        if (k === "style" && typeof v === "string") v = cssToObj(v);
+        if ((k === "value" || k === "checked") && v === void 0) {
+          v = k === "checked" ? false : "";
+        }
+        props[k] = v;
+      }
+      if (pseudoClasses.length) {
+        props.className = [props.className, ...pseudoClasses].filter(Boolean).join(" ");
+      }
+      return h(realTag, props, ...renderDeckKids(kids, kidKeys, vals, ctx));
+    };
+  }
+
+  // src/logic.ts
+  var StreamableLogic = class {
+    constructor(props) {
+      __publicField(this, "props");
+      __publicField(this, "state", {});
+      /** Back-pointer to the wrapper component, installed after construction. */
+      __publicField(this, "__host");
+      this.props = props || {};
+    }
+    setState(update, cb) {
+      this.__host && this.__host.__setLogicState(update, cb);
+    }
+    forceUpdate() {
+      this.__host && this.__host.forceUpdate();
+    }
+    componentDidMount() {
+    }
+    componentDidUpdate(_prevProps) {
+    }
+    componentWillUnmount() {
+    }
+    /** The flat object the template renders against (merged over props). */
+    renderVals() {
+      return {};
+    }
+  };
+  function evalDcLogic(src) {
+    //! nosemgrep: eval-and-function-constructor
+    const fn = new Function(
+      "DCLogic",
+      "StreamableLogic",
+      "React",
+      src + '\n;return (typeof Component!=="undefined"&&Component)||undefined;'
+    );
+    return fn(StreamableLogic, StreamableLogic, getReact());
+  }
+
+  // src/component.ts
+  function shallowEqual(a, b) {
+    if (!b) return false;
+    const ak = Object.keys(a).filter((k) => k !== "children");
+    const bk = Object.keys(b).filter((k) => k !== "children");
+    if (ak.length !== bk.length) return false;
+    for (const k of ak) if (a[k] !== b[k]) return false;
+    return true;
+  }
+  function Placeholder({
+    name,
+    hintSize,
+    streaming,
+    error
+  }) {
+    const [w, hgt] = (hintSize || "100%,60px").split(",");
+    return h(
+      "div",
+      {
+        className: "sc-placeholder" + (streaming ? " sc-streaming" : ""),
+        style: { width: w.trim(), height: hgt && hgt.trim() },
+        title: name
+      },
+      error ? h(
+        "div",
+        { className: "sc-placeholder-error" },
+        (name ? name + ": " : "") + error
+      ) : null
+    );
+  }
+  function hintToMin(hint) {
+    if (!hint) return void 0;
+    const [w, hgt] = hint.split(",");
+    return { minWidth: w.trim(), minHeight: hgt && hgt.trim() };
+  }
+  function createComponentFactory(registry, ensureFetched) {
+    const React = getReact();
+    const AncestorContext = React.createContext([]);
+    class StreamableComponent extends React.Component {
+      constructor(props) {
+        super(props);
+        __publicField(this, "__name");
+        __publicField(this, "__sub");
+        __publicField(this, "__needsDidMount", false);
+        /** Snapshot of the registry's streaming flags taken at render time —
+         *  builders read it off the RenderCtx (this) to pick placeholder vs
+         *  render-nothing for unresolved values. */
+        __publicField(this, "__streamingNow", false);
+        __publicField(this, "__htmlStreamingNow", false);
+        /** When a construct throws, remember the (class, registry.ver, props)
+         *  triple so render-time reconcile doesn't re-attempt it on every parent
+         *  re-render. A registry bump (new class, template, external module
+         *  resolving via bumpAll) changes `ver` and breaks the memo so an
+         *  env-dependent constructor can self-heal. */
+        __publicField(this, "__failedLogic", null);
+        __publicField(this, "__failedUserProps", null);
+        __publicField(this, "__failedVer", -1);
+        /** Per-instance constructor error — kept here (not on the registry entry)
+         *  so one instance's successful construct can't hide a sibling's failure,
+         *  and a construct can never wipe an eval error `updateJs` recorded on
+         *  `r.logicError`. */
+        __publicField(this, "__ctorError", null);
+        __publicField(this, "logic");
+        this.__name = props.__name;
+        this.state = { __v: 0, __err: null };
+        this.__sub = () => {
+          if (this.state.__err) this.setState({ __err: null });
+          this.forceUpdate();
+        };
+        this.__makeLogic(registry.get(this.__name).Logic, null);
+        ensureFetched(this.__name);
+      }
+      /** Error-boundary hook: a render crash anywhere in this DC's subtree
+       *  (its own template, an x-import'd component, a child DC without its
+       *  own deeper boundary) lands here instead of unmounting the page. */
+      static getDerivedStateFromError(e) {
+        return { __err: e instanceof Error && e.message ? e.message : String(e) };
+      }
+      componentDidCatch(e, info) {
+        console.error(
+          "[dc-runtime] render error in <" + this.__name + ">:",
+          e,
+          info?.componentStack || ""
+        );
+      }
+      /** Instantiate the logic class (or the no-op base) and adopt `prevState`
+       *  over its initial state — used both at mount and on hot-swap. */
+      __makeLogic(Logic, prevState) {
+        const L = Logic || StreamableLogic;
+        try {
+          this.logic = new L(this.__userProps());
+          this.__failedLogic = null;
+          this.__failedUserProps = null;
+          this.__ctorError = null;
+        } catch (e) {
+          console.error(e);
+          this.__failedLogic = Logic;
+          this.__failedUserProps = this.__userProps();
+          this.__failedVer = registry.get(this.__name).ver;
+          this.__ctorError = this.__name + ": " + (e instanceof Error && e.message ? e.message : String(e));
+          this.logic = new StreamableLogic(
+            this.__userProps()
+          );
+        }
+        this.logic.__host = this;
+        if (prevState)
+          this.logic.state = { ...this.logic.state || {}, ...prevState };
+      }
+      /** The props the author's logic + template see — internal __-prefixed
+       *  wiring stripped. */
+      __userProps() {
+        const { __name, __hintSize, __tplId, __hostStyle, ...rest } = this.props;
+        return rest;
+      }
+      __setLogicState(update, cb) {
+        const prev = this.logic.state;
+        const patch = typeof update === "function" ? update(prev) : update;
+        this.logic.state = { ...prev, ...patch };
+        this.setState((s) => ({ __v: s.__v + 1 }), cb);
+      }
+      /** Swap the logic instance when the registry's Logic class changed
+       *  (streaming completion, hot reload). State carries over; didMount
+       *  re-fires after the swap commits so refs exist. */
+      __reconcileLogic() {
+        const r = registry.get(this.__name);
+        const Next = r.Logic;
+        const Cur = this.logic.constructor;
+        if (Next === Cur || !Next && Cur === StreamableLogic || Next === this.__failedLogic && r.ver === this.__failedVer && shallowEqual(this.__userProps(), this.__failedUserProps)) {
+          return;
+        }
+        if (!this.__needsDidMount) {
+          try {
+            this.logic.componentWillUnmount();
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        this.__makeLogic(Next, this.logic.state);
+        this.__needsDidMount = true;
+      }
+      componentDidMount() {
+        registry.get(this.__name).subs.add(this.__sub);
+        try {
+          this.logic.componentDidMount();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      componentDidUpdate(prevProps) {
+        this.logic.props = this.__userProps();
+        if (this.__needsDidMount) {
+          if (this.state.__err || !registry.get(this.__name).tpl) return;
+          this.__needsDidMount = false;
+          try {
+            this.logic.componentDidMount();
+          } catch (e) {
+            console.error(e);
+          }
+        } else {
+          try {
+            this.logic.componentDidUpdate(prevProps);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+      componentWillUnmount() {
+        registry.get(this.__name).subs.delete(this.__sub);
+        if (!this.__needsDidMount) {
+          try {
+            this.logic.componentWillUnmount();
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+      render() {
+        const r = registry.get(this.__name);
+        const cls = "sc-host" + (r.htmlStreaming ? " sc-streaming-html" : "") + (r.jsStreaming ? " sc-streaming-js" : "");
+        const hintStyle = r.htmlStreaming ? hintToMin(this.props.__hintSize) : void 0;
+        const hostStyle = this.props.__hostStyle || hintStyle ? { ...hintStyle || {}, ...this.props.__hostStyle || {} } : void 0;
+        const hostBase = {
+          className: cls,
+          style: hostStyle,
+          "data-sc-name": this.__name,
+          "data-dc-tpl": this.props.__tplId
+        };
+        const chain = Array.isArray(this.context) ? this.context : [];
+        if (chain.includes(this.__name)) {
+          const cycle = [
+            ...chain.slice(chain.indexOf(this.__name)),
+            this.__name
+          ].join(" \u2192 ");
+          return h(
+            "div",
+            { ...hostBase, className: cls + " sc-has-error" },
+            h(Placeholder, {
+              name: this.__name,
+              hintSize: this.props.__hintSize,
+              error: "circular import: " + cycle
+            })
+          );
+        }
+        if (this.state.__err) {
+          return h(
+            "div",
+            { ...hostBase, className: cls + " sc-has-error" },
+            h(
+              "div",
+              { className: "sc-logic-error", "data-omelette-chrome": "" },
+              this.__name + ": " + this.state.__err
+            ),
+            h(Placeholder, {
+              name: this.__name,
+              hintSize: this.props.__hintSize,
+              error: this.state.__err
+            })
+          );
+        }
+        this.__reconcileLogic();
+        if (!r.tpl) {
+          return h(
+            "div",
+            hostBase,
+            h(Placeholder, { name: this.__name, hintSize: this.props.__hintSize })
+          );
+        }
+        const userProps = this.__userProps();
+        this.logic.props = userProps;
+        let vals = userProps;
+        let renderErr = r.logicError || this.__ctorError;
+        try {
+          vals = { ...userProps, ...this.logic.renderVals() || {} };
+        } catch (e) {
+          console.error(e);
+          renderErr = this.__name + ".renderVals(): " + (e instanceof Error && e.message ? e.message : String(e));
+        }
+        this.__streamingNow = !!(r.htmlStreaming || r.jsStreaming);
+        this.__htmlStreamingNow = !!r.htmlStreaming;
+        return h(
+          "div",
+          { ...hostBase, className: cls + (renderErr ? " sc-has-error" : "") },
+          renderErr && h(
+            "div",
+            { className: "sc-logic-error", "data-omelette-chrome": "" },
+            renderErr
+          ),
+          h(
+            AncestorContext.Provider,
+            { value: [...chain, this.__name] },
+            r.tpl(vals, this)
+          )
+        );
+      }
+    }
+    __publicField(StreamableComponent, "contextType", AncestorContext);
+    const named = /* @__PURE__ */ new Map();
+    function getDC(name) {
+      const hit = named.get(name);
+      if (hit) return hit;
+      function Dispatcher(p) {
+        const [, setTick] = React.useState(0);
+        React.useEffect(() => {
+          const sub = () => setTick((n) => n + 1);
+          registry.get(name).subs.add(sub);
+          return () => {
+            registry.get(name).subs.delete(sub);
+          };
+        }, []);
+        ensureFetched(name);
+        return h(StreamableComponent, { ...p, __name: name });
+      }
+      Dispatcher.displayName = name;
+      named.set(name, Dispatcher);
+      return Dispatcher;
+    }
+    return {
+      getDC,
+      StreamableComponent
+    };
+  }
+
+  // src/bundled.ts
+  function bundledBlob(url) {
+    const blobs = window.__resourceBlobs;
+    const b = blobs ? blobs[url.split("#")[0]] : void 0;
+    return b instanceof Blob ? b : null;
+  }
+
+  // src/cdn.ts
+  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
+  var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
+  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
+  var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
+  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js";
+  var BABEL_SRI = "sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y";
+  function cdnScriptFor(url, sri) {
+    const res = window.__resources;
+    const v = res ? res[url] : void 0;
+    return typeof v === "string" && v ? { src: v } : { src: url, integrity: sri };
+  }
+
+  // src/external.ts
+  var isCustomElementName = (n) => !n.includes(".") && n.includes("-");
+  function isRenderableType(g) {
+    if (typeof g === "function") return !isElementClass(g);
+    return typeof g === "object" && g !== null && typeof g.$$typeof === "symbol";
+  }
+  function resolveDottedPath(root, name) {
+    let cur = root;
+    for (const seg of name.split(".")) {
+      if (cur == null) return void 0;
+      cur = cur[seg];
+    }
+    return cur;
+  }
+  var GLOBAL_POLL_INTERVAL_MS = 50;
+  var GLOBAL_POLL_TIMEOUT_MS = 3e4;
+  function createExternalModules(onResolved) {
+    const cache = /* @__PURE__ */ new Map();
+    let babelLoading = null;
+    const reportedMissing = /* @__PURE__ */ new Map();
+    const polling = /* @__PURE__ */ new Set();
+    function ensureBabel() {
+      if (window.Babel) return Promise.resolve();
+      if (babelLoading) return babelLoading;
+      const babel = cdnScriptFor(BABEL_URL, BABEL_SRI);
+      babelLoading = new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = babel.src;
+        if (babel.integrity) {
+          s.integrity = babel.integrity;
+          s.crossOrigin = "anonymous";
+        }
+        s.onload = () => res();
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      return babelLoading;
+    }
+    const pending = /* @__PURE__ */ new Map();
+    function load(kind, url, after) {
+      const existing = pending.get(url);
+      if (existing) return existing;
+      cache.set(url, null);
+      console.info("[dc-runtime] x-import: loading", url, "(" + kind + ")");
+      const ready = Promise.all([
+        kind === "jsx" ? ensureBabel() : Promise.resolve(),
+        after ?? Promise.resolve()
+      ]);
+      const p = ready.then(() => {
+        const pre = bundledBlob(url);
+        if (pre) return pre.text();
+        return fetch(url).then((r) => {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.text();
+        });
+      }).then((src) => {
+        const code = kind === "jsx" ? window.Babel.transform(src, {
+          filename: url,
+          presets: ["react", "typescript"]
+        }).code : src;
+        const module = { exports: {} };
+        const before = new Set(Object.keys(window));
+        //! nosemgrep: eval-and-function-constructor
+        new Function("React", "module", "exports", "require", code)(
+          getReact(),
+          module,
+          module.exports,
+          () => ({})
+        );
+        const globals = {};
+        for (const k of Object.keys(window)) {
+          if (!before.has(k) && typeof window[k] === "function") {
+            globals[k] = window[k];
+          }
+        }
+        cache.set(url, { mod: module.exports, globals });
+        console.info(
+          "[dc-runtime] x-import: loaded",
+          url,
+          "\u2014 exports:",
+          Object.keys(module.exports),
+          "window globals:",
+          Object.keys(globals)
+        );
+        onResolved();
+      }).catch((e) => {
+        cache.set(url, {
+          mod: {},
+          globals: {},
+          error: "failed to load: " + (e instanceof Error && e.message ? e.message : String(e))
+        });
+        console.error(
+          "[dc-runtime] x-import: FAILED to load",
+          url,
+          "(" + kind + ")",
+          e
+        );
+        onResolved();
+      });
+      pending.set(url, p);
+      return p;
+    }
+    function resolve2(url, name) {
+      const entry = cache.get(url);
+      if (!entry) return null;
+      const { mod, globals } = entry;
+      const C = mod && mod[name] || globals && globals[name] || typeof window !== "undefined" && window[name] || mod && mod.default;
+      if (typeof C === "function") return C;
+      const key = url + "\0" + name;
+      if (!reportedMissing.has(key)) {
+        reportedMissing.set(
+          key,
+          entry.error || 'no export named "' + name + '" (has: ' + Object.keys(mod).join(", ") + ")"
+        );
+        console.error(
+          "[dc-runtime] x-import: module",
+          url,
+          "loaded but has no component named",
+          JSON.stringify(name),
+          "\u2014 available exports:",
+          Object.keys(mod),
+          "window globals:",
+          Object.keys(globals),
+          ". The module must `module.exports = {" + name + "}` or set `window." + name + "`."
+        );
+      }
+      return null;
+    }
+    function waitForGlobal(name) {
+      if (polling.has(name)) return;
+      polling.add(name);
+      const started = Date.now();
+      const isCE = isCustomElementName(name);
+      const tick = () => {
+        const found = isCE ? customElements.get(name) : isRenderableType(resolveDottedPath(window, name));
+        if (found) {
+          polling.delete(name);
+          onResolved();
+          return;
+        }
+        if (Date.now() - started >= GLOBAL_POLL_TIMEOUT_MS) {
+          console.warn(
+            "[dc-runtime] x-import: global",
+            JSON.stringify(name),
+            "never appeared on window after " + GLOBAL_POLL_TIMEOUT_MS + "ms"
+          );
+          return;
+        }
+        setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
+      };
+      setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
+    }
+    function resolveGlobal(url, name) {
+      const isCE = isCustomElementName(name);
+      if (!url) {
+        if (isCE) {
+          if (customElements.get(name)) return name;
+          waitForGlobal(name);
+          return null;
+        }
+        const g2 = resolveDottedPath(window, name);
+        if (isRenderableType(g2)) return g2;
+        waitForGlobal(name);
+        return null;
+      }
+      const entry = cache.get(url);
+      if (!entry) return null;
+      if (isCE && customElements.get(name)) return name;
+      const g = entry.globals[name] ?? resolveDottedPath(window, name);
+      if (isRenderableType(g)) return g;
+      if (name.includes(".")) return null;
+      const key = url + "\0global\0" + name;
+      if (!reportedMissing.has(key)) {
+        reportedMissing.set(key, null);
+        if (isCE && !customElements.get(name)) {
+          console.warn(
+            "[dc-runtime] x-import:",
+            url,
+            "loaded but no custom element",
+            JSON.stringify(name),
+            "is registered and window." + name + " is not a function \u2014 rendering <" + name + "> as an unknown element."
+          );
+        }
+      }
+      return name;
+    }
+    function getError(url, name) {
+      const entry = cache.get(url);
+      if (entry?.error) return entry.error;
+      return reportedMissing.get(url + "\0" + name) || null;
+    }
+    return { load, resolve: resolve2, resolveGlobal, getError };
+  }
+  function isElementClass(g) {
+    try {
+      return typeof g === "function" && typeof HTMLElement !== "undefined" && g.prototype instanceof HTMLElement;
+    } catch {
+      return false;
+    }
+  }
+
+  // src/atomics.ts
+  var ATOMIC_CSS = (
+    // layout
+    ".fx{display:flex}.col{display:flex;flex-direction:column}.grid{display:grid}.ac{align-items:center}.jc{justify-content:center}.jb{justify-content:space-between}.f1{flex:1}.noshrink{flex-shrink:0}.wrap{flex-wrap:wrap}.fw5{font-weight:500}.fw6{font-weight:600}.fw7{font-weight:700}.fw8{font-weight:800}.fs11{font-size:11px}.fs12{font-size:12px}.fs13{font-size:13px}.fs14{font-size:14px}.fs15{font-size:15px}.fs16{font-size:16px}.fs20{font-size:20px}.fs22{font-size:22px}.upper{text-transform:uppercase}.tc{text-align:center}.nowrap{white-space:nowrap}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap16{gap:16px}.gap24{gap:24px}.m0{margin:0}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.posrel{position:relative}.posabs{position:absolute}.round{border-radius:50%}.ohide{overflow:hidden}.bbox{box-sizing:border-box}.pointer{cursor:pointer}.w100{width:100%}.b0{border:none}"
+  );
+
+  // src/helmet.ts
+  var DESIGN_DOC_MODE_RE = /<meta\b[^>]*\bname\s*=\s*["']design_doc_mode["'][^>]*\b(?:content|value)\s*=\s*["'](\w+)["']/i;
+  var CANVAS_BG_LIGHT = "#f0eee6";
+  var CANVAS_BG_DARK = "#2e2c26";
+  function createHelmetManager(doc, isStreaming) {
+    const mounted = /* @__PURE__ */ new Set();
+    const live = /* @__PURE__ */ new Map();
+    let designDocMode = null;
+    let canvasStyleEl = null;
+    let appTheme = "light";
+    try {
+      const ds = doc.documentElement.dataset.theme;
+      appTheme = ds === "dark" || ds === "light" ? ds : new URLSearchParams(doc.defaultView?.location.search ?? "").get(
+        "theme"
+      ) === "dark" ? "dark" : "light";
+    } catch {
+    }
+    function applyCanvasBg() {
+      if (!canvasStyleEl) return;
+      const bg = appTheme === "dark" ? CANVAS_BG_DARK : CANVAS_BG_LIGHT;
+      canvasStyleEl.textContent = `html,body{background:${bg}}#dc-root>.sc-host{position:relative}`;
+    }
+    function postDesignMode(mode) {
+      if (window.parent === window) return;
+      try {
+        window.parent.postMessage({ type: "__dc_design_mode", mode }, "*");
+      } catch {
+      }
+    }
+    function setDesignDocMode(mode) {
+      if (mode === designDocMode) return;
+      designDocMode = mode;
+      postDesignMode(mode);
+      if (mode === "canvas") {
+        doc.documentElement.setAttribute("data-dc-canvas", "");
+        canvasStyleEl = doc.createElement("style");
+        canvasStyleEl.setAttribute("data-dc-canvas", "");
+        applyCanvasBg();
+        doc.head.appendChild(canvasStyleEl);
+      } else {
+        doc.documentElement.removeAttribute("data-dc-canvas");
+        canvasStyleEl?.remove();
+        canvasStyleEl = null;
+      }
+    }
+    window.addEventListener("message", (e) => {
+      const type = e.data && e.data.type;
+      if (type === "__dc_theme") {
+        const t = e.data.theme;
+        if (t === "light" || t === "dark") {
+          appTheme = t;
+          applyCanvasBg();
+        }
+        return;
+      }
+      if (!designDocMode || type !== "__dc_probe") return;
+      postDesignMode(designDocMode);
+    });
+    function compile(node) {
+      const raw = [...node.children];
+      const helmetClosed = node.nextSibling != null || node.parentNode?.nextSibling != null;
+      if (node.hasAttribute("data-dc-atomics") && !mounted.has("__dc-atomics")) {
+        mounted.add("__dc-atomics");
+        const el = doc.createElement("style");
+        el.id = "__dc-atomics";
+        el.textContent = ATOMIC_CSS;
+        doc.head.appendChild(el);
+      }
+      return (_vals, ctx) => {
+        const name = ctx && ctx.__name || "";
+        const streaming = !!(name && isStreaming(name));
+        for (let i = 0; i < raw.length; i++) {
+          const child = raw[i];
+          const tag = child.tagName;
+          const mayBePartial = streaming && !helmetClosed && i === raw.length - 1;
+          if (tag === "SCRIPT") {
+            if (mayBePartial) continue;
+            const key = "SCRIPT|" + (child.getAttribute("src") || child.textContent || "");
+            if (mounted.has(key)) continue;
+            mounted.add(key);
+            const el = doc.createElement("script");
+            for (const { name: an, value } of [...child.attributes])
+              el.setAttribute(an, value);
+            if (child.textContent) el.textContent = child.textContent;
+            doc.head.appendChild(el);
+          } else if (tag === "LINK" || tag === "META") {
+            if (mayBePartial) continue;
+            const key = tag + "|" + (child.getAttribute("href") || child.getAttribute("src") || child.outerHTML);
+            if (mounted.has(key)) continue;
+            mounted.add(key);
+            if (tag === "LINK") {
+              const rel = (child.getAttribute("rel") || "").toLowerCase().split(/\s+/);
+              const href = (child.getAttribute("href") || "").trim();
+              const res = window.__resources;
+              const pre = res && rel.includes("stylesheet") && !rel.includes("alternate") ? res[href] : void 0;
+              const blob = typeof pre === "string" && pre ? bundledBlob(pre) : null;
+              if (blob) {
+                const el = doc.createElement("style");
+                if (child.hasAttribute("disabled")) {
+                  el.setAttribute("media", "not all");
+                } else if (child.getAttribute("media")) {
+                  el.setAttribute("media", child.getAttribute("media"));
+                }
+                if (child.getAttribute("title"))
+                  el.setAttribute("title", child.getAttribute("title"));
+                void blob.text().then((css) => {
+                  el.textContent = css;
+                });
+                doc.head.appendChild(el);
+                continue;
+              }
+            }
+            doc.head.appendChild(child.cloneNode(true));
+          } else {
+            const key = name + "|" + i;
+            let el = live.get(key);
+            if (!el || el.tagName !== tag) {
+              if (el) el.remove();
+              el = doc.createElement(tag.toLowerCase());
+              live.set(key, el);
+              doc.head.appendChild(el);
+            }
+            for (const { name: an, value } of [...child.attributes]) {
+              if (el.getAttribute(an) !== value) el.setAttribute(an, value);
+            }
+            if (el.textContent !== child.textContent)
+              el.textContent = child.textContent;
+          }
+        }
+        return null;
+      };
+    }
+    return { compile, setDesignDocMode };
+  }
+
+  // src/pseudo.ts
+  function scanUnquotedUrl(css, i) {
+    if (css[i] !== "u" && css[i] !== "U" || css.slice(i, i + 4).toLowerCase() !== "url(" || /[a-z0-9_-]/i.test(css[i - 1] ?? "")) {
+      return -1;
+    }
+    let j = i + 4;
+    while (j < css.length && /\s/.test(css[j])) j++;
+    if (css[j] === '"' || css[j] === "'") return -1;
+    while (j < css.length && css[j] !== ")") {
+      if (css[j] === "\\") j++;
+      j++;
+    }
+    return j < css.length ? j + 1 : css.length;
+  }
+  function stripComments(css) {
+    let out = "";
+    let quote = "";
+    for (let i = 0; i < css.length; i++) {
+      const c = css[i];
+      if (quote) {
+        if (c === "\\") {
+          out += c + (css[i + 1] ?? "");
+          i++;
+          continue;
+        }
+        if (c === quote) quote = "";
+        out += c;
+      } else if (c === "'" || c === '"') {
+        quote = c;
+        out += c;
+      } else if (c === "/" && css[i + 1] === "*") {
+        const end = css.indexOf("*/", i + 2);
+        i = end === -1 ? css.length : end + 1;
+        out += " ";
+      } else {
+        const end = scanUnquotedUrl(css, i);
+        if (end === -1) out += c;
+        else {
+          out += css.slice(i, end);
+          i = end - 1;
+        }
+      }
+    }
+    return out;
+  }
+  function importantify(css) {
+    css = stripComments(css);
+    const decls = [];
+    let start = 0;
+    let depth = 0;
+    let quote = "";
+    for (let i = 0; i < css.length; i++) {
+      const c = css[i];
+      if (quote) {
+        if (c === "\\") i++;
+        else if (c === quote) quote = "";
+      } else if (c === "'" || c === '"') quote = c;
+      else if (c === "(") depth++;
+      else if (c === ")") depth = Math.max(0, depth - 1);
+      else if (c === ";" && depth === 0) {
+        decls.push(css.slice(start, i));
+        start = i + 1;
+      } else {
+        const end = scanUnquotedUrl(css, i);
+        if (end !== -1) i = end - 1;
+      }
+    }
+    decls.push(css.slice(start));
+    return decls.map((d) => d.trim()).filter(Boolean).map((d) => /!\s*important$/i.test(d) ? d : d + " !important").join(";");
+  }
+  function createPseudoSheet(doc) {
+    let el = null;
+    const cache = /* @__PURE__ */ new Map();
+    let n = 0;
+    return (pseudo, css) => {
+      const k = pseudo + "|" + css;
+      const hit = cache.get(k);
+      if (hit) return hit;
+      if (!el) {
+        el = doc.createElement("style");
+        doc.head.appendChild(el);
+      }
+      const cls = "scp" + (n++).toString(36);
+      const isPseudoElement = pseudo === "before" || pseudo === "after";
+      const sel = isPseudoElement ? "." + cls + "::" + pseudo : "." + cls + ":" + pseudo;
+      el.sheet.insertRule(
+        sel + "{" + (isPseudoElement ? css : importantify(css)) + "}",
+        el.sheet.cssRules.length
+      );
+      cache.set(k, cls);
+      return cls;
+    };
+  }
+
+  // src/registry.ts
+  function createRegistry() {
+    const entries = /* @__PURE__ */ Object.create(null);
+    function get(name) {
+      return entries[name] || (entries[name] = {
+        html: "",
+        tpl: null,
+        Logic: null,
+        jsStreaming: false,
+        htmlStreaming: false,
+        ver: 0,
+        subs: /* @__PURE__ */ new Set(),
+        fetched: false
+      });
+    }
+    function bump(name) {
+      const r = get(name);
+      r.ver++;
+      for (const fn of r.subs) fn();
+    }
+    return {
+      entries,
+      get,
+      bump,
+      bumpAll() {
+        for (const n in entries) bump(n);
+      }
+    };
+  }
+
+  // src/runtime.ts
+  var COMPONENT_DIR = ".";
+  function createRuntime(doc = document) {
+    const registry = createRegistry();
+    const pseudoClass = createPseudoSheet(doc);
+    const helmet = createHelmetManager(
+      doc,
+      (name) => registry.get(name).htmlStreaming
+    );
+    const external = createExternalModules(() => registry.bumpAll());
+    const factory = createComponentFactory(registry, ensureFetched);
+    const host = {
+      component: (name) => factory.getDC(name),
+      placeholder: (props) => h(Placeholder, props),
+      helmet: (node) => helmet.compile(node),
+      loadExternal: (kind, url, after) => external.load(kind, url, after),
+      resolveExternal: (url, name) => external.resolve(url, name),
+      resolveExternalGlobal: (url, name) => external.resolveGlobal(url, name),
+      resolveExternalError: (url, name) => external.getError(url, name),
+      pseudoClass
+    };
+    function ensureFetched(name) {
+      const r = registry.get(name);
+      if (r.fetched) return;
+      r.fetched = true;
+      const url = COMPONENT_DIR + "/" + encodeURIComponent(name) + ".dc.html";
+      const res = window.__resources;
+      const pre = res ? res[url] : void 0;
+      const target = typeof pre === "string" && pre ? pre : url;
+      const blob = bundledBlob(target);
+      (blob ? blob.text() : fetch(target).then((res2) => {
+        if (!res2.ok) {
+          console.error(
+            '[dc-runtime] sibling fetch for "' + name + '" failed:',
+            url,
+            "returned",
+            res2.status,
+            "\u2014 the reference renders as an empty placeholder."
+          );
+          return "";
+        }
+        return res2.text();
+      })).then((t) => {
+        if (!t) return;
+        const parsed = parseDcText(t);
+        if (!parsed) {
+          console.error(
+            '[dc-runtime] sibling fetch for "' + name + '":',
+            url,
+            "has no <x-dc> block \u2014 not a Design Component."
+          );
+          return;
+        }
+        if (parsed.props) r.propsMeta = parsed.props;
+        if (parsed.preview) r.preview = parsed.preview;
+        if (parsed.template && !r.html) updateHtml(name, parsed.template);
+        if (parsed.js && !r.Logic) updateJs(name, parsed.js);
+      }).catch(
+        (e) => console.error(
+          '[dc-runtime] sibling fetch for "' + name + '" threw:',
+          url,
+          e
+        )
+      );
+    }
+    let rootName = null;
+    function updateHtml(name, html) {
+      const r = registry.get(name);
+      r.html = html;
+      if (name === rootName) {
+        const mode = DESIGN_DOC_MODE_RE.exec(html)?.[1] ?? null;
+        if (mode || !r.htmlStreaming) helmet.setDesignDocMode(mode);
+      }
+      try {
+        r.tpl = compileTemplate(html, host);
+      } catch (e) {
+        console.error("[dc-runtime] template compile FAILED for", name, e);
+      }
+      registry.bump(name);
+    }
+    function updateJs(name, src) {
+      const r = registry.get(name);
+      const seq = r.jsSeq = (r.jsSeq || 0) + 1;
+      try {
+        const Cls = evalDcLogic(src);
+        if (r.jsSeq !== seq) return;
+        if (typeof Cls !== "function") {
+          r.logicError = name + ".dc.html: <script data-dc-script> must define `class Component extends DCLogic`";
+        } else {
+          r.logicError = null;
+          r.Logic = Cls;
+        }
+      } catch (e) {
+        if (r.jsSeq !== seq) return;
+        console.error(
+          "[dc-runtime] logic class eval FAILED for",
+          name,
+          "\u2014 the template renders with props only.",
+          e
+        );
+        r.logicError = name + ": " + (e instanceof Error && e.message ? e.message : String(e));
+      }
+      registry.bump(name);
+    }
+    function setStreaming(name, kind, on) {
+      const r = registry.get(name);
+      if (kind === "html") r.htmlStreaming = !!on;
+      else r.jsStreaming = !!on;
+      let any = false;
+      for (const n in registry.entries) {
+        const e = registry.entries[n];
+        if (e && (e.htmlStreaming || e.jsStreaming)) {
+          any = true;
+          break;
+        }
+      }
+      doc.documentElement.classList.toggle("sc-dc-streaming", any);
+      registry.bump(name);
+    }
+    function dcUpdate(name, kind, content, streaming) {
+      if (streaming) registry.get(name).fetched = true;
+      if (kind === "html") {
+        setStreaming(name, "html", !!streaming);
+        updateHtml(name, content);
+      } else if (kind === "js") {
+        setStreaming(name, "js", !!streaming);
+        if (!streaming) updateJs(name, content);
+      } else if (kind === "props") {
+        const { props, preview } = parseDataProps(content);
+        const r = registry.get(name);
+        r.propsMeta = props ?? void 0;
+        r.preview = preview;
+        registry.bump(name);
+      }
+    }
+    function setProps(name, overrides) {
+      registry.get(name).propOverrides = overrides && typeof overrides === "object" ? { ...overrides } : null;
+      registry.bump(name);
+    }
+    function adoptParsed(name, parsed) {
+      if (!parsed) return;
+      const r = registry.get(name);
+      if (parsed.props) r.propsMeta = parsed.props;
+      if (parsed.preview) r.preview = parsed.preview;
+      if (parsed.template) updateHtml(name, parsed.template);
+      if (parsed.js) updateJs(name, parsed.js);
+    }
+    return {
+      registry,
+      getDC: factory.getDC,
+      updateHtml,
+      updateJs,
+      dcUpdate,
+      setProps,
+      adoptParsed,
+      setRootName: (name) => {
+        rootName = name;
+      },
+      markFetched: (name) => {
+        registry.get(name).fetched = true;
+      },
+      annotatedTemplate: (name) => {
+        const r = registry.get(name);
+        return r.tpl && r.tpl.__annotated || null;
+      },
+      templateSource: (name) => registry.get(name).html || null,
+      StreamableLogic
+    };
+  }
+
+  // src/stream-state.ts
+  function createStreamTracker(staleMs = 6e4, now = Date.now) {
+    const since = /* @__PURE__ */ new Map();
+    const liveOne = (n) => {
+      const t = since.get(n);
+      if (t === void 0) return false;
+      if (now() - t > staleMs) {
+        since.delete(n);
+        return false;
+      }
+      return true;
+    };
+    return {
+      push(name, streaming, viewportKey) {
+        if (viewportKey === "dc-model") return;
+        if (streaming) since.set(name, now());
+        else since.delete(name);
+      },
+      live(name) {
+        if (name !== void 0) return liveOne(name);
+        for (const n of [...since.keys()]) if (liveOne(n)) return true;
+        return false;
+      }
+    };
+  }
+
+  // src/index.ts
+  function hideRawTemplate() {
+    const s = document.createElement("style");
+    s.textContent = "x-dc{display:none!important}";
+    document.head.appendChild(s);
+  }
+  function loadScript(src, integrity) {
+    return new Promise((resolve2, reject) => {
+      //! nosemgrep: create-script-element
+      const s = document.createElement("script");
+      s.src = src;
+      if (integrity) {
+        s.integrity = integrity;
+        s.crossOrigin = "anonymous";
+      }
+      s.async = false;
+      s.onload = () => resolve2();
+      s.onerror = () => reject(new Error(`failed to load ${src}`));
+      document.head.appendChild(s);
+    });
+  }
+  function loadReactUmd() {
+    const w = window;
+    if (w.React && w.ReactDOM) return Promise.resolve();
+    const react = cdnScriptFor(REACT_URL, REACT_SRI);
+    const reactDom = cdnScriptFor(REACT_DOM_URL, REACT_DOM_SRI);
+    return Promise.all([
+      loadScript(react.src, react.integrity),
+      loadScript(reactDom.src, reactDom.integrity)
+    ]).then(() => void 0);
+  }
+  function init() {
+    const runtime = createRuntime(document);
+    let rootName = "Root";
+    const baseCss = document.createElement("style");
+    baseCss.textContent = BASE_CSS;
+    document.head.prepend(baseCss);
+    const notifyHost = () => {
+      if (window.parent === window) return;
+      const r = runtime.registry.entries[rootName];
+      try {
+        window.parent.postMessage(
+          {
+            type: "__dc_booted",
+            rootName,
+            propsMeta: r && r.propsMeta || null,
+            preview: r && r.preview || null
+          },
+          "*"
+        );
+      } catch {
+      }
+    };
+    const streams = createStreamTracker();
+    const api = {
+      __dcUpdate: (name, kind, content, streaming, viewportKey) => {
+        streams.push(name, streaming, viewportKey);
+        runtime.dcUpdate(name, kind, content, streaming);
+        if (name === rootName && !streaming && kind === "props") notifyHost();
+      },
+      __dcStreaming: (name) => streams.live(name),
+      __dcSetProps: (name, overrides) => runtime.setProps(name, overrides),
+      /** Name of the component currently mounted as the page root — DC tools
+       *  push their template-stream here when targeting "the open page". */
+      __dcRootName: () => rootName,
+      /** Editor bridge — the encoded, `data-dc-tpl`-annotated template source.
+       *  The host editor parses this into its own template DOM so it can map a
+       *  rendered node (carrying the same `data-dc-tpl`) back to the source
+       *  node that emitted it. Returns the encoded form (`sc-camel-*` attrs,
+       *  `<sc-raw-*>`/`<sc-helmet>` tags); the editor decodes on serialize. */
+      __dcAnnotatedTemplate: (name) => runtime.annotatedTemplate(name),
+      /** Editor bridge — the *original* (decoded) template source. */
+      __dcTemplateSource: (name) => runtime.templateSource(name),
+      __dcBoot: () => {
+        rootName = boot(runtime, document) ?? rootName;
+        notifyHost();
+      },
+      __dcRegistry: runtime.registry.entries,
+      getDC: (name) => runtime.getDC(name),
+      // `DCLogic` is the documented base class name; `StreamableLogic` is the
+      // implementation alias kept for any project that already references it.
+      DCLogic: runtime.StreamableLogic,
+      StreamableLogic: runtime.StreamableLogic
+    };
+    Object.assign(window, api);
+    window.__dcContentKeyed = true;
+    if (document.readyState !== "loading") api.__dcBoot();
+    else document.addEventListener("DOMContentLoaded", () => api.__dcBoot());
+  }
+  hideRawTemplate();
+  loadReactUmd().then(init).catch((err) => {
+    console.error("[dc] failed to load React or boot:", err);
+    throw err;
+  });
+})();
+
+</script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: oklch(0.205 0.024 278); --bg-top: oklch(0.27 0.036 288);
+    --surf: oklch(0.25 0.028 280); --panel: oklch(0.275 0.032 285); --panel2: oklch(0.23 0.026 275);
+    --acc: oklch(0.76 0.15 300); --acc-hi: oklch(0.88 0.1 300); --acc2: oklch(0.74 0.14 210);
+    --glow1: oklch(0.58 0.16 300); --glow2: oklch(0.6 0.14 205); --glow3: oklch(0.62 0.13 165);
+  }
+  html { background: var(--bg); transition: background .6s ease; }
+  body { margin: 0; background: var(--bg); color: oklch(0.95 0.008 268); font-family: 'Space Grotesk', Helvetica, sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+  a { color: var(--acc); text-decoration: none; }
+  a:hover { color: var(--acc-hi); }
+  ::selection { background: var(--acc); color: var(--bg); }
+  @keyframes marq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes blink { 0%, 48% { opacity: 1; } 49%, 100% { opacity: 0; } }
+  @keyframes drift1 { 0%, 100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(6vw, -4vh, 0) scale(1.15); } }
+  @keyframes drift2 { 0%, 100% { transform: translate3d(0,0,0) scale(1.1); } 50% { transform: translate3d(-7vw, 5vh, 0) scale(0.95); } }
+  @keyframes sheen { 0% { transform: translateX(-120%) skewX(-18deg); } 55%, 100% { transform: translateX(240%) skewX(-18deg); } }
+  @keyframes travel { 0% { top: 0%; opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.35); opacity: 0.25; } }
+  @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  @keyframes drift3 { 0%, 100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-5vw, -6vh, 0) scale(1.2); } }
+  @keyframes beam { 0% { transform: translateX(-60%) rotate(14deg); opacity: 0; } 20%, 70% { opacity: 0.5; } 100% { transform: translateX(140%) rotate(14deg); opacity: 0; } }
+  @keyframes stream { 0% { transform: translateY(-110%); } 100% { transform: translateY(560%); } }
+  @keyframes hueshift { 0%, 100% { filter: blur(34px) hue-rotate(0deg); } 50% { filter: blur(34px) hue-rotate(26deg); } }
+</style>
+</helmet>
+
+<div style="position: relative; width: 100%; background: var(--bg); overflow: hidden;">
+
+  <div style="position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; background: radial-gradient(140% 100% at 50% 0%, var(--bg-top), var(--bg) 60%);">
+    <div style="position: absolute; top: -18vh; left: 40vw; width: 62vw; height: 62vw; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--glow1) 34%, transparent), transparent 68%); animation: drift1 26s ease-in-out infinite, hueshift 40s ease-in-out infinite;"></div>
+    <div style="position: absolute; bottom: -24vh; left: -14vw; width: 58vw; height: 58vw; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--glow2) 30%, transparent), transparent 68%); animation: drift2 32s ease-in-out infinite, hueshift 46s ease-in-out infinite;"></div>
+    <div style="position: absolute; top: 34vh; right: -16vw; width: 44vw; height: 44vw; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--glow3) 20%, transparent), transparent 70%); animation: drift3 38s ease-in-out infinite;"></div>
+
+    <div style="position: absolute; inset: -20% -10%; opacity: 0.5;">
+      <div style="position: absolute; top: 0; left: 0; width: 32%; height: 130%; background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--glow1) 7%, transparent), transparent); animation: beam 22s linear infinite;"></div>
+      <div style="position: absolute; top: 0; left: 0; width: 22%; height: 130%; background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--glow2) 6%, transparent), transparent); animation: beam 30s linear infinite 8s;"></div>
+    </div>
+
+    <div data-streams style="position: absolute; inset: 0;"></div>
+  </div>
+
+  <nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 26px; background: color-mix(in oklab, var(--bg) 78%, transparent); backdrop-filter: blur(16px); border-bottom: 1px solid oklch(0.95 0.008 268 / 0.08);">
+    <a href="#top" style="display: flex; align-items: center; gap: 10px; color: oklch(0.95 0.008 268);">
+      <span style="display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(140deg, var(--acc), var(--acc2)); font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; color: var(--bg);">st</span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em;">{{ handle }}</span>
+    </a>
+    <div style="display: flex; align-items: center; gap: 22px;">
+      <div data-navlinks style="display: none; gap: 22px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+        <a href="#about" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navAbout }}</a>
+        <a href="#stack" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navStack }}</a>
+        <a href="#games" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navGames }}</a>
+        <a href="#demos" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navDemos }}</a>
+        <a href="#github" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navGithub }}</a>
+        <a href="./admin.html" style="color: oklch(0.5 0.02 268);" style-hover="color: var(--acc);">admin</a>
+      </div>
+      <div style="display: flex; gap: 3px; padding: 3px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.12);">
+        <sc-for list="{{ langs }}" as="l" hint-placeholder-count="3">
+          <button onClick="{{ l.pick }}" style="cursor: pointer; border: 0; border-radius: 999px; padding: 5px 11px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; transition: all .25s; background: {{ l.bg }}; color: {{ l.fg }};">{{ l.code }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </nav>
+
+  <section id="top" data-screen-label="Hero" style="position: relative; z-index: 2; min-height: 100vh; display: grid; grid-template-columns: 1fr; align-content: center; gap: 54px; padding: 130px 26px 70px; max-width: 1360px; margin: 0 auto;">
+    <div data-hero-grid style="display: grid; grid-template-columns: 1fr; gap: 56px; align-items: center;">
+      <div>
+        <div style="display: inline-flex; align-items: center; gap: 10px; padding: 7px 14px 7px 11px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.14); background: oklch(0.95 0.008 268 / 0.04); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: oklch(0.78 0.02 268);">
+          <span style="position: relative; display: flex; width: 8px; height: 8px;">
+            <span style="position: absolute; inset: 0; border-radius: 50%; background: oklch(0.8 0.16 150); animation: pulse 2.4s ease-in-out infinite;"></span>
+          </span>
+          {{ t.heroTag }}
+        </div>
+
+        <h1 style="margin: 22px 0 0; font-size: clamp(46px, 8.2vw, 116px); line-height: 0.96; font-weight: 600; letter-spacing: -0.045em;">
+          <span style="display: block; overflow: hidden; padding-bottom: 2px;"><span data-rise style="display: block; transform: translateY(110%);">{{ name }}</span></span>
+          <span style="display: block; overflow: hidden; padding-bottom: 6px;"><span data-rise style="display: block; transform: translateY(110%); background: linear-gradient(96deg, var(--acc), var(--acc2) 70%); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ t.heroLine2 }}</span></span>
+        </h1>
+
+        <div style="margin-top: 22px; font-family: 'JetBrains Mono', monospace; font-size: clamp(13px, 1.5vw, 17px); color: oklch(0.72 0.02 268); display: flex; align-items: center; gap: 8px; min-height: 26px;">
+          <span style="color: var(--acc2);">&gt;</span>
+          <span data-typed></span>
+          <span style="display: inline-block; width: 9px; height: 1.05em; background: var(--acc); animation: blink 1.05s step-end infinite;"></span>
+        </div>
+
+        <p style="margin: 26px 0 0; max-width: 520px; font-size: clamp(15.5px, 1.4vw, 18px); line-height: 1.7; color: oklch(0.74 0.02 268); text-wrap: pretty;">{{ t.heroLead }}</p>
+
+        <div style="margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px;">
+          <a href="#demos" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; background: var(--acc); color: var(--bg); font-size: 14.5px; font-weight: 500; transition: transform .3s, box-shadow .3s;" style-hover="transform: translateY(-2px); box-shadow: 0 14px 34px color-mix(in oklab, var(--acc) 35%, transparent);">{{ t.heroBtn1 }} <span style="font-family: 'JetBrains Mono', monospace;">→</span></a>
+          <a href="#github" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.18); color: oklch(0.95 0.008 268); font-size: 14.5px; transition: border-color .3s, transform .3s;" style-hover="border-color: var(--acc2); transform: translateY(-2px);">{{ t.heroBtn2 }}</a>
+        </div>
+      </div>
+
+      <div data-par="0.1" style="position: relative;">
+        <div style="position: relative; border-radius: 18px; border: 1px solid oklch(0.95 0.008 268 / 0.13); background: linear-gradient(165deg, color-mix(in oklab, var(--panel) 92%, transparent), color-mix(in oklab, var(--panel2) 94%, transparent)); box-shadow: 0 40px 90px oklch(0.12 0.03 280 / 0.55); overflow: hidden; animation: floaty 9s ease-in-out infinite;">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid oklch(0.95 0.008 268 / 0.09);">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: oklch(0.7 0.16 25);"></span>
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: oklch(0.8 0.14 85);"></span>
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: oklch(0.78 0.15 150);"></span>
+            <span style="margin-left: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.62 0.02 268);">~/portfolio — zsh</span>
+          </div>
+          <div style="padding: 18px 18px 22px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.95; min-height: 250px;">
+            <sc-for list="{{ logs }}" as="line" hint-placeholder-count="8">
+              <div data-log style="opacity: 0; transform: translateY(6px); transition: opacity .4s, transform .4s; color: {{ line.color }}; white-space: pre-wrap; word-break: break-word;">{{ line.text }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.6 0.02 268);">
+      <span>{{ t.scroll }}</span>
+      <span style="display: block; width: 54px; height: 1px; background: linear-gradient(90deg, var(--acc), transparent);"></span>
+    </div>
+  </section>
+
+  <div style="position: relative; z-index: 2; border-top: 1px solid oklch(0.95 0.008 268 / 0.08); border-bottom: 1px solid oklch(0.95 0.008 268 / 0.08); overflow: hidden; padding: 14px 0; background: color-mix(in oklab, var(--surf) 60%, transparent);">
+    <div style="display: flex; width: max-content; animation: marq 38s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: oklch(0.66 0.02 268);">
+      <span style="padding-right: 34px;">{{ t.marquee }}</span>
+      <span style="padding-right: 34px;">{{ t.marquee }}</span>
+      <span style="padding-right: 34px;">{{ t.marquee }}</span>
+      <span style="padding-right: 34px;">{{ t.marquee }}</span>
+    </div>
+  </div>
+
+  <section id="about" data-screen-label="Hakkımda" style="position: relative; z-index: 2; padding: clamp(90px, 13vh, 170px) 26px; max-width: 1360px; margin: 0 auto;">
+    <div data-two-col style="display: grid; grid-template-columns: 1fr; gap: 46px;">
+      <div data-sticky-col style="position: relative;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc);">01 — {{ t.navAbout }}</div>
+        <h2 style="margin: 16px 0 0; font-size: clamp(28px, 3.6vw, 46px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1;">
+          <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.aboutTitle }}</span></span>
+        </h2>
+      </div>
+      <div style="display: grid; gap: 34px;">
+        <p data-reveal style="opacity: 0; transform: translateY(26px); transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); margin: 0; font-size: clamp(20px, 2.2vw, 30px); line-height: 1.4; font-weight: 500; letter-spacing: -0.015em; text-wrap: pretty;">{{ t.aboutBig }}</p>
+        <p data-reveal style="opacity: 0; transform: translateY(26px); transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); margin: 0; max-width: 660px; font-size: 16px; line-height: 1.8; color: oklch(0.72 0.02 268); text-wrap: pretty;">{{ t.aboutSmall }}</p>
+        <div data-stagger style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+          <sc-for list="{{ facts }}" as="f" hint-placeholder-count="3">
+            <div data-reveal style="opacity: 0; transform: translateY(26px); transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1), border-color .3s; padding: 22px 20px; border-radius: 14px; border: 1px solid oklch(0.95 0.008 268 / 0.11); background: oklch(0.95 0.008 268 / 0.028);" style-hover="border-color: color-mix(in oklab, var(--acc) 50%, transparent);">
+              <div data-count="{{ f.value }}" style="font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 500; color: var(--acc-hi);">0</div>
+              <div style="margin-top: 8px; font-size: 14px; line-height: 1.55; color: oklch(0.7 0.02 268);">{{ f.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="stack" data-screen-label="Teknolojiler" style="position: relative; z-index: 2; padding: clamp(60px, 9vh, 120px) 26px; max-width: 1360px; margin: 0 auto;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc2);">02 — {{ t.navStack }}</div>
+    <h2 style="margin: 16px 0 0; font-size: clamp(28px, 4vw, 54px); font-weight: 600; letter-spacing: -0.032em;">
+      <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.stackTitle }}</span></span>
+    </h2>
+    <p style="margin: 16px 0 0; max-width: 560px; font-size: 16px; line-height: 1.75; color: oklch(0.7 0.02 268);">{{ t.stackLead }}</p>
+    <div data-stagger style="margin-top: 40px; display: flex; flex-wrap: wrap; gap: 12px;">
+      <sc-for list="{{ techs }}" as="tech" hint-placeholder-count="8">
+        <div data-reveal style="opacity: 0; transform: translateY(20px) scale(0.96); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1), border-color .3s, background .3s; display: flex; align-items: center; gap: 11px; padding: 12px 20px 12px 16px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.12); background: oklch(0.95 0.008 268 / 0.03);" style-hover="border-color: color-mix(in oklab, var(--acc2) 55%, transparent); background: oklch(0.95 0.008 268 / 0.07);">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: {{ tech.dot }};"></span>
+          <span style="font-size: 15.5px; font-weight: 500;">{{ tech.name }}</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.6 0.02 268);">{{ tech.note }}</span>
+        </div>
+      </sc-for>
+      <div style="display: flex; align-items: center; gap: 9px; padding: 12px 20px; border-radius: 999px; border: 1px dashed oklch(0.95 0.008 268 / 0.2); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: oklch(0.6 0.02 268);">+ {{ t.stackSlot }}</div>
+    </div>
+  </section>
+
+  <section id="games" data-screen-label="Oyunlar" style="position: relative; z-index: 2; padding: clamp(70px, 11vh, 150px) 26px;">
+    <div style="max-width: 1360px; margin: 0 auto;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px;">
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc);">03 — {{ t.navGames }}</div>
+          <h2 style="margin: 16px 0 0; font-size: clamp(28px, 4vw, 54px); font-weight: 600; letter-spacing: -0.032em;">
+            <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.gamesTitle }}</span></span>
+          </h2>
+        </div>
+        <a href="{{ playUrl }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 9px; padding: 12px 20px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.16); font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: oklch(0.9 0.01 268); transition: border-color .3s, transform .3s;" style-hover="border-color: var(--acc); transform: translateY(-2px);">Google Play ↗</a>
+      </div>
+      <div data-stagger style="margin-top: 44px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px;">
+        <sc-for list="{{ games }}" as="g" hint-placeholder-count="3">
+          <a href="{{ g.url }}" target="_blank" rel="noopener" data-reveal style="opacity: 0; transform: translateY(30px); transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .5s cubic-bezier(.16,1,.3,1), border-color .3s; display: block; border-radius: 18px; overflow: hidden; border: 1px solid oklch(0.95 0.008 268 / 0.11); background: oklch(0.95 0.008 268 / 0.028); color: oklch(0.95 0.008 268);" style-hover="border-color: color-mix(in oklab, var(--acc) 50%, transparent); transform: translateY(-6px);">
+            <div style="position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: linear-gradient(150deg, {{ g.c1 }}, {{ g.c2 }});">
+              <sc-if value="{{ g.hasImage }}" hint-placeholder-val="{{ false }}">
+                <img src="{{ g.image }}" alt="{{ g.name }}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;" />
+              </sc-if>
+              <div style="position: absolute; inset: 0; background: radial-gradient(120% 90% at 20% 10%, oklch(0.95 0.008 268 / 0.16), transparent 60%);"></div>
+              <div style="position: absolute; top: 0; bottom: 0; width: 42%; background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.22), transparent); animation: sheen 6.5s ease-in-out infinite;"></div>
+              <sc-if value="{{ g.noImage }}" hint-placeholder-val="{{ true }}">
+                <div style="position: absolute; left: 16px; bottom: 14px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: oklch(0.98 0.01 268 / 0.7);">{{ t.imgSlot }}</div>
+              </sc-if>
+            </div>
+            <div style="padding: 20px 20px 24px;">
+              <div style="display: flex; align-items: center; gap: 9px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.62 0.02 268);">
+                <span>{{ g.no }}</span><span>·</span><span>Android</span><span>·</span><span>Unity</span>
+              </div>
+              <div style="margin-top: 11px; font-size: 21px; font-weight: 600; letter-spacing: -0.018em;">{{ g.name }}</div>
+              <div style="margin-top: 7px; font-size: 14px; line-height: 1.65; color: oklch(0.7 0.02 268);">{{ g.desc }}</div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section id="demos" data-screen-label="Demolar" style="position: relative; z-index: 2; padding: clamp(70px, 11vh, 150px) 26px; border-top: 1px solid oklch(0.95 0.008 268 / 0.08); background: color-mix(in oklab, var(--surf) 55%, transparent);">
+    <div style="max-width: 1360px; margin: 0 auto;">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc2);">04 — {{ t.navDemos }}</div>
+      <h2 style="margin: 16px 0 0; font-size: clamp(28px, 4vw, 54px); font-weight: 600; letter-spacing: -0.032em;">
+        <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.demosTitle }}</span></span>
+      </h2>
+      <p style="margin: 16px 0 0; max-width: 600px; font-size: 16px; line-height: 1.75; color: oklch(0.7 0.02 268);">{{ t.demosLead }}</p>
+
+      <div data-demo-grid style="margin-top: 44px; display: grid; grid-template-columns: 1fr; gap: 34px; align-items: start;">
+        <div data-demo-preview style="position: relative;">
+          <div style="border-radius: 16px; overflow: hidden; border: 1px solid oklch(0.95 0.008 268 / 0.13); background: var(--surf); box-shadow: 0 30px 70px oklch(0.12 0.03 280 / 0.45);">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid oklch(0.95 0.008 268 / 0.09);">
+              <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(0.7 0.16 25);"></span>
+              <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(0.8 0.14 85);"></span>
+              <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(0.78 0.15 150);"></span>
+              <span style="margin-left: 8px; flex: 1; padding: 5px 12px; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.06); font-family: 'JetBrains Mono', monospace; font-size: 11px; color: oklch(0.68 0.02 268); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">sinantekin.dev/{{ activePath }}</span>
+            </div>
+            <div style="position: relative; aspect-ratio: 16 / 10; padding: 22px; display: flex; flex-direction: column; gap: 14px; background: linear-gradient(160deg, var(--panel), var(--panel2));">
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <span style="width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(140deg, var(--acc), var(--acc2));"></span>
+                <span style="font-size: 15px; font-weight: 600;">{{ activeName }}</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div style="height: 46px; border-radius: 10px; background: oklch(0.95 0.008 268 / 0.07);"></div>
+                <div style="height: 46px; border-radius: 10px; background: oklch(0.95 0.008 268 / 0.05);"></div>
+                <div style="height: 46px; border-radius: 10px; background: color-mix(in oklab, var(--acc) 22%, transparent);"></div>
+              </div>
+              <div style="flex: 1; border-radius: 12px; background: oklch(0.95 0.008 268 / 0.045); display: flex; flex-direction: column; gap: 9px; padding: 14px;">
+                <div style="height: 8px; width: 62%; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.16);"></div>
+                <div style="height: 8px; width: 84%; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.1);"></div>
+                <div style="height: 8px; width: 48%; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.1);"></div>
+                <div style="height: 8px; width: 72%; border-radius: 999px; background: color-mix(in oklab, var(--acc2) 30%, transparent);"></div>
+              </div>
+              <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(transparent 60%, color-mix(in oklab, var(--panel2) 90%, transparent));"></div>
+              <div style="position: absolute; left: 0; right: 0; bottom: 16px; display: flex; justify-content: center;">
+                <button onClick="{{ openActive }}" style="cursor: pointer; border: 0; border-radius: 999px; padding: 12px 22px; background: var(--acc); color: var(--bg); font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; transition: transform .3s;" style-hover="transform: translateY(-2px);">{{ t.openDemo }} ↗</button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.58 0.02 268);">{{ t.demosHint }}</div>
+        </div>
+
+        <div data-stagger style="display: flex; flex-direction: column;">
+          <sc-for list="{{ demos }}" as="d" hint-placeholder-count="3">
+            <div data-reveal onMouseEnter="{{ d.hover }}" onClick="{{ d.open }}" style="opacity: 0; transform: translateY(24px); transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1), background .3s, padding-left .3s; cursor: pointer; border-bottom: 1px solid oklch(0.95 0.008 268 / 0.09); padding: 22px 14px; border-radius: 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; background: {{ d.bg }};" style-hover="background: oklch(0.95 0.008 268 / 0.05);">
+              <div style="min-width: 0;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: {{ d.pathColor }};">{{ d.path }}</div>
+                <div style="margin-top: 8px; font-size: 20px; font-weight: 600; letter-spacing: -0.018em;">{{ d.name }}</div>
+                <div style="margin-top: 6px; font-size: 14px; line-height: 1.6; color: oklch(0.7 0.02 268);">{{ d.desc }}</div>
+                <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 7px;">
+                  <sc-for list="{{ d.tags }}" as="tag" hint-placeholder-count="3">
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; padding: 4px 10px; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.07); color: oklch(0.72 0.02 268);">{{ tag }}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid oklch(0.95 0.008 268 / 0.16); color: oklch(0.9 0.01 268); font-size: 16px;">↗</span>
+            </div>
+          </sc-for>
+          <div style="padding: 20px 14px; display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.56 0.02 268);">
+            <span style="width: 8px; height: 8px; border-radius: 50%; border: 1px dashed oklch(0.6 0.02 268);"></span>{{ t.demosSlot }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="github" data-screen-label="GitHub" style="position: relative; z-index: 2; padding: clamp(70px, 11vh, 150px) 26px; max-width: 1360px; margin: 0 auto;">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px;">
+      <div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc);">05 — GitHub</div>
+        <h2 style="margin: 16px 0 0; font-size: clamp(28px, 4vw, 54px); font-weight: 600; letter-spacing: -0.032em;">
+          <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.githubTitle }}</span></span>
+        </h2>
+      </div>
+      <a href="{{ ghUrl }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 9px; padding: 12px 20px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.16); font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: oklch(0.9 0.01 268); transition: border-color .3s, transform .3s;" style-hover="border-color: var(--acc2); transform: translateY(-2px);">{{ ghLabel }} ↗</a>
+    </div>
+    <p style="margin: 16px 0 0; max-width: 600px; font-size: 16px; line-height: 1.75; color: oklch(0.7 0.02 268);">{{ t.githubLead }}</p>
+
+    <div style="position: relative; margin-top: 44px; padding-left: 34px;">
+      <div style="position: absolute; left: 8px; top: 6px; bottom: 6px; width: 1px; background: linear-gradient(color-mix(in oklab, var(--acc) 55%, transparent), color-mix(in oklab, var(--acc2) 35%, transparent), transparent);"></div>
+      <div style="position: absolute; left: 4px; top: 0; bottom: 0; width: 9px;">
+        <span style="position: absolute; left: 0; width: 9px; height: 9px; border-radius: 50%; background: var(--acc); animation: travel 7s linear infinite;"></span>
+      </div>
+      <div data-stagger style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+        <sc-for list="{{ repos }}" as="r" hint-placeholder-count="4">
+          <a href="{{ r.url }}" target="_blank" rel="noopener" data-reveal style="opacity: 0; transform: translateY(24px); transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .4s cubic-bezier(.16,1,.3,1), border-color .3s; display: block; padding: 22px; border-radius: 16px; border: 1px solid oklch(0.95 0.008 268 / 0.11); background: oklch(0.95 0.008 268 / 0.028); color: oklch(0.95 0.008 268);" style-hover="border-color: color-mix(in oklab, var(--acc2) 55%, transparent); transform: translateY(-4px);">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px;">{{ r.name }}</span>
+              <span style="color: oklch(0.62 0.02 268);">↗</span>
+            </div>
+            <div style="margin-top: 11px; font-size: 14px; line-height: 1.65; color: oklch(0.7 0.02 268); min-height: 46px;">{{ r.desc }}</div>
+            <div style="margin-top: 16px; display: flex; align-items: center; gap: 14px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: oklch(0.62 0.02 268);">
+              <span style="display: flex; align-items: center; gap: 7px;"><span style="width: 9px; height: 9px; border-radius: 50%; background: {{ r.dot }};"></span>{{ r.lang }}</span>
+              <span>{{ r.updated }}</span>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <footer data-screen-label="İletişim" style="position: relative; z-index: 2; padding: clamp(80px, 12vh, 160px) 26px 36px; border-top: 1px solid oklch(0.95 0.008 268 / 0.08);">
+    <div style="max-width: 1360px; margin: 0 auto;">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc2);">06 — {{ t.contactTitle }}</div>
+      <h2 style="margin: 18px 0 0; font-size: clamp(26px, 3.4vw, 44px); font-weight: 600; letter-spacing: -0.03em;">
+        <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.contactHead }}</span></span>
+      </h2>
+      <a href="{{ mailHref }}" style="display: inline-block; margin-top: 22px; font-family: 'JetBrains Mono', monospace; font-size: clamp(20px, 3.6vw, 46px); letter-spacing: -0.02em; color: oklch(0.95 0.008 268); border-bottom: 1px solid color-mix(in oklab, var(--acc) 50%, transparent); padding-bottom: 6px; transition: color .3s;" style-hover="color: var(--acc);">{{ mail }}</a>
+      <div style="margin-top: 58px; padding-top: 22px; border-top: 1px solid oklch(0.95 0.008 268 / 0.09); display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.56 0.02 268);">
+        <span>© {{ year }} {{ name }} — {{ t.footerNote }}</span>
+        <span style="display: flex; gap: 16px;">
+          <a href="{{ ghUrl }}" target="_blank" rel="noopener" style="color: oklch(0.72 0.02 268);">GitHub</a>
+          <a href="{{ playUrl }}" target="_blank" rel="noopener" style="color: oklch(0.72 0.02 268);">Google Play</a>
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <sc-if value="{{ demoOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; border-bottom: 1px solid oklch(0.95 0.008 268 / 0.12); background: var(--surf);">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(0.78 0.15 150);"></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: oklch(0.82 0.02 268); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ activeFullPath }}</span>
+        </div>
+        <button onClick="{{ closeDemo }}" style="cursor: pointer; border-radius: 999px; background: transparent; border: 1px solid oklch(0.95 0.008 268 / 0.22); color: oklch(0.95 0.008 268); font-family: 'JetBrains Mono', monospace; font-size: 11.5px; padding: 9px 16px; transition: border-color .3s;" style-hover="border-color: var(--acc);">{{ t.close }} ✕</button>
+      </div>
+      <div style="flex: 1; min-height: 0; background: oklch(0.97 0.005 268);">
+        <iframe title="demo" srcDoc="{{ activeDemoSrc }}" style="width: 100%; height: 100%; border: 0; display: block;"></iframe>
+      </div>
+    </div>
+  </sc-if>
+
+  <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#2a2340"/><circle cx="50" cy="50" r="26" fill="#b98cff"/><text x="50" y="58" font-family="monospace" font-size="20" font-weight="700" text-anchor="middle" fill="#1c1a2b">st</text></svg></template>
+
+  <div data-progress style="position: fixed; left: 0; top: 0; height: 2px; width: 0%; background: linear-gradient(90deg, var(--acc2), var(--acc)); z-index: 60;"></div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;motionIntensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0,&quot;max&quot;:2,&quot;step&quot;:0.1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Hareket&quot;}}">
+const MUT = "oklch(0.66 0.02 268)";
+const THEME_VARS = {
+  "--bg": "oklch(0.205 0.024 278)", "--bg-top": "oklch(0.27 0.036 288)",
+  "--surf": "oklch(0.25 0.028 280)", "--panel": "oklch(0.275 0.032 285)", "--panel2": "oklch(0.23 0.026 275)",
+  "--acc": "oklch(0.76 0.15 300)", "--acc-hi": "oklch(0.88 0.1 300)", "--acc2": "oklch(0.74 0.14 210)",
+  "--glow1": "oklch(0.58 0.16 300)", "--glow2": "oklch(0.6 0.14 205)", "--glow3": "oklch(0.62 0.13 165)"
+};
+
+class Component extends DCLogic {
+  state = { lang: "tr", active: 0, demo: null, data: null };
+
+  componentDidMount() {
+    const root = document.documentElement;
+    Object.keys(THEME_VARS).forEach((k) => root.style.setProperty(k, THEME_VARS[k]));
+
+    try {
+      const l = localStorage.getItem("st-lang");
+      if (l === "tr" || l === "en" || l === "ru") this.setState({ lang: l });
+    } catch (e) {}
+
+    Promise.resolve(window.__SITE_DATA).then((m) => {
+      this._mod = m;
+      this.setState({ data: m.loadContent() });
+    });
+
+    this.buildStreams();
+    this.responsive();
+    this._onResize = () => this.responsive();
+    window.addEventListener("resize", this._onResize);
+
+    const bar = document.querySelector("[data-progress]");
+    this._cache = () => { this._pars = Array.from(document.querySelectorAll("[data-par]")).map((el) => ({ el, amt: parseFloat(el.getAttribute("data-par")) || 0 })); };
+    this._cache();
+    let tick = false;
+    const frame = () => {
+      tick = false;
+      const vh = window.innerHeight, sy = window.scrollY, k = this.props.motionIntensity ?? 1;
+      for (const p of this._pars) {
+        const r = p.el.getBoundingClientRect();
+        if (r.bottom < -180 || r.top > vh + 180) continue;
+        const d = (r.top + r.height / 2 - vh / 2) / vh;
+        p.el.style.transform = "translate3d(0," + (d * p.amt * 110 * k).toFixed(1) + "px,0)";
+      }
+      if (bar) {
+        const max = document.documentElement.scrollHeight - vh;
+        bar.style.width = (max > 0 ? (sy / max) * 100 : 0) + "%";
+      }
+    };
+    this._onScroll = () => { if (!tick) { tick = true; requestAnimationFrame(frame); } };
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    requestAnimationFrame(frame);
+
+    this._onKey = (e) => { if (e.key === "Escape") this.setState({ demo: null }); };
+    window.addEventListener("keydown", this._onKey);
+
+    // admin panelde yapılan değişiklikleri geri dönünce al
+    this._onFocus = () => { if (this._mod) this.setState({ data: this._mod.loadContent() }); };
+    window.addEventListener("focus", this._onFocus);
+    this._onStore = (e) => { if (this._mod && e.key === this._mod.KEY) this.setState({ data: this._mod.loadContent() }); };
+    window.addEventListener("storage", this._onStore);
+  }
+
+  responsive() {
+    const w = window.innerWidth;
+    const set = (sel, prop, val) => { const el = document.querySelector(sel); if (el) el.style[prop] = val; };
+    set("[data-navlinks]", "display", w > 1000 ? "flex" : "none");
+    set("[data-hero-grid]", "gridTemplateColumns", w > 1000 ? "1.05fr 0.95fr" : "1fr");
+    set("[data-two-col]", "gridTemplateColumns", w > 900 ? "0.8fr 1.2fr" : "1fr");
+    set("[data-demo-grid]", "gridTemplateColumns", w > 1000 ? "1fr 1fr" : "1fr");
+    const dp = document.querySelector("[data-demo-preview]");
+    if (dp) { dp.style.position = w > 1000 ? "sticky" : "relative"; dp.style.top = w > 1000 ? "92px" : "auto"; }
+  }
+
+  buildStreams() {
+    const host = document.querySelector("[data-streams]");
+    if (!host || host.childElementCount) return;
+    const glyphs = ["01", "{ }", "</>", "10", "fn", "::", "=>", "01"];
+    for (let i = 0; i < 16; i++) {
+      const col = document.createElement("div");
+      const x = (i / 16) * 100 + (Math.random() * 3 - 1.5);
+      col.style.cssText = "position:absolute;top:0;bottom:0;width:1px;left:" + x.toFixed(2) + "%;overflow:hidden;background:linear-gradient(oklch(0.95 0.01 280 / 0.028), oklch(0.95 0.01 280 / 0.01));";
+      const seg = document.createElement("div");
+      const dur = 16 + Math.random() * 22;
+      const hue = i % 2 ? 205 : 300;
+      seg.style.cssText = "position:absolute;left:-9px;width:19px;height:14vh;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:oklch(0.9 0.06 " + hue + " / 0.24);background:linear-gradient(transparent, oklch(0.85 0.09 " + hue + " / 0.1), transparent);animation:stream " + dur.toFixed(1) + "s linear infinite " + (-Math.random() * dur).toFixed(1) + "s;";
+      seg.textContent = glyphs[i % glyphs.length];
+      col.appendChild(seg);
+      host.appendChild(col);
+    }
+  }
+
+  initContentMotion() {
+    if (this._motionReady) return;
+    this._motionReady = true;
+
+    requestAnimationFrame(() => {
+      document.querySelectorAll("[data-rise]").forEach((el, i) => {
+        el.style.transition = "transform 1.05s cubic-bezier(.16,1,.3,1) " + (i * 0.09 + 0.1) + "s";
+      });
+      document.querySelectorAll("#top [data-rise]").forEach((el) => { el.style.transform = "translateY(0)"; });
+    });
+
+    let li = 0;
+    const logEls = Array.from(document.querySelectorAll("[data-log]"));
+    const step = () => {
+      if (li >= logEls.length) return;
+      logEls[li].style.opacity = "1";
+      logEls[li].style.transform = "translateY(0)";
+      li++;
+      this._logTimer = setTimeout(step, 240);
+    };
+    this._logTimer = setTimeout(step, 420);
+
+    const target = document.querySelector("[data-typed]");
+    let ri = 0, ci = 0, del = false;
+    const type = () => {
+      const d = this.state.data;
+      const list = (d && d.i18n[this.state.lang] && d.i18n[this.state.lang].roles) || [""];
+      const word = list[ri % list.length] || "";
+      ci = del ? ci - 1 : ci + 1;
+      if (target) target.textContent = word.slice(0, Math.max(0, ci));
+      let wait = del ? 34 : 62;
+      if (!del && ci >= word.length) { del = true; wait = 1500; }
+      else if (del && ci <= 0) { del = false; ri++; wait = 240; }
+      this._typeTimer = setTimeout(type, wait);
+    };
+    this._typeTimer = setTimeout(type, 700);
+
+    const io = new IntersectionObserver((ents) => {
+      ents.forEach((en) => {
+        if (!en.isIntersecting) return;
+        const el = en.target;
+        if (el.hasAttribute("data-rise")) el.style.transform = "translateY(0)";
+        else { el.style.opacity = "1"; el.style.transform = "none"; }
+        if (el.hasAttribute("data-count")) this.countUp(el);
+        io.unobserve(el);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -5% 0px" });
+
+    this._wire = () => {
+      document.querySelectorAll("[data-stagger]").forEach((p) => {
+        Array.from(p.querySelectorAll("[data-reveal]")).forEach((el, i) => {
+          if (!el.dataset.st) { el.dataset.st = "1"; el.style.transitionDelay = (i * 0.07).toFixed(2) + "s"; }
+        });
+      });
+      document.querySelectorAll("[data-reveal]:not([data-obs]), [data-rise]:not([data-obs]), [data-count]:not([data-obs])").forEach((el) => {
+        el.dataset.obs = "1";
+        io.observe(el);
+      });
+    };
+    this._wire();
+  }
+
+  countUp(el) {
+    const to = parseInt(el.getAttribute("data-count"), 10) || 0;
+    let n = 0;
+    const t = setInterval(() => {
+      n++;
+      el.textContent = n >= to ? String(to) : String(n);
+      if (n >= to) clearInterval(t);
+    }, Math.max(60, 700 / Math.max(to, 1)));
+  }
+
+  componentDidUpdate() {
+    if (this.state.data) this.initContentMotion();
+    if (this._wire) this._wire();
+    if (this._cache) this._cache();
+    this.responsive();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._onResize);
+    window.removeEventListener("keydown", this._onKey);
+    window.removeEventListener("focus", this._onFocus);
+    window.removeEventListener("storage", this._onStore);
+    clearTimeout(this._typeTimer);
+    clearTimeout(this._logTimer);
+  }
+
+  renderVals() {
+    const d = this.state.data;
+    const m = this._mod;
+    if (!d || !m) return { t: {}, langs: [], demos: [], facts: [], games: [], logs: [], techs: [], repos: [] };
+
+    const lang = d.i18n[this.state.lang] ? this.state.lang : "tr";
+    const t = d.i18n[lang];
+    const tx = (o) => (o && (o[lang] || o.tr)) || "";
+
+    const langs = ["tr", "en", "ru"].map((code) => ({
+      code: code.toUpperCase(),
+      bg: code === lang ? "var(--acc)" : "transparent",
+      fg: code === lang ? "var(--bg)" : MUT,
+      pick: () => {
+        this.setState({ lang: code });
+        try { localStorage.setItem("st-lang", code); } catch (e) {}
+      }
+    }));
+
+    const logs = d.logs.map((text) => ({ text, color: m.logColor(text) }));
+
+    const techs = d.techs.map((x, i) => ({ ...x, dot: i % 2 ? "var(--acc2)" : "var(--acc)" }));
+
+    const games = d.games.map((g, i) => {
+      const cov = m.COVERS[g.cover] || m.COVERS.violet;
+      const img = (g.image || "").trim();
+      return { name: g.name, desc: tx(g.desc), url: g.url || d.meta.play, no: String(i + 1).padStart(2, "0"), c1: cov[0], c2: cov[1], image: img, hasImage: !!img, noImage: !img };
+    });
+
+    const repos = d.repos.map((r, i) => ({
+      name: r.name, desc: tx(r.desc), lang: r.lang, updated: r.updated,
+      url: r.url || d.meta.github, dot: i % 2 ? "var(--acc2)" : "var(--acc)"
+    }));
+
+    const facts = d.facts.map((f) => ({ value: f.value, label: tx(f.label) }));
+
+    const demos = d.demos.map((x, i) => ({
+      path: x.path, name: x.name, desc: tx(x.desc), tags: x.tags || [],
+      bg: i === this.state.active ? "oklch(0.95 0.008 268 / 0.055)" : "transparent",
+      pathColor: i === this.state.active ? "var(--acc)" : "oklch(0.62 0.02 268)",
+      hover: () => { if (this.state.active !== i) this.setState({ active: i }); },
+      open: () => this.setState({ demo: i, active: i })
+    }));
+
+    const act = d.demos[this.state.active] || d.demos[0] || { name: "", path: "" };
+    const open = this.state.demo === null ? null : d.demos[this.state.demo];
+    const host = (d.meta.github || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+
+    return {
+      t, langs, logs, techs, games, repos, facts, demos,
+      name: d.meta.name, handle: d.meta.handle, mail: d.meta.mail,
+      mailHref: "mailto:" + d.meta.mail,
+      ghUrl: d.meta.github, ghLabel: host, playUrl: d.meta.play,
+      year: String(new Date().getFullYear()),
+      activeName: act.name, activePath: act.path,
+      openActive: () => this.setState({ demo: this.state.active }),
+      demoOpen: open !== null,
+      activeFullPath: open ? "sinantekin.dev/" + open.path : "",
+      activeDemoSrc: open ? (open.html && open.html.trim() ? open.html : m.demoStub(open.name)) : "",
+      closeDemo: () => this.setState({ demo: null })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

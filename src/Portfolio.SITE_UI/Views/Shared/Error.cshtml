@@ -1,0 +1,24 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Hata";
+}
+
+<main class="wrap" style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: 18px;">
+    <p class="mono" style="margin: 0; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--warn);">hata</p>
+
+    <h1 style="margin: 0; font-size: var(--fs-h2); font-weight: 600; letter-spacing: -0.032em;">
+        Bir şeyler ters gitti.
+    </h1>
+
+    <p style="max-width: 520px; margin: 0; color: var(--text-2);">
+        İsteğiniz işlenirken bir hata oluştu. Sayfayı yenilemeyi deneyebilir ya da
+        <a href="/">ana sayfaya</a> dönebilirsiniz.
+    </p>
+
+    @if (Model.ShowRequestId)
+    {
+        <p class="mono" style="margin: 0; font-size: 12px; color: var(--text-dim);">
+            istek kimliği: <code>@Model.RequestId</code>
+        </p>
+    }
+</main>

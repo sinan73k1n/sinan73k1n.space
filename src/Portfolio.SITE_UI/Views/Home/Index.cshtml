@@ -1,0 +1,330 @@
+@model Portfolio.Services.Dtos.SiteContentDto
+@using Portfolio.Entities
+@*
+    Ana sayfa — Faz 3: içerik katmanından beslenir (statik metin KALMADI).
+    Kaynak: JsonContentStore → ContentService → SiteContentDto (dil çözümlenmiş, eksik çeviri TR'ye düşmüş).
+    Hareket: motion.js (Faz 2). Demo çalıştırma: iframe sandbox (aşağıda).
+*@
+@{
+    var t = Model;                       // kısaltma: t.T("anahtar")
+    var demoYolu = Model.Demos.Count > 0 ? Model.Demos[0].Path : "";
+    var demoAdi = Model.Demos.Count > 0 ? Model.Demos[0].Name : "";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+}
+
+<div class="progress" data-progress></div>
+
+<nav class="nav">
+    <a href="#top" class="nav__brand">
+        <span class="nav__badge">st</span>
+        <span class="nav__handle">@t.Meta.Handle</span>
+    </a>
+    <div class="nav__right">
+        <div class="nav__links">
+            <a href="#about">@t.T("navAbout")</a>
+            <a href="#stack">@t.T("navStack")</a>
+            <a href="#games">@t.T("navGames")</a>
+            <a href="#demos">@t.T("navDemos")</a>
+            <a href="#github">@t.T("navGithub")</a>
+            <a href="/admin" class="is-admin">admin</a>
+        </div>
+        @* Dil anahtarı: sunucu tarafı: ?lang=xx → çerezde saklanır *@
+        <div class="langs" role="group" aria-label="Dil / Language">
+            @foreach (var kod in Lang.All)
+            {
+                var aktif = kod == t.Lang;
+                <a href="?lang=@kod" class="@(aktif ? "is-active" : "")" hreflang="@kod"
+                   @(aktif ? Html.Raw("aria-current=\"true\"") : Html.Raw(""))>@kod.ToUpperInvariant()</a>
+            }
+        </div>
+    </div>
+</nav>
+
+<main>
+    @* ---------------- HERO ---------------- *@
+    <section id="top" class="hero">
+        <div class="hero__grid">
+            <div>
+                <div class="chip">
+                    <span class="chip__dot"><span></span></span>
+                    @t.T("heroTag")
+                </div>
+
+                <h1 class="hero__title">
+                    <span class="mask"><span data-rise>@t.Meta.Name</span></span>
+                    <span class="mask"><span data-rise class="grad">@t.T("heroLine2")</span></span>
+                </h1>
+
+                <div class="typed">
+                    <span style="color: var(--acc2);">&gt;</span>
+                    <span data-typed data-roles="@System.Text.Json.JsonSerializer.Serialize(t.Roles)">@(t.Roles.Count > 0 ? t.Roles[0] : "")</span>
+                    <span class="typed__caret"></span>
+                </div>
+
+                <p class="hero__lead">@t.T("heroLead")</p>
+
+                <div class="hero__cta">
+                    <a href="#demos" class="btn btn--solid">@t.T("heroBtn1") <span class="mono">→</span></a>
+                    <a href="#github" class="btn btn--ghost">@t.T("heroBtn2")</a>
+                </div>
+            </div>
+
+            <div data-par="0.1">
+                <div class="term">
+                    <div class="term__bar">
+                        <span class="dot dot--r"></span><span class="dot dot--y"></span><span class="dot dot--g"></span>
+                        <span class="term__path">~/portfolio — zsh</span>
+                    </div>
+                    <div class="term__body">
+                        @foreach (var satir in t.Logs)
+                        {
+                            <div class="term__line @satir.CssClass" data-log>@satir.Text</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="scrollhint">
+            <span>@t.T("scroll")</span>
+            <span class="scrollhint__line"></span>
+        </div>
+    </section>
+
+    @* ---------------- KAYAN ŞERİT ---------------- *@
+    <div class="marquee" aria-hidden="true">
+        <div class="marquee__track">
+            @for (var i = 0; i < 4; i++)
+            {
+                <span>@t.T("marquee")</span>
+            }
+        </div>
+    </div>
+
+    @* ---------------- HAKKIMDA ---------------- *@
+    <section id="about" class="sec about">
+        <div class="about__grid">
+            <div>
+                <div class="sec__no">01 — @t.T("navAbout")</div>
+                <h2 class="about__title"><span class="mask"><span data-rise>@t.T("aboutTitle")</span></span></h2>
+            </div>
+            <div class="about__col">
+                <p class="about__big" data-reveal>@t.T("aboutBig")</p>
+                <p class="about__small" data-reveal>@t.T("aboutSmall")</p>
+                <div class="facts" data-stagger>
+                    @foreach (var f in t.Facts)
+                    {
+                        <div class="fact" data-reveal>
+                            <div class="fact__num" data-count="@f.Value">@f.Value</div>
+                            <div class="fact__label">@f.Label</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* ---------------- TEKNOLOJİLER ---------------- *@
+    <section id="stack" class="sec stack">
+        <div class="sec__no sec__no--alt">02 — @t.T("navStack")</div>
+        <h2 class="sec__head"><span class="mask"><span data-rise>@t.T("stackTitle")</span></span></h2>
+        <p class="sec__lead">@t.T("stackLead")</p>
+        <div class="techs" data-stagger>
+            @foreach (var tech in t.Techs)
+            {
+                <div class="tech" data-reveal>
+                    <span class="tech__dot" style="background: @tech.Dot;"></span>
+                    <span class="tech__name">@tech.Name</span>
+                    <span class="tech__note">@tech.Note</span>
+                </div>
+            }
+            <div class="slot">+ @t.T("stackSlot")</div>
+        </div>
+    </section>
+
+    @* ---------------- OYUNLAR ---------------- *@
+    <section id="games" class="sec">
+        <div class="sec__top">
+            <div>
+                <div class="sec__no">03 — @t.T("navGames")</div>
+                <h2 class="sec__head"><span class="mask"><span data-rise>@t.T("gamesTitle")</span></span></h2>
+            </div>
+            <a href="@t.Meta.Play" target="_blank" rel="noopener" class="pill-link">Google Play ↗</a>
+        </div>
+
+        <div class="games" data-stagger>
+            @foreach (var g in t.Games)
+            {
+                var harici = !string.IsNullOrWhiteSpace(g.Url);
+                <a href="@(harici ? g.Url : "#games")" class="game" data-reveal
+                   target="@(harici ? "_blank" : null)" rel="@(harici ? "noopener" : null)">
+                    <div class="game__cover" style="background: linear-gradient(150deg, @g.CoverFrom, @g.CoverTo);">
+                        @if (g.HasImage)
+                        {
+                            <img src="@g.Image" alt="@g.Name" loading="lazy" />
+                        }
+                        <div class="game__gloss"></div>
+                        <div class="game__sheen"></div>
+                        @if (!g.HasImage)
+                        {
+                            <div class="game__slot">@t.T("imgSlot")</div>
+                        }
+                    </div>
+                    <div class="game__body">
+                        <div class="game__meta">
+                            <span>@g.No</span><span>·</span><span>Android</span><span>·</span><span>Unity</span>
+                        </div>
+                        <div class="game__name">@g.Name</div>
+                        <div class="game__desc">@g.Desc</div>
+                    </div>
+                </a>
+            }
+        </div>
+    </section>
+
+    @* ---------------- DEMOLAR ---------------- *@
+    <section id="demos" class="demos">
+        <div class="demos__inner">
+            <div class="sec__no sec__no--alt">04 — @t.T("navDemos")</div>
+            <h2 class="sec__head"><span class="mask"><span data-rise>@t.T("demosTitle")</span></span></h2>
+            <p class="sec__lead">@t.T("demosLead")</p>
+
+            <div class="demos__grid">
+                <div class="demos__preview">
+                    <div class="browser">
+                        <div class="browser__bar">
+                            <span class="dot dot--r"></span><span class="dot dot--y"></span><span class="dot dot--g"></span>
+                            <span class="browser__url" data-demo-url>sinantekin.dev/@demoYolu</span>
+                        </div>
+                        <div class="browser__screen">
+                            <div class="browser__app">
+                                <span class="browser__icon"></span>
+                                <span class="browser__title" data-demo-name>@demoAdi</span>
+                            </div>
+                            <div class="browser__boxes">
+                                <div class="browser__box"></div><div class="browser__box"></div><div class="browser__box"></div>
+                            </div>
+                            <div class="browser__lines">
+                                <div class="browser__line"></div><div class="browser__line"></div>
+                                <div class="browser__line"></div><div class="browser__line"></div>
+                            </div>
+                            <div class="browser__fade"></div>
+                            <div class="browser__open">
+                                <button type="button" class="btn btn--solid demo-open" data-demo-open="0">@t.T("openDemo") ↗</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="demos__hint">@t.T("demosHint")</div>
+                </div>
+
+                <div data-stagger>
+                    @foreach (var d in t.Demos)
+                    {
+                        <div class="demo @(d.Index == 0 ? "is-active" : "")" data-reveal data-demo="@d.Index"
+                             role="button" tabindex="0" aria-label="@d.Name">
+                            <div style="min-width: 0;">
+                                <div class="demo__path">@d.Path</div>
+                                <div class="demo__name">@d.Name</div>
+                                <div class="demo__desc">@d.Desc</div>
+                                <div class="demo__tags">
+                                    @foreach (var etiket in d.Tags)
+                                    {
+                                        <span class="tag">@etiket</span>
+                                    }
+                                </div>
+                            </div>
+                            <span class="demo__go">↗</span>
+                        </div>
+                    }
+                    <div class="demo-slot">
+                        <span class="demo-slot__dot"></span>@t.T("demosSlot")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* ---------------- GITHUB ---------------- *@
+    <section id="github" class="sec">
+        <div class="sec__top">
+            <div>
+                <div class="sec__no">05 — @t.T("navGithub")</div>
+                <h2 class="sec__head"><span class="mask"><span data-rise>@t.T("githubTitle")</span></span></h2>
+            </div>
+            <a href="@t.Meta.Github" target="_blank" rel="noopener" class="pill-link pill-link--alt">github.com/@t.Meta.GithubUser ↗</a>
+        </div>
+        <p class="sec__lead">@t.T("githubLead")</p>
+
+        <div class="repos-wrap">
+            <div class="repos-travel"><span></span></div>
+            <div class="repos" data-stagger>
+                @foreach (var r in t.Repos)
+                {
+                    <a href="@r.Url" target="_blank" rel="noopener" class="repo" data-reveal>
+                        <div class="repo__top">
+                            <span class="repo__name">@r.Name</span>
+                            <span class="repo__arrow">↗</span>
+                        </div>
+                        <div class="repo__desc">@r.Desc</div>
+                        <div class="repo__meta">
+                            <span class="repo__lang"><span class="repo__dot" style="background: @r.Dot;"></span>@r.Lang</span>
+                            <span>@r.Updated</span>
+                        </div>
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+</main>
+
+@* ---------------- FOOTER / İLETİŞİM ---------------- *@
+<footer class="foot">
+    <div class="foot__inner">
+        <div class="sec__no sec__no--alt">06 — @t.T("contactTitle")</div>
+        <h2 class="foot__head"><span class="mask"><span data-rise>@t.T("contactHead")</span></span></h2>
+        <a href="mailto:@t.Meta.Mail" class="foot__mail">@t.Meta.Mail</a>
+        <div class="foot__bar">
+            <span>© @DateTime.Now.Year @t.Meta.Name — @t.T("footerNote")</span>
+            <span class="foot__links">
+                <a href="@t.Meta.Github" target="_blank" rel="noopener">GitHub</a>
+                <a href="@t.Meta.Play" target="_blank" rel="noopener">Google Play</a>
+            </span>
+        </div>
+    </div>
+</footer>
+
+@*
+    ---------------- TAM EKRAN DEMO OVERLAY ----------------
+    ⛔ GÜVENLİK: demo HTML'i KULLANICI İÇERİĞİdir.
+       · iframe sandbox="allow-scripts" → allow-same-origin ASLA verilmez
+         (ikisi birlikte sandbox'ı anlamsız kılar: demo, sitenin cookie'lerine ve DOM'una ulaşır)
+       · HTML sayfaya gömülmez; <script type="application/json"> içinde JSON olarak taşınır
+         (System.Text.Json `<` `>` karakterlerini < kaçışlar → "</script>" tuzağı oluşmaz)
+       · Faz 5.7a: kaynak ayrı origin'e taşınacak (demo.sinan73k1n.space)
+*@
+<div class="demo-overlay" data-demo-overlay hidden>
+    <div class="demo-overlay__bar">
+        <div class="demo-overlay__id">
+            <span class="dot dot--g"></span>
+            <span class="mono" data-overlay-path></span>
+        </div>
+        <button type="button" class="demo-overlay__close" data-demo-close>@t.T("close") ✕</button>
+    </div>
+    <div class="demo-overlay__frame">
+        <iframe title="demo" sandbox="allow-scripts" referrerpolicy="no-referrer" data-demo-frame></iframe>
+    </div>
+</div>
+
+@foreach (var d in t.Demos)
+{
+    <script type="application/json" data-demo-src="@d.Index">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { path = d.Path, html = d.Html }))</script>
+}
+
+@section Scripts {
+    <script src="~/js/ui.js" asp-append-version="true"></script>
+    <script src="~/js/motion.js" asp-append-version="true"></script>
+    <script src="~/js/demo.js" asp-append-version="true"></script>
+}

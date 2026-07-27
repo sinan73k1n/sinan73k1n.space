@@ -1,0 +1,221 @@
+// Sinan Tekin portfolyo — paylaşılan içerik katmanı.
+// Ana sayfa ve admin panel aynı veriyi buradan okur.
+// Kalıcılık: localStorage (tarayıcı) + JSON indir/yükle.
+
+export const KEY = "st-content-v1";
+export const LANGS = ["tr", "en", "ru"];
+
+export const SEED = {
+  meta: {
+    name: "Sinan Tekin",
+    handle: "sinan.tekin",
+    mail: "hello@sinantekin.dev",
+    github: "https://github.com/sinan73k1n",
+    githubUser: "sinan73k1n",
+    play: "https://play.google.com/store/apps/dev?id=5968286876093646143"
+  },
+
+  i18n: {
+    tr: {
+      navAbout: "Hakkımda", navStack: "Teknolojiler", navGames: "Oyunlar", navDemos: "Demolar", navGithub: "GitHub",
+      heroTag: "yeni projelere açık",
+      heroLine2: "yazılım geliştirici",
+      roles: ["Unity ile mobil oyunlar", "yönetim panelleri & backend", "çalışan web demoları"],
+      heroLead: "Oyun geliştiriyorum, yönetim panelleri kuruyorum, arayüzleri kendim yazıyorum. Aşağıdaki her şey gerçekten çalışan işler.",
+      heroBtn1: "Demoları çalıştır", heroBtn2: "Kodlara bak",
+      scroll: "aşağı kaydır",
+      marquee: "unity  ·  c#  ·  javascript  ·  php  ·  mysql  ·  google play  ·  admin panel  ·  forum  ·  api  ·  demo  ·",
+      aboutTitle: "Fikirden yayına, tek başına.",
+      aboutBig: "Ekranda görüneni de arkada çalışanı da ben yazıyorum — tasarım, kod, yayın döngüsü aynı elde.",
+      aboutSmall: "Oyun tarafında Unity ile geliştirip Google Play'de yayınlıyorum; mağaza, sürüm ve oyuncu geri bildirimi süreçlerini kendim yönetiyorum. Web tarafında yönetim panelleri, forum ve etkileşim yoğun arayüzler kuruyorum. Bu sitedeki demolar ekran görüntüsü değil, tarayıcıda gerçekten açılan sürümler.",
+      stackTitle: "Çalıştığım teknolojiler",
+      stackLead: "Liste admin panelinden güncellenir.",
+      stackSlot: "yeni teknoloji",
+      gamesTitle: "Google Play oyunları",
+      demosTitle: "Çalışan demolar",
+      demosLead: "Satırların üstüne gel, önizleme değişir. Tıkla, demo tam ekran açılır.",
+      demosHint: "önizleme yer tutucudur — gerçek demo tam ekranda çalışır",
+      demosSlot: "boş demo alanı — admin panelinden eklenecek",
+      openDemo: "Tam ekran aç", close: "Kapat",
+      githubTitle: "Kaynak kodlar ve depolar",
+      githubLead: "Depoların ön izlemesi. Takip etmek isteyen doğrudan profilden ilerleyebilir.",
+      contactTitle: "İletişim", contactHead: "Bir işi konuşalım mı?",
+      footerNote: "tasarım ve kod bana ait",
+      imgSlot: "oyun görseli buraya"
+    },
+    en: {
+      navAbout: "About", navStack: "Stack", navGames: "Games", navDemos: "Demos", navGithub: "GitHub",
+      heroTag: "open to new projects",
+      heroLine2: "software developer",
+      roles: ["mobile games with Unity", "admin panels & backend", "web demos that actually run"],
+      heroLead: "I build games, ship admin panels and write the interfaces myself. Everything below is work that actually runs.",
+      heroBtn1: "Run the demos", heroBtn2: "Read the code",
+      scroll: "scroll down",
+      marquee: "unity  ·  c#  ·  javascript  ·  php  ·  mysql  ·  google play  ·  admin panel  ·  forum  ·  api  ·  demo  ·",
+      aboutTitle: "From idea to release, solo.",
+      aboutBig: "I write what you see on screen and what runs behind it — design, code and shipping in one pair of hands.",
+      aboutSmall: "On the game side I build with Unity and publish on Google Play, handling store presence, releases and player feedback myself. On the web side I build admin panels, forums and interaction-heavy interfaces. The demos here aren't screenshots — they open and run in your browser.",
+      stackTitle: "Technologies I work with",
+      stackLead: "This list is maintained from the admin panel.",
+      stackSlot: "new technology",
+      gamesTitle: "Google Play games",
+      demosTitle: "Running demos",
+      demosLead: "Hover a row and the preview follows. Click to open the demo full screen.",
+      demosHint: "the preview is a placeholder — the real demo runs full screen",
+      demosSlot: "empty demo slot — added from the admin panel",
+      openDemo: "Open full screen", close: "Close",
+      githubTitle: "Source code and repos",
+      githubLead: "A preview of the repositories. Anyone who wants to follow along can continue from the profile.",
+      contactTitle: "Contact", contactHead: "Got something to build?",
+      footerNote: "design and code by me",
+      imgSlot: "game artwork here"
+    },
+    ru: {
+      navAbout: "Обо мне", navStack: "Технологии", navGames: "Игры", navDemos: "Демо", navGithub: "GitHub",
+      heroTag: "открыт к новым проектам",
+      heroLine2: "разработчик ПО",
+      roles: ["мобильные игры на Unity", "админ-панели и бэкенд", "рабочие веб-демо"],
+      heroLead: "Делаю игры, собираю админ-панели и сам пишу интерфейсы. Всё ниже — проекты, которые реально работают.",
+      heroBtn1: "Запустить демо", heroBtn2: "Смотреть код",
+      scroll: "прокрутите вниз",
+      marquee: "unity  ·  c#  ·  javascript  ·  php  ·  mysql  ·  google play  ·  админ-панель  ·  форум  ·  api  ·  демо  ·",
+      aboutTitle: "От идеи до релиза — один.",
+      aboutBig: "Пишу и то, что видно на экране, и то, что работает за ним: дизайн, код и релиз в одних руках.",
+      aboutSmall: "В играх работаю на Unity и публикую в Google Play, сам занимаюсь магазином, релизами и обратной связью игроков. В вебе строю админ-панели, форумы и интерфейсы с плотным взаимодействием. Демо здесь — не скриншоты, они действительно запускаются в браузере.",
+      stackTitle: "Технологии, с которыми работаю",
+      stackLead: "Список обновляется из админ-панели.",
+      stackSlot: "новая технология",
+      gamesTitle: "Игры в Google Play",
+      demosTitle: "Рабочие демо",
+      demosLead: "Наведите на строку — предпросмотр меняется. Нажмите, чтобы открыть демо на весь экран.",
+      demosHint: "предпросмотр — заглушка, само демо работает на весь экран",
+      demosSlot: "пустой слот демо — добавится из админ-панели",
+      openDemo: "Открыть на весь экран", close: "Закрыть",
+      githubTitle: "Исходный код и репозитории",
+      githubLead: "Предпросмотр репозиториев. Кто хочет следить — переходите в профиль.",
+      contactTitle: "Контакты", contactHead: "Обсудим проект?",
+      footerNote: "дизайн и код мои",
+      imgSlot: "изображение игры"
+    }
+  },
+
+  logs: [
+    "$ sinan --whoami",
+    "→ unity · c# · javascript · php · mysql",
+    "$ ship --target play-store",
+    "✓ build passed   ✓ release live",
+    "$ serve ./demo/*",
+    "→ ServerAdminPanel  ready",
+    "→ ForumEtkilesim    ready",
+    "→ GameLauncher      ready",
+    "$ open portfolio ▸"
+  ],
+
+  facts: [
+    { value: 3, label: { tr: "Google Play'de yayında oyun", en: "games live on Google Play", ru: "игр в Google Play" } },
+    { value: 3, label: { tr: "yayınlanmış çalışan demo", en: "published running demos", ru: "опубликованных рабочих демо" } },
+    { value: 4, label: { tr: "aktif GitHub deposu", en: "active GitHub repositories", ru: "активных репозиториев GitHub" } }
+  ],
+
+  techs: [
+    { name: "Unity", note: "oyun motoru" },
+    { name: "C#", note: "gameplay · backend" },
+    { name: "JavaScript", note: "arayüz · demo" },
+    { name: "PHP", note: "panel · api" },
+    { name: "MySQL", note: "veri" },
+    { name: "HTML / CSS", note: "arayüz" },
+    { name: "Git", note: "sürüm" }
+  ],
+
+  games: [
+    { name: "Oyun 01", url: "", image: "", cover: "violet", desc: { tr: "Başlık, açıklama ve görsel admin panelinden gelecek.", en: "Title, description and artwork come from the admin panel.", ru: "Название, описание и обложка задаются в админ-панели." } },
+    { name: "Oyun 02", url: "", image: "", cover: "cyan", desc: { tr: "Google Play'de yayında olan projelerden biri.", en: "One of the projects live on Google Play.", ru: "Один из проектов, опубликованных в Google Play." } },
+    { name: "Oyun 03", url: "", image: "", cover: "magenta", desc: { tr: "Yeni oyunlar bu alana eklenecek.", en: "New games get added here.", ru: "Новые игры добавляются здесь." } }
+  ],
+
+  demos: [
+    { path: "demo/ServerAdminPanel", name: "Server Admin Panel", tags: ["HTML", "JS", "Dashboard"], html: "", desc: { tr: "Sunucu yönetimi, kullanıcı listesi ve log ekranlarını içeren panel demosu.", en: "Panel demo with server management, user list and log screens.", ru: "Демо панели: управление сервером, список пользователей и логи." } },
+    { path: "demo/ForumEtkilesim", name: "Forum Etkileşim", tags: ["HTML", "JS", "Community"], html: "", desc: { tr: "Konu akışı, oylama ve bildirim etkileşimleri olan forum arayüzü.", en: "Forum interface with topic feed, voting and notifications.", ru: "Интерфейс форума: лента тем, голосование и уведомления." } },
+    { path: "demo/GameLauncher", name: "Game Launcher", tags: ["HTML", "JS", "UI"], html: "", desc: { tr: "Oyun kütüphanesi ve güncelleme akışı olan masaüstü tarzı arayüz.", en: "Desktop-style interface with a game library and update flow.", ru: "Интерфейс в стиле десктопа: библиотека игр и обновления." } }
+  ],
+
+  repos: [
+    { name: "server-admin-panel", lang: "PHP", updated: "2026", url: "", desc: { tr: "PHP + MySQL tabanlı sunucu yönetim paneli.", en: "Server admin panel built on PHP + MySQL.", ru: "Панель управления сервером на PHP + MySQL." } },
+    { name: "unity-game-tools", lang: "C#", updated: "2026", url: "", desc: { tr: "Unity projelerinde tekrar kullandığım editör scriptleri.", en: "Editor scripts I reuse across Unity projects.", ru: "Скрипты редактора, которые я переиспользую в Unity." } },
+    { name: "forum-etkilesim", lang: "JavaScript", updated: "2026", url: "", desc: { tr: "Forum etkileşim arayüzü prototipi ve demoları.", en: "Forum interaction interface prototype and demos.", ru: "Прототип интерфейса форума и демо." } },
+    { name: "portfolio", lang: "HTML", updated: "2026", url: "", desc: { tr: "Bu sitenin kaynak kodu ve demo dosyaları.", en: "Source code of this site and its demo files.", ru: "Исходный код сайта и файлы демо." } }
+  ]
+};
+
+export const COVERS = {
+  violet: ["oklch(0.42 0.15 300)", "oklch(0.26 0.09 280)"],
+  cyan: ["oklch(0.4 0.13 210)", "oklch(0.25 0.08 250)"],
+  magenta: ["oklch(0.44 0.14 340)", "oklch(0.26 0.08 300)"],
+  mint: ["oklch(0.42 0.13 165)", "oklch(0.25 0.07 200)"],
+  amber: ["oklch(0.46 0.13 72)", "oklch(0.27 0.07 50)"]
+};
+
+function clone(x) { return JSON.parse(JSON.stringify(x)); }
+
+export function loadContent() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return clone(SEED);
+    const saved = JSON.parse(raw);
+    const base = clone(SEED);
+    return {
+      meta: Object.assign(base.meta, saved.meta || {}),
+      i18n: {
+        tr: Object.assign(base.i18n.tr, (saved.i18n || {}).tr || {}),
+        en: Object.assign(base.i18n.en, (saved.i18n || {}).en || {}),
+        ru: Object.assign(base.i18n.ru, (saved.i18n || {}).ru || {})
+      },
+      logs: saved.logs || base.logs,
+      facts: saved.facts || base.facts,
+      techs: saved.techs || base.techs,
+      games: saved.games || base.games,
+      demos: saved.demos || base.demos,
+      repos: saved.repos || base.repos
+    };
+  } catch (e) {
+    return clone(SEED);
+  }
+}
+
+export function saveContent(data) {
+  try { localStorage.setItem(KEY, JSON.stringify(data)); return true; } catch (e) { return false; }
+}
+
+export function resetContent() {
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  return clone(SEED);
+}
+
+export function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename || "portfolio-content.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+export function logColor(line) {
+  const s = (line || "").trim();
+  if (s.startsWith("✓")) return "oklch(0.8 0.15 150)";
+  if (s.startsWith("→")) return "var(--acc2)";
+  if (s.startsWith("$ open")) return "var(--acc)";
+  if (s.startsWith("$")) return "oklch(0.95 0.008 268)";
+  return "oklch(0.66 0.02 268)";
+}
+
+export function demoStub(title) {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+ body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#14131c;color:#e8e8ef;font-family:ui-monospace,SFMono-Regular,monospace}
+ .c{text-align:center;padding:42px 46px;border:1px solid rgba(255,255,255,.14);border-radius:18px;background:rgba(255,255,255,.03)}
+ h1{margin:0 0 12px;font-size:18px;letter-spacing:.08em;color:#c9a6ff}
+ p{margin:0;font-size:13px;line-height:1.8;color:#8f8fa3}
+</style></head><body><div class="c"><h1>${title}</h1><p>Bu demo için HTML/JS henüz yapıştırılmadı.<br/>Admin panel → Demolar → HTML/JS alanı.</p></div></body></html>`;
+}

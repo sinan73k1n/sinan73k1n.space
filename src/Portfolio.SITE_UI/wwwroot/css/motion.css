@@ -1,0 +1,49 @@
+/* ============================================================
+   motion.css — HAREKET KATMANI başlangıç durumları (Faz 2)
+   Süreler/easing prototipten BİREBİR.
+
+   ⭐ KRİTİK: başlangıç durumları yalnız `.anim` sınıfı altında uygulanır.
+      `.anim`ı head'deki minik inline script ekler ve SADECE
+      prefers-reduced-motion kapalıysa ekler. Böylece:
+        · JS yoksa/başarısızsa → içerik GÖRÜNÜR kalır (opacity:0'da kilitlenmez)
+        · reduced-motion açıksa → hiç gizlenmez, sayfa sakin görünür
+   ============================================================ */
+
+/* ---------- Maskeli başlık (perde etkisi) ---------- */
+.anim [data-rise] { transform: translateY(110%); }
+.anim [data-rise].is-in { transform: translateY(0); }
+.anim .mask > [data-rise] { transition: transform var(--t-reveal) var(--ease); }
+
+/* ---------- Scroll reveal ---------- */
+.anim [data-reveal] { opacity: 0; }
+.anim [data-reveal].is-in { opacity: 1; transform: none; }
+
+/* Bölüme özel başlangıç dönüşümleri + süreler (prototipten) */
+.anim .about__big,
+.anim .about__small { transform: translateY(26px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
+.anim .fact         { transform: translateY(26px); transition: opacity .8s var(--ease), transform .8s var(--ease), border-color var(--t-hover); }
+.anim .tech         { transform: translateY(20px) scale(0.96); transition: opacity .7s var(--ease), transform .7s var(--ease), border-color var(--t-hover), background var(--t-hover); }
+.anim .game         { transform: translateY(30px); transition: opacity .9s var(--ease), transform .5s var(--ease), border-color var(--t-hover); }
+.anim .demo         { transform: translateY(24px); transition: opacity .8s var(--ease), transform .8s var(--ease), background var(--t-hover); }
+.anim .repo         { transform: translateY(24px); transition: opacity .8s var(--ease), transform .4s var(--ease), border-color var(--t-hover); }
+
+/* Hover dönüşümleri reveal bittikten sonra da çalışsın */
+.anim .game.is-in:hover { transform: translateY(-6px); }
+.anim .repo.is-in:hover { transform: translateY(-4px); }
+
+/* ---------- Terminal log satırları ---------- */
+.anim .term__line { opacity: 0; transform: translateY(6px); transition: opacity .4s, transform .4s; }
+.anim .term__line.is-in { opacity: 1; transform: none; }
+
+/* ---------- Parallax ---------- */
+/* [data-par] öğeleri JS ile translate3d alır; will-change ipucu veriyoruz */
+.anim [data-par] { will-change: transform; }
+
+/* ============================================================
+   Hareket azaltma: hiçbir şey gizlenmez (.anim zaten eklenmez),
+   burada ek güvenlik olarak açıkça sıfırlıyoruz.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  [data-rise], [data-reveal], .term__line { opacity: 1 !important; transform: none !important; }
+  [data-par] { transform: none !important; will-change: auto; }
+}

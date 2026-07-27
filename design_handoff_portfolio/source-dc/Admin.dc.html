@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: oklch(0.205 0.024 278); --surf: oklch(0.25 0.028 280); --panel: oklch(0.275 0.032 285);
+    --acc: oklch(0.76 0.15 300); --acc2: oklch(0.74 0.14 210); --line: oklch(0.95 0.008 268 / 0.12);
+  }
+  html, body { background: var(--bg); }
+  body { margin: 0; color: oklch(0.95 0.008 268); font-family: 'Space Grotesk', Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--acc); text-decoration: none; }
+  a:hover { color: oklch(0.88 0.1 300); }
+  input, textarea, select, button { font-family: inherit; }
+  input, textarea, select {
+    width: 100%; box-sizing: border-box; background: oklch(0.95 0.008 268 / 0.04);
+    border: 1px solid var(--line); border-radius: 10px; color: oklch(0.96 0.008 268);
+    padding: 11px 13px; font-size: 14px; outline: none; transition: border-color .2s, background .2s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--acc); background: oklch(0.95 0.008 268 / 0.07); }
+  textarea { resize: vertical; line-height: 1.6; }
+  ::selection { background: var(--acc); color: var(--bg); }
+  ::placeholder { color: oklch(0.55 0.02 268); }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; display: grid; grid-template-rows: auto 1fr; background: radial-gradient(120% 80% at 80% -10%, oklch(0.27 0.036 288), var(--bg) 60%);">
+
+  <header style="position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 22px; background: color-mix(in oklab, var(--bg) 88%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line);">
+    <div style="display: flex; align-items: center; gap: 13px;">
+      <span style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(140deg, var(--acc), var(--acc2)); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--bg);">st</span>
+      <div>
+        <div style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">Portfolyo yönetimi</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: oklch(0.62 0.02 268);">{{ statusText }}</div>
+      </div>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 9px;">
+      <a href="./Ana Sayfa.dc.html" style="padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; color: oklch(0.9 0.01 268);" style-hover="border-color: var(--acc2);">Siteyi gör ↗</a>
+      <label style="cursor: pointer; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; color: oklch(0.9 0.01 268); display: inline-flex; align-items: center; gap: 8px;" style-hover="border-color: var(--acc2);">
+        JSON yükle
+        <input type="file" accept="application/json" onChange="{{ onUpload }}" style="display: none; width: auto; padding: 0; border: 0;" />
+      </label>
+      <button onClick="{{ onDownload }}" style="cursor: pointer; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: oklch(0.9 0.01 268); font-size: 13px;" style-hover="border-color: var(--acc2);">JSON indir</button>
+      <button onClick="{{ onReset }}" style="cursor: pointer; padding: 10px 16px; border-radius: 999px; border: 1px solid oklch(0.7 0.16 25 / 0.4); background: transparent; color: oklch(0.8 0.12 25); font-size: 13px;" style-hover="border-color: oklch(0.7 0.16 25);">Sıfırla</button>
+      <button onClick="{{ onSave }}" style="cursor: pointer; padding: 11px 22px; border-radius: 999px; border: 0; background: var(--acc); color: var(--bg); font-size: 13.5px; font-weight: 600; transition: transform .2s;" style-hover="transform: translateY(-1px);">Kaydet</button>
+    </div>
+  </header>
+
+  <div data-shell style="display: grid; grid-template-columns: 1fr; gap: 0; align-items: start;">
+
+    <aside data-side style="padding: 20px 16px; border-right: 1px solid var(--line);">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.58 0.02 268); padding: 0 10px 10px;">içerik</div>
+      <nav style="display: flex; flex-direction: column; gap: 3px;">
+        <sc-for list="{{ sections }}" as="s" hint-placeholder-count="8">
+          <button onClick="{{ s.pick }}" style="cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 13px; border-radius: 10px; border: 0; font-size: 14px; transition: background .2s; background: {{ s.bg }}; color: {{ s.fg }};" style-hover="background: oklch(0.95 0.008 268 / 0.05);">
+            <span>{{ s.label }}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: oklch(0.55 0.02 268);">{{ s.count }}</span>
+          </button>
+        </sc-for>
+      </nav>
+      <div style="margin-top: 22px; padding: 14px; border-radius: 12px; border: 1px dashed var(--line); font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.7; color: oklch(0.6 0.02 268);">Kaydet → tarayıcıda saklanır.<br />JSON indir → siteye taşı.</div>
+    </aside>
+
+    <main style="padding: 26px 26px 80px; min-width: 0;">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;">
+        <div>
+          <h1 style="margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 600; letter-spacing: -0.025em;">{{ secTitle }}</h1>
+          <p style="margin: 7px 0 0; font-size: 14px; color: oklch(0.68 0.02 268); max-width: 560px; line-height: 1.6;">{{ secNote }}</p>
+        </div>
+        <sc-if value="{{ showFill }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ onFillFromTr }}" style="cursor: pointer; padding: 10px 16px; border-radius: 999px; border: 1px dashed var(--line); background: transparent; color: oklch(0.86 0.02 268); font-size: 13px;" style-hover="border-color: var(--acc); color: var(--acc);">Boşları TR'den doldur</button>
+        </sc-if>
+        <sc-if value="{{ showLangTabs }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; border: 1px solid var(--line);">
+            <sc-for list="{{ langTabs }}" as="l" hint-placeholder-count="3">
+              <button onClick="{{ l.pick }}" style="cursor: pointer; border: 0; border-radius: 999px; padding: 8px 16px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; background: {{ l.bg }}; color: {{ l.fg }};">{{ l.code }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ hasFields }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start;">
+          <sc-for list="{{ fields }}" as="f" hint-placeholder-count="6">
+            <div style="padding: 16px 16px 14px; border-radius: 14px; border: 1px solid var(--line); background: oklch(0.95 0.008 268 / 0.025); grid-column: {{ f.span }};">
+              <label style="display: block; font-size: 13px; font-weight: 500; color: oklch(0.88 0.01 268);">{{ f.label }}</label>
+              <div style="margin: 3px 0 10px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.02 268);">{{ f.hint }}</div>
+              <sc-if value="{{ f.multiline }}" hint-placeholder-val="{{ false }}">
+                <textarea rows="{{ f.rows }}" value="{{ f.value }}" onChange="{{ f.set }}" placeholder="{{ f.ph }}"></textarea>
+              </sc-if>
+              <sc-if value="{{ f.single }}" hint-placeholder-val="{{ true }}">
+                <input type="text" value="{{ f.value }}" onChange="{{ f.set }}" placeholder="{{ f.ph }}" />
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasList }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 14px;">
+          <sc-for list="{{ items }}" as="it" hint-placeholder-count="3">
+            <div style="padding: 18px; border-radius: 16px; border: 1px solid var(--line); background: oklch(0.95 0.008 268 / 0.028);">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 4px 9px; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.07); color: oklch(0.7 0.02 268);">{{ it.no }}</span>
+                  <span style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ it.title }}</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button onClick="{{ it.up }}" title="yukarı" style="cursor: pointer; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: oklch(0.8 0.01 268); font-size: 12px;" style-hover="border-color: var(--acc2);">↑</button>
+                  <button onClick="{{ it.down }}" title="aşağı" style="cursor: pointer; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: oklch(0.8 0.01 268); font-size: 12px;" style-hover="border-color: var(--acc2);">↓</button>
+                  <sc-if value="{{ it.canPreview }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ it.preview }}" style="cursor: pointer; padding: 0 14px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: oklch(0.86 0.01 268); font-size: 12.5px;" style-hover="border-color: var(--acc);">önizle</button>
+                  </sc-if>
+                  <button onClick="{{ it.remove }}" title="sil" style="cursor: pointer; width: 32px; height: 32px; border-radius: 8px; border: 1px solid oklch(0.7 0.16 25 / 0.35); background: transparent; color: oklch(0.78 0.13 25); font-size: 13px;" style-hover="border-color: oklch(0.7 0.16 25);">✕</button>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+                <sc-for list="{{ it.fields }}" as="f" hint-placeholder-count="3">
+                  <div style="grid-column: {{ f.span }};">
+                    <label style="display: block; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: oklch(0.6 0.02 268); margin-bottom: 6px;">{{ f.label }}</label>
+                    <sc-if value="{{ f.multiline }}" hint-placeholder-val="{{ false }}">
+                      <textarea rows="{{ f.rows }}" value="{{ f.value }}" onChange="{{ f.set }}" placeholder="{{ f.ph }}" style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px;"></textarea>
+                    </sc-if>
+                    <sc-if value="{{ f.isImage }}" hint-placeholder-val="{{ false }}">
+                      <div style="display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: start;">
+                        <div style="position: relative; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: oklch(0.95 0.008 268 / 0.05); display: flex; align-items: center; justify-content: center;">
+                          <sc-if value="{{ f.hasImage }}" hint-placeholder-val="{{ false }}">
+                            <img src="{{ f.preview }}" alt="kapak" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;" />
+                          </sc-if>
+                          <sc-if value="{{ f.noImage }}" hint-placeholder-val="{{ true }}">
+                            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: oklch(0.55 0.02 268);">16:10</span>
+                          </sc-if>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+                          <input type="text" value="{{ f.value }}" onChange="{{ f.set }}" placeholder="{{ f.ph }}" />
+                          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <label style="cursor: pointer; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); font-size: 12.5px; color: oklch(0.88 0.01 268);" style-hover="border-color: var(--acc);">
+                              dosya seç
+                              <input type="file" accept="image/*" onChange="{{ f.onFile }}" style="display: none; width: auto; padding: 0; border: 0;" />
+                            </label>
+                            <button onClick="{{ f.onClear }}" style="cursor: pointer; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: oklch(0.72 0.02 268); font-size: 12.5px;" style-hover="border-color: oklch(0.7 0.16 25); color: oklch(0.8 0.12 25);">kaldır</button>
+                          </div>
+                        </div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}">
+                      <select value="{{ f.value }}" onChange="{{ f.set }}">
+                        <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3">
+                          <option value="{{ o.value }}">{{ o.label }}</option>
+                        </sc-for>
+                      </select>
+                    </sc-if>
+                    <sc-if value="{{ f.single }}" hint-placeholder-val="{{ true }}">
+                      <input type="text" value="{{ f.value }}" onChange="{{ f.set }}" placeholder="{{ f.ph }}" />
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+          <button onClick="{{ onAdd }}" style="cursor: pointer; padding: 16px; border-radius: 14px; border: 1px dashed oklch(0.95 0.008 268 / 0.22); background: transparent; color: oklch(0.82 0.02 268); font-size: 14px; transition: border-color .2s, color .2s;" style-hover="border-color: var(--acc); color: var(--acc);">+ {{ addLabel }}</button>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+
+  <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#2a2340"/><rect x="22" y="26" width="56" height="10" rx="5" fill="#b98cff"/><rect x="22" y="45" width="40" height="8" rx="4" fill="#7fb6d9"/><rect x="22" y="60" width="48" height="8" rx="4" fill="#5b5478"/></svg></template>
+
+  <sc-if value="{{ previewOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--surf);">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: oklch(0.82 0.02 268);">{{ previewTitle }}</span>
+        <button onClick="{{ closePreview }}" style="cursor: pointer; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: oklch(0.92 0.01 268); font-family: 'JetBrains Mono', monospace; font-size: 11.5px;" style-hover="border-color: var(--acc);">kapat ✕</button>
+      </div>
+      <div style="flex: 1; min-height: 0; background: oklch(0.97 0.005 268);">
+        <iframe title="demo önizleme" srcDoc="{{ previewSrc }}" style="width: 100%; height: 100%; border: 0; display: block;"></iframe>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 70; padding: 13px 22px; border-radius: 999px; background: var(--acc); color: var(--bg); font-size: 13.5px; font-weight: 600; box-shadow: 0 16px 40px oklch(0.12 0.03 280 / 0.5);">{{ toastText }}</div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const L = {
+  heroTag: ["Banner üst etiket", "yeşil nokta yanındaki küçük yazı"],
+  heroLine2: ["Banner 2. satır", "gradyanlı büyük yazı"],
+  roles: ["Yazıcı satırları", "her satır bir rol — sırayla yazılır"],
+  heroLead: ["Banner açıklaması", "iki-üç cümle"],
+  heroBtn1: ["1. buton", "demolara gider"],
+  heroBtn2: ["2. buton", "github'a gider"],
+  scroll: ["Kaydırma ipucu", "banner altı"],
+  marquee: ["Kayan şerit", "· ile ayır"],
+  aboutTitle: ["Hakkımda başlığı", ""],
+  aboutBig: ["Hakkımda vurgu cümlesi", "büyük punto"],
+  aboutSmall: ["Hakkımda paragrafı", ""],
+  stackTitle: ["Teknolojiler başlığı", ""],
+  stackLead: ["Teknolojiler açıklaması", ""],
+  stackSlot: ["Boş teknoloji etiketi", "kesikli çipteki yazı"],
+  gamesTitle: ["Oyunlar başlığı", ""],
+  demosTitle: ["Demolar başlığı", ""],
+  demosLead: ["Demolar açıklaması", ""],
+  demosHint: ["Önizleme notu", "tarayıcı mockup altı"],
+  demosSlot: ["Boş demo etiketi", ""],
+  openDemo: ["'Tam ekran aç' yazısı", ""],
+  close: ["'Kapat' yazısı", ""],
+  githubTitle: ["GitHub başlığı", ""],
+  githubLead: ["GitHub açıklaması", ""],
+  navAbout: ["Menü: hakkımda", ""],
+  navStack: ["Menü: teknolojiler", ""],
+  navGames: ["Menü: oyunlar", ""],
+  navDemos: ["Menü: demolar", ""],
+  navGithub: ["Menü: github", ""],
+  contactTitle: ["İletişim etiketi", ""],
+  contactHead: ["İletişim başlığı", ""],
+  footerNote: ["Alt bilgi notu", "© yanındaki yazı"],
+  imgSlot: ["Görsel yer tutucu yazısı", "oyun kapağı üstünde"]
+};
+
+const GROUPS = {
+  banner: ["heroTag", "heroLine2", "roles", "heroLead", "heroBtn1", "heroBtn2", "scroll", "marquee"],
+  hakkimda: ["aboutTitle", "aboutBig", "aboutSmall"],
+  etiketler: ["navAbout", "navStack", "navGames", "navDemos", "navGithub", "stackTitle", "stackLead", "stackSlot", "gamesTitle", "demosTitle", "demosLead", "demosHint", "demosSlot", "openDemo", "close", "githubTitle", "githubLead", "contactTitle", "contactHead", "footerNote", "imgSlot"]
+};
+
+const BIG = ["heroLead", "aboutBig", "aboutSmall", "marquee", "roles", "stackLead", "demosLead", "githubLead"];
+
+const META_FIELDS = [
+  ["name", "Ad Soyad", "banner ve alt bilgide görünür"],
+  ["handle", "Menü etiketi", "sol üstteki mono yazı"],
+  ["mail", "E-posta", "iletişim bölümü"],
+  ["github", "GitHub adresi", "tam URL"],
+  ["githubUser", "GitHub kullanıcı adı", ""],
+  ["play", "Google Play geliştirici adresi", "tam URL"]
+];
+
+const SECTIONS = [
+  { id: "genel", label: "Genel & terminal", title: "Genel bilgiler", note: "Ad, iletişim, bağlantılar ve banner'daki terminal satırları." },
+  { id: "banner", label: "Banner", title: "Banner metinleri", note: "Ana sayfanın en üstündeki büyük alan. Dil sekmesiyle üç dili ayrı doldur." },
+  { id: "hakkimda", label: "Hakkımda", title: "Hakkımda", note: "Metinler ve sayaç kutuları." },
+  { id: "teknolojiler", label: "Teknolojiler", title: "Teknolojiler", note: "Çipler olarak listelenir. Sırayı okla değiştir." },
+  { id: "oyunlar", label: "Oyunlar", title: "Google Play oyunları", note: "Kart başlığı, açıklaması, kapak rengi ve mağaza bağlantısı." },
+  { id: "demolar", label: "Demolar", title: "Demolar", note: "HTML/JS demo dosyasını olduğu gibi yapıştır — tam ekran çalışır." },
+  { id: "github", label: "GitHub", title: "GitHub depoları", note: "Depo kartlarının ön izleme bilgileri." },
+  { id: "etiketler", label: "Menü & etiketler", title: "Menü ve bölüm etiketleri", note: "Başlıklar, buton yazıları, küçük etiketler." }
+];
+
+class Component extends DCLogic {
+  state = { data: null, sec: "genel", lang: "tr", dirty: false, toast: "", preview: null };
+
+  componentDidMount() {
+    import("./site-data.js").then((m) => {
+      this._m = m;
+      this.setState({ data: m.loadContent() });
+    });
+    this._onResize = () => this.responsive();
+    window.addEventListener("resize", this._onResize);
+    this.responsive();
+  }
+
+  componentDidUpdate() { this.responsive(); }
+  componentWillUnmount() { window.removeEventListener("resize", this._onResize); clearTimeout(this._toastTimer); }
+
+  responsive() {
+    const wide = window.innerWidth > 900;
+    const shell = document.querySelector("[data-shell]");
+    if (shell) shell.style.gridTemplateColumns = wide ? "236px 1fr" : "1fr";
+    const side = document.querySelector("[data-side]");
+    if (side) {
+      side.style.borderRight = wide ? "1px solid var(--line)" : "0";
+      side.style.borderBottom = wide ? "0" : "1px solid var(--line)";
+      side.style.position = wide ? "sticky" : "static";
+      side.style.top = wide ? "74px" : "auto";
+    }
+  }
+
+  edit(fn) {
+    const d = JSON.parse(JSON.stringify(this.state.data));
+    fn(d);
+    this.setState({ data: d, dirty: true });
+  }
+
+  toast(text) {
+    clearTimeout(this._toastTimer);
+    this.setState({ toast: text });
+    this._toastTimer = setTimeout(() => this.setState({ toast: "" }), 2200);
+  }
+
+  renderVals() {
+    const d = this.state.data;
+    if (!d || !this._m) return { sections: [], fields: [], items: [], langTabs: [] };
+    const m = this._m;
+    const lang = this.state.lang;
+    const sec = this.state.sec;
+
+    const counts = { teknolojiler: d.techs.length, oyunlar: d.games.length, demolar: d.demos.length, github: d.repos.length, genel: "", banner: "", hakkimda: d.facts.length, etiketler: "" };
+    const sections = SECTIONS.map((s) => ({
+      label: s.label,
+      count: counts[s.id] === "" ? "" : String(counts[s.id]),
+      bg: s.id === sec ? "oklch(0.95 0.008 268 / 0.08)" : "transparent",
+      fg: s.id === sec ? "oklch(0.97 0.01 268)" : "oklch(0.72 0.02 268)",
+      pick: () => this.setState({ sec: s.id })
+    }));
+    const meta = SECTIONS.find((s) => s.id === sec) || SECTIONS[0];
+
+    const secKeys = GROUPS[sec] || [];
+    const listKeyFor = { oyunlar: "games", demolar: "demos", github: "repos", hakkimda: "facts" }[sec];
+    const missingIn = (code) => {
+      let n = 0;
+      secKeys.forEach((k) => {
+        const v = d.i18n[code][k];
+        if (k === "roles") { if (!v || !v.length) n++; }
+        else if (!v || !String(v).trim()) n++;
+      });
+      if (listKeyFor) {
+        d[listKeyFor].forEach((it) => {
+          const o = sec === "hakkimda" ? it.label : it.desc;
+          if (!o || !String(o[code] || "").trim()) n++;
+        });
+      }
+      return n;
+    };
+
+    const langTabs = ["tr", "en", "ru"].map((code) => {
+      const miss = missingIn(code);
+      return {
+        code: code.toUpperCase() + (miss ? " · " + miss : ""),
+        bg: code === lang ? "var(--acc)" : "transparent",
+        fg: code === lang ? "var(--bg)" : (miss ? "oklch(0.78 0.13 55)" : "oklch(0.7 0.02 268)"),
+        pick: () => this.setState({ lang: code })
+      };
+    });
+
+    const fillFromTr = () => this.edit((x) => {
+      secKeys.forEach((k) => {
+        if (k === "roles") { if (!x.i18n[lang].roles || !x.i18n[lang].roles.length) x.i18n[lang].roles = (x.i18n.tr.roles || []).slice(); }
+        else if (!String(x.i18n[lang][k] || "").trim()) x.i18n[lang][k] = x.i18n.tr[k] || "";
+      });
+      if (listKeyFor) {
+        x[listKeyFor].forEach((it) => {
+          const key = sec === "hakkimda" ? "label" : "desc";
+          if (!it[key]) it[key] = {};
+          if (!String(it[key][lang] || "").trim()) it[key][lang] = it[key].tr || "";
+        });
+      }
+    });
+
+    const txt = (key) => {
+      const isRoles = key === "roles";
+      const val = isRoles ? (d.i18n[lang].roles || []).join("\n") : (d.i18n[lang][key] || "");
+      const big = BIG.indexOf(key) >= 0;
+      return {
+        label: (L[key] || [key, ""])[0],
+        hint: (L[key] || ["", ""])[1],
+        value: val,
+        ph: "",
+        multiline: big, single: !big,
+        rows: key === "aboutSmall" ? 6 : key === "roles" ? 4 : 3,
+        span: big ? "1 / -1" : "auto",
+        set: (e) => {
+          const v = e.target.value;
+          this.edit((x) => {
+            if (isRoles) x.i18n[lang].roles = v.split("\n").map((s) => s.trim()).filter(Boolean);
+            else x.i18n[lang][key] = v;
+          });
+        }
+      };
+    };
+
+    let fields = [];
+    if (sec === "genel") {
+      fields = META_FIELDS.map(([key, label, hint]) => ({
+        label, hint, value: d.meta[key] || "", ph: "", multiline: false, single: true, rows: 2, span: "auto",
+        set: (e) => { const v = e.target.value; this.edit((x) => { x.meta[key] = v; }); }
+      }));
+      fields.push({
+        label: "Terminal satırları", hint: "$ ile başlayan satır beyaz, → mavi, ✓ yeşil görünür",
+        value: (d.logs || []).join("\n"), ph: "", multiline: true, single: false, rows: 10, span: "1 / -1",
+        set: (e) => { const v = e.target.value; this.edit((x) => { x.logs = v.split("\n").filter((s) => s.length); }); }
+      });
+    } else if (GROUPS[sec]) {
+      fields = GROUPS[sec].map(txt);
+    }
+
+    const listKey = { teknolojiler: "techs", oyunlar: "games", demolar: "demos", github: "repos", hakkimda: "facts" }[sec];
+    const move = (i, dir) => this.edit((x) => {
+      const arr = x[listKey], j = i + dir;
+      if (j < 0 || j >= arr.length) return;
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    });
+    const setKey = (i, key) => (e) => { const v = e.target.value; this.edit((x) => { x[listKey][i][key] = v; }); };
+    const setDesc = (i) => (e) => { const v = e.target.value; this.edit((x) => { if (!x[listKey][i].desc) x[listKey][i].desc = {}; x[listKey][i].desc[lang] = v; }); };
+    const setLabel = (i) => (e) => { const v = e.target.value; this.edit((x) => { if (!x[listKey][i].label) x[listKey][i].label = {}; x[listKey][i].label[lang] = v; }); };
+
+    const F = (label, value, set, opt) => Object.assign({
+      label, value: value || "", set, ph: "", multiline: false, isSelect: false, isImage: false, hasImage: false, noImage: true, preview: "", single: true, rows: 3, span: "auto", options: [], onFile: () => {}, onClear: () => {}
+    }, opt || {});
+
+    let items = [], addLabel = "", title = meta.title;
+    const arr = listKey ? d[listKey] : [];
+    items = arr.map((it, i) => {
+      const base = {
+        no: String(i + 1).padStart(2, "0"),
+        up: () => move(i, -1), down: () => move(i, 1),
+        remove: () => this.edit((x) => { x[listKey].splice(i, 1); }),
+        canPreview: false, preview: () => {}
+      };
+      if (sec === "teknolojiler") {
+        return Object.assign(base, {
+          title: it.name || "—",
+          fields: [F("ad", it.name, setKey(i, "name")), F("not", it.note, setKey(i, "note"))]
+        });
+      }
+      if (sec === "hakkimda") {
+        return Object.assign(base, {
+          title: (it.label && (it.label[lang] || it.label.tr)) || "—",
+          fields: [
+            F("sayı", String(it.value == null ? "" : it.value), (e) => { const v = parseInt(e.target.value, 10); this.edit((x) => { x.facts[i].value = isNaN(v) ? 0 : v; }); }),
+            F("etiket (" + lang + ")", (it.label && it.label[lang]) || "", setLabel(i), { span: "1 / -1" })
+          ]
+        });
+      }
+      if (sec === "oyunlar") {
+        return Object.assign(base, {
+          title: it.name || "—",
+          fields: [
+            F("oyun adı", it.name, setKey(i, "name")),
+            F("mağaza bağlantısı", it.url, setKey(i, "url"), { ph: "boş = geliştirici sayfası" }),
+            F("kapak görseli", it.image, setKey(i, "image"), {
+              isImage: true, single: false, span: "1 / -1",
+              ph: "https://... veya dosya seç",
+              hasImage: !!(it.image || "").trim(),
+              noImage: !(it.image || "").trim(),
+              preview: (it.image || "").trim(),
+              onFile: (e) => {
+                const file = e.target.files && e.target.files[0];
+                e.target.value = "";
+                if (!file) return;
+                if (file.size > 1400000) { this.toast("Dosya çok büyük (max ~1.4 MB) — URL kullan"); return; }
+                const rd = new FileReader();
+                rd.onload = () => { const v = String(rd.result); this.edit((x) => { x.games[i].image = v; }); this.toast("Görsel eklendi"); };
+                rd.readAsDataURL(file);
+              },
+              onClear: () => this.edit((x) => { x.games[i].image = ""; })
+            }),
+            F("kapak rengi (görsel yoksa)", it.cover || "violet", setKey(i, "cover"), {
+              isSelect: true, single: false,
+              options: Object.keys(m.COVERS).map((k) => ({ value: k, label: k }))
+            }),
+            F("açıklama (" + lang + ")", (it.desc && it.desc[lang]) || "", setDesc(i), { multiline: true, single: false, rows: 3, span: "1 / -1" })
+          ]
+        });
+      }
+      if (sec === "demolar") {
+        return Object.assign(base, {
+          title: it.name || "—",
+          canPreview: true,
+          preview: () => this.setState({ preview: i }),
+          fields: [
+            F("demo adı", it.name, setKey(i, "name")),
+            F("yol", it.path, setKey(i, "path"), { ph: "demo/YeniSayfa" }),
+            F("etiketler", (it.tags || []).join(", "), (e) => { const v = e.target.value; this.edit((x) => { x.demos[i].tags = v.split(",").map((s) => s.trim()).filter(Boolean); }); }),
+            F("açıklama (" + lang + ")", (it.desc && it.desc[lang]) || "", setDesc(i), { multiline: true, single: false, rows: 3, span: "1 / -1" }),
+            F("HTML / JS dosyası", it.html, setKey(i, "html"), { multiline: true, single: false, rows: 12, span: "1 / -1", ph: "<!doctype html> ... demo dosyasını buraya yapıştır" })
+          ]
+        });
+      }
+      return Object.assign(base, {
+        title: it.name || "—",
+        fields: [
+          F("depo adı", it.name, setKey(i, "name")),
+          F("dil", it.lang, setKey(i, "lang")),
+          F("yıl", it.updated, setKey(i, "updated")),
+          F("bağlantı", it.url, setKey(i, "url"), { ph: "boş = profil" }),
+          F("açıklama (" + lang + ")", (it.desc && it.desc[lang]) || "", setDesc(i), { multiline: true, single: false, rows: 3, span: "1 / -1" })
+        ]
+      });
+    });
+
+    const blanks = {
+      teknolojiler: { name: "Yeni teknoloji", note: "" },
+      oyunlar: { name: "Yeni oyun", url: "", cover: "violet", desc: { tr: "", en: "", ru: "" } },
+      demolar: { path: "demo/YeniDemo", name: "Yeni demo", tags: [], html: "", desc: { tr: "", en: "", ru: "" } },
+      github: { name: "yeni-depo", lang: "JavaScript", updated: String(new Date().getFullYear()), url: "", desc: { tr: "", en: "", ru: "" } },
+      hakkimda: { value: 0, label: { tr: "", en: "", ru: "" } }
+    };
+    addLabel = { teknolojiler: "teknoloji ekle", oyunlar: "oyun ekle", demolar: "demo ekle", github: "depo ekle", hakkimda: "sayaç ekle" }[sec] || "";
+
+    const pv = this.state.preview;
+    const pvItem = pv === null ? null : d.demos[pv];
+
+    return {
+      sections, langTabs, fields, items, addLabel,
+      showFill: lang !== "tr" && (secKeys.length > 0 || !!listKeyFor),
+      onFillFromTr: () => { fillFromTr(); this.toast("Boş alanlar TR metniyle dolduruldu"); },
+      secTitle: title, secNote: meta.note,
+      showLangTabs: sec === "banner" || sec === "hakkimda" || sec === "etiketler" || sec === "oyunlar" || sec === "demolar" || sec === "github",
+      hasFields: fields.length > 0,
+      hasList: !!listKey,
+      statusText: this.state.dirty ? "kaydedilmemiş değişiklik var" : "kayıtlı — tarayıcı belleğinde",
+      onAdd: () => this.edit((x) => { x[listKey].push(JSON.parse(JSON.stringify(blanks[sec]))); }),
+      onSave: () => { m.saveContent(this.state.data); this.setState({ dirty: false }); this.toast("Kaydedildi"); },
+      onDownload: () => { m.downloadJSON(this.state.data, "portfolio-content.json"); this.toast("JSON indirildi"); },
+      onReset: () => {
+        if (!window.confirm("Tüm içerik başlangıç verisine dönecek. Emin misin?")) return;
+        this.setState({ data: m.resetContent(), dirty: false });
+        this.toast("Başlangıç verisine dönüldü");
+      },
+      onUpload: (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const rd = new FileReader();
+        rd.onload = () => {
+          try {
+            const parsed = JSON.parse(String(rd.result));
+            m.saveContent(parsed);
+            this.setState({ data: m.loadContent(), dirty: false });
+            this.toast("JSON yüklendi");
+          } catch (err) { this.toast("JSON okunamadı"); }
+        };
+        rd.readAsText(file);
+        e.target.value = "";
+      },
+      previewOpen: pvItem !== null,
+      previewTitle: pvItem ? pvItem.path + " — " + pvItem.name : "",
+      previewSrc: pvItem ? (pvItem.html && pvItem.html.trim() ? pvItem.html : m.demoStub(pvItem.name)) : "",
+      closePreview: () => this.setState({ preview: null }),
+      toastOn: !!this.state.toast, toastText: this.state.toast
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+/* ============================================================
+   variables.css — TASARIM TOKENLARI (tek kaynak)
+   Kaynak: design_handoff_portfolio/README.md §Design Tokens (hifi, değerler NİHAİ).
+   ⛔ Hiçbir bileşen literal renk/ölçü yazmaz — buradan okur.
+   ============================================================ */
+
+:root {
+  /* — Yüzeyler — */
+  --bg:      oklch(0.205 0.024 278);  /* derin indigo taban */
+  --bg-top:  oklch(0.27 0.036 288);   /* sayfa üstü radial açılma */
+  --surf:    oklch(0.25 0.028 280);   /* şerit, demolar bölümü, üst bar */
+  --panel:   oklch(0.275 0.032 285);  /* terminal / tarayıcı mockup üst yüzey */
+  --panel2:  oklch(0.23 0.026 275);   /* mockup alt yüzey (degrade 2. durak) */
+
+  /* — Vurgular (palet TEK YÖN: mor + camgöbeği; başka renk eklenmez) — */
+  --acc:     oklch(0.76 0.15 300);    /* birincil: mor */
+  --acc-hi:  oklch(0.88 0.1 300);     /* vurgu hover */
+  --acc2:    oklch(0.74 0.14 210);    /* ikincil: camgöbeği */
+
+  /* — Arka plan ışık bulutları — */
+  --glow1:   oklch(0.58 0.16 300);
+  --glow2:   oklch(0.6 0.14 205);
+  --glow3:   oklch(0.62 0.13 165);    /* nane */
+
+  /* — Metin (literal, temaya bağlı değil) — */
+  --text:      oklch(0.95 0.008 268);
+  --text-2:    oklch(0.72 0.02 268);   /* ikincil (0.7–0.74 aralığı) */
+  --text-mute: oklch(0.66 0.02 268);   /* sessiz / mono etiket (0.56–0.66) */
+  --text-dim:  oklch(0.56 0.02 268);
+
+  /* — Çizgi ve dolgular — */
+  --hair:        oklch(0.95 0.008 268 / 0.09);  /* hairline (0.09–0.14) */
+  --hair-strong: oklch(0.95 0.008 268 / 0.14);
+  --fill:        oklch(0.95 0.008 268 / 0.028); /* kart yüzeyi */
+  --fill-hover:  oklch(0.95 0.008 268 / 0.06);  /* kart hover (0.05–0.07) */
+  --fill-active: oklch(0.95 0.008 268 / 0.055); /* aktif demo satırı */
+
+  /* — Durum — */
+  --ok:   oklch(0.8 0.15 150);   /* başarı / yeşil (log) */
+  --warn: oklch(0.7 0.16 25);    /* uyarı / kırmızı (sil) */
+
+  /* — Tipografi — */
+  --font-sans: 'Space Grotesk', Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --fs-h1:   clamp(46px, 8.2vw, 116px);
+  --fs-h2:   clamp(28px, 4vw, 54px);
+  --fs-lead: clamp(20px, 2.2vw, 30px);
+
+  /* — Ölçü / şekil — */
+  --sec-y:   clamp(60px, 9vh, 150px); /* bölüm dikey boşluk */
+  --pad-x:   26px;                    /* yatay padding */
+  --maxw:    1360px;                  /* İÇERİK genişliği (padding hariç) */
+  /* Prototipte box-sizing ayarlanmamış → max-width content-box'a uygulanıyor,
+     yani içerik 1360 + 2×26 padding. Biz border-box kullandığımız için kabın
+     toplam genişliği bu: içerik yine tam 1360 olsun diye. (Ölçüldü: 1360 ✓) */
+  --maxw-box: calc(1360px + 26px * 2);
+  --r-card:  16px;                    /* kart/panel 14–18 */
+  --r-panel: 18px;                    /* mockup 16–18 */
+  --r-pill:  999px;
+  --r-icon:  9px;                     /* küçük ikon buton 8–10 */
+
+  /* — Gölge — */
+  --shadow-panel: 0 30px 70px oklch(0.12 0.03 280 / 0.5);
+  --shadow-btn:   0 14px 34px color-mix(in oklab, var(--acc) 35%, transparent);
+
+  /* — Hareket (spec değerleri — "yaklaşık" yapma) — */
+  --ease:        cubic-bezier(.16, 1, .3, 1);
+  --t-reveal:    1.05s;   /* 0.8–1.05s */
+  --t-hover:     0.25s;   /* 0.2–0.3s */
+  --stagger:     0.07s;   /* kapsayıcı içi kademeli gecikme */
+  --stagger-rise: 0.09s;  /* maskeli başlık perdesi */
+}
+
+/* ============================================================
+   Temel sıfırlama + gövde
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { background: var(--bg); scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  /* line-height BİLİNÇLİ olarak 'normal': prototip body'de satır yüksekliği
+     tanımlamıyor. Global 1.75 verilirse menü/çip/etiket gibi tek satırlık
+     öğeler şişiyor (menü 65px yerine 70px çıkmıştı). Paragraf satır
+     yükseklikleri kendi sınıflarında (1.65–1.8). */
+  line-height: normal;
+  overflow-x: hidden;               /* yatay taşma yok */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a { color: var(--acc); text-decoration: none; transition: color var(--t-hover) var(--ease); }
+a:hover { color: var(--acc-hi); }
+
+::selection { background: var(--acc); color: var(--bg); }
+
+/* Klavye erişilebilirliği: odak halkası görünür kalır (prototipte yoktu) */
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 3px; border-radius: 4px; }
+
+.mono { font-family: var(--font-mono); }
+
+/* Ekran okuyucu dışında görünmez */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* İçerik kabı */
+.wrap { width: 100%; max-width: var(--maxw-box); margin: 0 auto; padding-inline: var(--pad-x); }
+
+/* ============================================================
+   ⭐ prefers-reduced-motion — prototipte YOKTU, burada ZORUNLU
+   Handoff'un kendi notu: parallax/akış/typewriter kapatılmalı.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

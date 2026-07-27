@@ -1,0 +1,108 @@
+/* ============================================================
+   background.css — SABİT ARKA PLAN KATMANI
+   Kaynak: handoff README §Arka plan katmanı + prototip birebir değerleri.
+   ⛔ Bilinçli kararlar: kare/ızgara deseni YOK · hareket DÜŞÜK KONTRAST
+      (dikkat çekmeyecek) · palet tek yön.
+   ============================================================ */
+
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: radial-gradient(140% 100% at 50% 0%, var(--bg-top), var(--bg) 60%);
+}
+
+/* — 3 ışık bulutu — */
+.bg-glow { position: absolute; border-radius: 50%; }
+
+.bg-glow--1 {
+  top: -18vh; left: 40vw; width: 62vw; height: 62vw;
+  background: radial-gradient(circle, color-mix(in oklab, var(--glow1) 34%, transparent), transparent 68%);
+  animation: drift1 26s ease-in-out infinite, hueshift 40s ease-in-out infinite;
+}
+.bg-glow--2 {
+  bottom: -24vh; left: -14vw; width: 58vw; height: 58vw;
+  background: radial-gradient(circle, color-mix(in oklab, var(--glow2) 30%, transparent), transparent 68%);
+  animation: drift2 32s ease-in-out infinite, hueshift 46s ease-in-out infinite;
+}
+.bg-glow--3 {
+  top: 34vh; right: -16vw; width: 44vw; height: 44vw;
+  background: radial-gradient(circle, color-mix(in oklab, var(--glow3) 20%, transparent), transparent 70%);
+  animation: drift3 38s ease-in-out infinite;
+}
+
+/* — 2 ışık huzmesi (opaklık ≤ %7) — */
+.bg-beams { position: absolute; inset: -20% -10%; opacity: 0.5; }
+.bg-beam { position: absolute; top: 0; left: 0; height: 130%; }
+.bg-beam--1 {
+  width: 32%;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--glow1) 7%, transparent), transparent);
+  animation: beam 22s linear infinite;
+}
+.bg-beam--2 {
+  width: 22%;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--glow2) 6%, transparent), transparent);
+  animation: beam 30s linear infinite 8s;
+}
+
+/* — 16 dikey "veri hattı" (JS üretir: streams.js) — */
+.bg-streams { position: absolute; inset: 0; }
+
+.bg-stream {
+  position: absolute; top: 0; bottom: 0; width: 1px; overflow: hidden;
+  background: linear-gradient(oklch(0.95 0.01 280 / 0.028), oklch(0.95 0.01 280 / 0.01));
+}
+.bg-stream__glyph {
+  position: absolute; left: -9px; width: 19px; height: 14vh;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 9px;
+  animation-name: stream; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+/* renk/degrade çift-tek kolona göre (mor ↔ camgöbeği), opaklık 0.24 */
+.bg-stream__glyph--a {
+  color: oklch(0.9 0.06 300 / 0.24);
+  background: linear-gradient(transparent, oklch(0.85 0.09 300 / 0.1), transparent);
+}
+.bg-stream__glyph--b {
+  color: oklch(0.9 0.06 205 / 0.24);
+  background: linear-gradient(transparent, oklch(0.85 0.09 205 / 0.1), transparent);
+}
+
+/* — Sayfa içeriği arka planın ÜSTÜNDE — */
+.page { position: relative; z-index: 1; }
+
+/* ============================================================
+   Keyframes (süreler spec'ten, değiştirme)
+   ============================================================ */
+@keyframes drift1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(6vw, -4vh, 0) scale(1.15); }
+}
+@keyframes drift2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.1); }
+  50%      { transform: translate3d(-7vw, 5vh, 0) scale(0.95); }
+}
+@keyframes drift3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-5vw, -6vh, 0) scale(1.2); }
+}
+@keyframes hueshift {
+  0%, 100% { filter: blur(34px) hue-rotate(0deg); }
+  50%      { filter: blur(34px) hue-rotate(26deg); }
+}
+@keyframes beam {
+  0%       { transform: translateX(-60%) rotate(14deg); opacity: 0; }
+  20%, 70% { opacity: 0.5; }
+  100%     { transform: translateX(140%) rotate(14deg); opacity: 0; }
+}
+@keyframes stream {
+  0%   { transform: translateY(-110%); }
+  100% { transform: translateY(560%); }
+}
+
+/* Hareket azaltma: akış tamamen gizlenir (donmuş glif satırı görsel gürültü olur) */
+@media (prefers-reduced-motion: reduce) {
+  .bg-streams, .bg-beams { display: none; }
+}

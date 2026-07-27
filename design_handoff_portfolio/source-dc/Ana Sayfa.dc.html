@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: oklch(0.205 0.024 278); --bg-top: oklch(0.27 0.036 288);
+    --surf: oklch(0.25 0.028 280); --panel: oklch(0.275 0.032 285); --panel2: oklch(0.23 0.026 275);
+    --acc: oklch(0.76 0.15 300); --acc-hi: oklch(0.88 0.1 300); --acc2: oklch(0.74 0.14 210);
+    --glow1: oklch(0.58 0.16 300); --glow2: oklch(0.6 0.14 205); --glow3: oklch(0.62 0.13 165);
+  }
+  html { background: var(--bg); transition: background .6s ease; }
+  body { margin: 0; background: var(--bg); color: oklch(0.95 0.008 268); font-family: 'Space Grotesk', Helvetica, sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+  a { color: var(--acc); text-decoration: none; }
+  a:hover { color: var(--acc-hi); }
+  ::selection { background: var(--acc); color: var(--bg); }
+  @keyframes marq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes blink { 0%, 48% { opacity: 1; } 49%, 100% { opacity: 0; } }
+  @keyframes drift1 { 0%, 100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(6vw, -4vh, 0) scale(1.15); } }
+  @keyframes drift2 { 0%, 100% { transform: translate3d(0,0,0) scale(1.1); } 50% { transform: translate3d(-7vw, 5vh, 0) scale(0.95); } }
+  @keyframes sheen { 0% { transform: translateX(-120%) skewX(-18deg); } 55%, 100% { transform: translateX(240%) skewX(-18deg); } }
+  @keyframes travel { 0% { top: 0%; opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.35); opacity: 0.25; } }
+  @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  @keyframes drift3 { 0%, 100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-5vw, -6vh, 0) scale(1.2); } }
+  @keyframes beam { 0% { transform: translateX(-60%) rotate(14deg); opacity: 0; } 20%, 70% { opacity: 0.5; } 100% { transform: translateX(140%) rotate(14deg); opacity: 0; } }
+  @keyframes stream { 0% { transform: translateY(-110%); } 100% { transform: translateY(560%); } }
+  @keyframes hueshift { 0%, 100% { filter: blur(34px) hue-rotate(0deg); } 50% { filter: blur(34px) hue-rotate(26deg); } }
+</style>
+</helmet>
+
+<div style="position: relative; width: 100%; background: var(--bg); overflow: hidden;">
+
+  <div style="position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; background: radial-gradient(140% 100% at 50% 0%, var(--bg-top), var(--bg) 60%);">
+    <div style="position: absolute; top: -18vh; left: 40vw; width: 62vw; height: 62vw; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--glow1) 34%, transparent), transparent 68%); animation: drift1 26s ease-in-out infinite, hueshift 40s ease-in-out infinite;"></div>
+    <div style="position: absolute; bottom: -24vh; left: -14vw; width: 58vw; height: 58vw; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--glow2) 30%, transparent), transparent 68%); animation: drift2 32s ease-in-out infinite, hueshift 46s ease-in-out infinite;"></div>
+    <div style="position: absolute; top: 34vh; right: -16vw; width: 44vw; height: 44vw; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--glow3) 20%, transparent), transparent 70%); animation: drift3 38s ease-in-out infinite;"></div>
+
+    <div style="position: absolute; inset: -20% -10%; opacity: 0.5;">
+      <div style="position: absolute; top: 0; left: 0; width: 32%; height: 130%; background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--glow1) 7%, transparent), transparent); animation: beam 22s linear infinite;"></div>
+      <div style="position: absolute; top: 0; left: 0; width: 22%; height: 130%; background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--glow2) 6%, transparent), transparent); animation: beam 30s linear infinite 8s;"></div>
+    </div>
+
+    <div data-streams style="position: absolute; inset: 0;"></div>
+  </div>
+
+  <nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 26px; background: color-mix(in oklab, var(--bg) 78%, transparent); backdrop-filter: blur(16px); border-bottom: 1px solid oklch(0.95 0.008 268 / 0.08);">
+    <a href="#top" style="display: flex; align-items: center; gap: 10px; color: oklch(0.95 0.008 268);">
+      <span style="display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(140deg, var(--acc), var(--acc2)); font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; color: var(--bg);">st</span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.08em;">{{ handle }}</span>
+    </a>
+    <div style="display: flex; align-items: center; gap: 22px;">
+      <div data-navlinks style="display: none; gap: 22px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+        <a href="#about" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navAbout }}</a>
+        <a href="#stack" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navStack }}</a>
+        <a href="#games" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navGames }}</a>
+        <a href="#demos" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navDemos }}</a>
+        <a href="#github" style="color: oklch(0.66 0.02 268);" style-hover="color: oklch(0.95 0.008 268);">{{ t.navGithub }}</a>
+        <a href="./Admin.dc.html" style="color: oklch(0.5 0.02 268);" style-hover="color: var(--acc);">admin</a>
+      </div>
+      <div style="display: flex; gap: 3px; padding: 3px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.12);">
+        <sc-for list="{{ langs }}" as="l" hint-placeholder-count="3">
+          <button onClick="{{ l.pick }}" style="cursor: pointer; border: 0; border-radius: 999px; padding: 5px 11px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; transition: all .25s; background: {{ l.bg }}; color: {{ l.fg }};">{{ l.code }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </nav>
+
+  <section id="top" data-screen-label="Hero" style="position: relative; z-index: 2; min-height: 100vh; display: grid; grid-template-columns: 1fr; align-content: center; gap: 54px; padding: 130px 26px 70px; max-width: 1360px; margin: 0 auto;">
+    <div data-hero-grid style="display: grid; grid-template-columns: 1fr; gap: 56px; align-items: center;">
+      <div>
+        <div style="display: inline-flex; align-items: center; gap: 10px; padding: 7px 14px 7px 11px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.14); background: oklch(0.95 0.008 268 / 0.04); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: oklch(0.78 0.02 268);">
+          <span style="position: relative; display: flex; width: 8px; height: 8px;">
+            <span style="position: absolute; inset: 0; border-radius: 50%; background: oklch(0.8 0.16 150); animation: pulse 2.4s ease-in-out infinite;"></span>
+          </span>
+          {{ t.heroTag }}
+        </div>
+
+        <h1 style="margin: 22px 0 0; font-size: clamp(46px, 8.2vw, 116px); line-height: 0.96; font-weight: 600; letter-spacing: -0.045em;">
+          <span style="display: block; overflow: hidden; padding-bottom: 2px;"><span data-rise style="display: block; transform: translateY(110%);">{{ name }}</span></span>
+          <span style="display: block; overflow: hidden; padding-bottom: 6px;"><span data-rise style="display: block; transform: translateY(110%); background: linear-gradient(96deg, var(--acc), var(--acc2) 70%); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ t.heroLine2 }}</span></span>
+        </h1>
+
+        <div style="margin-top: 22px; font-family: 'JetBrains Mono', monospace; font-size: clamp(13px, 1.5vw, 17px); color: oklch(0.72 0.02 268); display: flex; align-items: center; gap: 8px; min-height: 26px;">
+          <span style="color: var(--acc2);">&gt;</span>
+          <span data-typed></span>
+          <span style="display: inline-block; width: 9px; height: 1.05em; background: var(--acc); animation: blink 1.05s step-end infinite;"></span>
+        </div>
+
+        <p style="margin: 26px 0 0; max-width: 520px; font-size: clamp(15.5px, 1.4vw, 18px); line-height: 1.7; color: oklch(0.74 0.02 268); text-wrap: pretty;">{{ t.heroLead }}</p>
+
+        <div style="margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px;">
+          <a href="#demos" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; background: var(--acc); color: var(--bg); font-size: 14.5px; font-weight: 500; transition: transform .3s, box-shadow .3s;" style-hover="transform: translateY(-2px); box-shadow: 0 14px 34px color-mix(in oklab, var(--acc) 35%, transparent);">{{ t.heroBtn1 }} <span style="font-family: 'JetBrains Mono', monospace;">→</span></a>
+          <a href="#github" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.18); color: oklch(0.95 0.008 268); font-size: 14.5px; transition: border-color .3s, transform .3s;" style-hover="border-color: var(--acc2); transform: translateY(-2px);">{{ t.heroBtn2 }}</a>
+        </div>
+      </div>
+
+      <div data-par="0.1" style="position: relative;">
+        <div style="position: relative; border-radius: 18px; border: 1px solid oklch(0.95 0.008 268 / 0.13); background: linear-gradient(165deg, color-mix(in oklab, var(--panel) 92%, transparent), color-mix(in oklab, var(--panel2) 94%, transparent)); box-shadow: 0 40px 90px oklch(0.12 0.03 280 / 0.55); overflow: hidden; animation: floaty 9s ease-in-out infinite;">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid oklch(0.95 0.008 268 / 0.09);">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: oklch(0.7 0.16 25);"></span>
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: oklch(0.8 0.14 85);"></span>
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: oklch(0.78 0.15 150);"></span>
+            <span style="margin-left: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.62 0.02 268);">~/portfolio — zsh</span>
+          </div>
+          <div style="padding: 18px 18px 22px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.95; min-height: 250px;">
+            <sc-for list="{{ logs }}" as="line" hint-placeholder-count="8">
+              <div data-log style="opacity: 0; transform: translateY(6px); transition: opacity .4s, transform .4s; color: {{ line.color }}; white-space: pre-wrap; word-break: break-word;">{{ line.text }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.6 0.02 268);">
+      <span>{{ t.scroll }}</span>
+      <span style="display: block; width: 54px; height: 1px; background: linear-gradient(90deg, var(--acc), transparent);"></span>
+    </div>
+  </section>
+
+  <div style="position: relative; z-index: 2; border-top: 1px solid oklch(0.95 0.008 268 / 0.08); border-bottom: 1px solid oklch(0.95 0.008 268 / 0.08); overflow: hidden; padding: 14px 0; background: color-mix(in oklab, var(--surf) 60%, transparent);">
+    <div style="display: flex; width: max-content; animation: marq 38s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: oklch(0.66 0.02 268);">
+      <span style="padding-right: 34px;">{{ t.marquee }}</span>
+      <span style="padding-right: 34px;">{{ t.marquee }}</span>
+      <span style="padding-right: 34px;">{{ t.marquee }}</span>
+      <span style="padding-right: 34px;">{{ t.marquee }}</span>
+    </div>
+  </div>
+
+  <section id="about" data-screen-label="Hakkımda" style="position: relative; z-index: 2; padding: clamp(90px, 13vh, 170px) 26px; max-width: 1360px; margin: 0 auto;">
+    <div data-two-col style="display: grid; grid-template-columns: 1fr; gap: 46px;">
+      <div data-sticky-col style="position: relative;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc);">01 — {{ t.navAbout }}</div>
+        <h2 style="margin: 16px 0 0; font-size: clamp(28px, 3.6vw, 46px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1;">
+          <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.aboutTitle }}</span></span>
+        </h2>
+      </div>
+      <div style="display: grid; gap: 34px;">
+        <p data-reveal style="opacity: 0; transform: translateY(26px); transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); margin: 0; font-size: clamp(20px, 2.2vw, 30px); line-height: 1.4; font-weight: 500; letter-spacing: -0.015em; text-wrap: pretty;">{{ t.aboutBig }}</p>
+        <p data-reveal style="opacity: 0; transform: translateY(26px); transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); margin: 0; max-width: 660px; font-size: 16px; line-height: 1.8; color: oklch(0.72 0.02 268); text-wrap: pretty;">{{ t.aboutSmall }}</p>
+        <div data-stagger style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+          <sc-for list="{{ facts }}" as="f" hint-placeholder-count="3">
+            <div data-reveal style="opacity: 0; transform: translateY(26px); transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1), border-color .3s; padding: 22px 20px; border-radius: 14px; border: 1px solid oklch(0.95 0.008 268 / 0.11); background: oklch(0.95 0.008 268 / 0.028);" style-hover="border-color: color-mix(in oklab, var(--acc) 50%, transparent);">
+              <div data-count="{{ f.value }}" style="font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 500; color: var(--acc-hi);">0</div>
+              <div style="margin-top: 8px; font-size: 14px; line-height: 1.55; color: oklch(0.7 0.02 268);">{{ f.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="stack" data-screen-label="Teknolojiler" style="position: relative; z-index: 2; padding: clamp(60px, 9vh, 120px) 26px; max-width: 1360px; margin: 0 auto;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc2);">02 — {{ t.navStack }}</div>
+    <h2 style="margin: 16px 0 0; font-size: clamp(28px, 4vw, 54px); font-weight: 600; letter-spacing: -0.032em;">
+      <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.stackTitle }}</span></span>
+    </h2>
+    <p style="margin: 16px 0 0; max-width: 560px; font-size: 16px; line-height: 1.75; color: oklch(0.7 0.02 268);">{{ t.stackLead }}</p>
+    <div data-stagger style="margin-top: 40px; display: flex; flex-wrap: wrap; gap: 12px;">
+      <sc-for list="{{ techs }}" as="tech" hint-placeholder-count="8">
+        <div data-reveal style="opacity: 0; transform: translateY(20px) scale(0.96); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1), border-color .3s, background .3s; display: flex; align-items: center; gap: 11px; padding: 12px 20px 12px 16px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.12); background: oklch(0.95 0.008 268 / 0.03);" style-hover="border-color: color-mix(in oklab, var(--acc2) 55%, transparent); background: oklch(0.95 0.008 268 / 0.07);">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: {{ tech.dot }};"></span>
+          <span style="font-size: 15.5px; font-weight: 500;">{{ tech.name }}</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.6 0.02 268);">{{ tech.note }}</span>
+        </div>
+      </sc-for>
+      <div style="display: flex; align-items: center; gap: 9px; padding: 12px 20px; border-radius: 999px; border: 1px dashed oklch(0.95 0.008 268 / 0.2); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: oklch(0.6 0.02 268);">+ {{ t.stackSlot }}</div>
+    </div>
+  </section>
+
+  <section id="games" data-screen-label="Oyunlar" style="position: relative; z-index: 2; padding: clamp(70px, 11vh, 150px) 26px;">
+    <div style="max-width: 1360px; margin: 0 auto;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px;">
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc);">03 — {{ t.navGames }}</div>
+          <h2 style="margin: 16px 0 0; font-size: clamp(28px, 4vw, 54px); font-weight: 600; letter-spacing: -0.032em;">
+            <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.gamesTitle }}</span></span>
+          </h2>
+        </div>
+        <a href="{{ playUrl }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 9px; padding: 12px 20px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.16); font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: oklch(0.9 0.01 268); transition: border-color .3s, transform .3s;" style-hover="border-color: var(--acc); transform: translateY(-2px);">Google Play ↗</a>
+      </div>
+      <div data-stagger style="margin-top: 44px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px;">
+        <sc-for list="{{ games }}" as="g" hint-placeholder-count="3">
+          <a href="{{ g.url }}" target="_blank" rel="noopener" data-reveal style="opacity: 0; transform: translateY(30px); transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .5s cubic-bezier(.16,1,.3,1), border-color .3s; display: block; border-radius: 18px; overflow: hidden; border: 1px solid oklch(0.95 0.008 268 / 0.11); background: oklch(0.95 0.008 268 / 0.028); color: oklch(0.95 0.008 268);" style-hover="border-color: color-mix(in oklab, var(--acc) 50%, transparent); transform: translateY(-6px);">
+            <div style="position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: linear-gradient(150deg, {{ g.c1 }}, {{ g.c2 }});">
+              <sc-if value="{{ g.hasImage }}" hint-placeholder-val="{{ false }}">
+                <img src="{{ g.image }}" alt="{{ g.name }}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;" />
+              </sc-if>
+              <div style="position: absolute; inset: 0; background: radial-gradient(120% 90% at 20% 10%, oklch(0.95 0.008 268 / 0.16), transparent 60%);"></div>
+              <div style="position: absolute; top: 0; bottom: 0; width: 42%; background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.22), transparent); animation: sheen 6.5s ease-in-out infinite;"></div>
+              <sc-if value="{{ g.noImage }}" hint-placeholder-val="{{ true }}">
+                <div style="position: absolute; left: 16px; bottom: 14px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: oklch(0.98 0.01 268 / 0.7);">{{ t.imgSlot }}</div>
+              </sc-if>
+            </div>
+            <div style="padding: 20px 20px 24px;">
+              <div style="display: flex; align-items: center; gap: 9px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.62 0.02 268);">
+                <span>{{ g.no }}</span><span>·</span><span>Android</span><span>·</span><span>Unity</span>
+              </div>
+              <div style="margin-top: 11px; font-size: 21px; font-weight: 600; letter-spacing: -0.018em;">{{ g.name }}</div>
+              <div style="margin-top: 7px; font-size: 14px; line-height: 1.65; color: oklch(0.7 0.02 268);">{{ g.desc }}</div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section id="demos" data-screen-label="Demolar" style="position: relative; z-index: 2; padding: clamp(70px, 11vh, 150px) 26px; border-top: 1px solid oklch(0.95 0.008 268 / 0.08); background: color-mix(in oklab, var(--surf) 55%, transparent);">
+    <div style="max-width: 1360px; margin: 0 auto;">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc2);">04 — {{ t.navDemos }}</div>
+      <h2 style="margin: 16px 0 0; font-size: clamp(28px, 4vw, 54px); font-weight: 600; letter-spacing: -0.032em;">
+        <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.demosTitle }}</span></span>
+      </h2>
+      <p style="margin: 16px 0 0; max-width: 600px; font-size: 16px; line-height: 1.75; color: oklch(0.7 0.02 268);">{{ t.demosLead }}</p>
+
+      <div data-demo-grid style="margin-top: 44px; display: grid; grid-template-columns: 1fr; gap: 34px; align-items: start;">
+        <div data-demo-preview style="position: relative;">
+          <div style="border-radius: 16px; overflow: hidden; border: 1px solid oklch(0.95 0.008 268 / 0.13); background: var(--surf); box-shadow: 0 30px 70px oklch(0.12 0.03 280 / 0.45);">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid oklch(0.95 0.008 268 / 0.09);">
+              <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(0.7 0.16 25);"></span>
+              <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(0.8 0.14 85);"></span>
+              <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(0.78 0.15 150);"></span>
+              <span style="margin-left: 8px; flex: 1; padding: 5px 12px; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.06); font-family: 'JetBrains Mono', monospace; font-size: 11px; color: oklch(0.68 0.02 268); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">sinantekin.dev/{{ activePath }}</span>
+            </div>
+            <div style="position: relative; aspect-ratio: 16 / 10; padding: 22px; display: flex; flex-direction: column; gap: 14px; background: linear-gradient(160deg, var(--panel), var(--panel2));">
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <span style="width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(140deg, var(--acc), var(--acc2));"></span>
+                <span style="font-size: 15px; font-weight: 600;">{{ activeName }}</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div style="height: 46px; border-radius: 10px; background: oklch(0.95 0.008 268 / 0.07);"></div>
+                <div style="height: 46px; border-radius: 10px; background: oklch(0.95 0.008 268 / 0.05);"></div>
+                <div style="height: 46px; border-radius: 10px; background: color-mix(in oklab, var(--acc) 22%, transparent);"></div>
+              </div>
+              <div style="flex: 1; border-radius: 12px; background: oklch(0.95 0.008 268 / 0.045); display: flex; flex-direction: column; gap: 9px; padding: 14px;">
+                <div style="height: 8px; width: 62%; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.16);"></div>
+                <div style="height: 8px; width: 84%; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.1);"></div>
+                <div style="height: 8px; width: 48%; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.1);"></div>
+                <div style="height: 8px; width: 72%; border-radius: 999px; background: color-mix(in oklab, var(--acc2) 30%, transparent);"></div>
+              </div>
+              <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(transparent 60%, color-mix(in oklab, var(--panel2) 90%, transparent));"></div>
+              <div style="position: absolute; left: 0; right: 0; bottom: 16px; display: flex; justify-content: center;">
+                <button onClick="{{ openActive }}" style="cursor: pointer; border: 0; border-radius: 999px; padding: 12px 22px; background: var(--acc); color: var(--bg); font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; transition: transform .3s;" style-hover="transform: translateY(-2px);">{{ t.openDemo }} ↗</button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.58 0.02 268);">{{ t.demosHint }}</div>
+        </div>
+
+        <div data-stagger style="display: flex; flex-direction: column;">
+          <sc-for list="{{ demos }}" as="d" hint-placeholder-count="3">
+            <div data-reveal onMouseEnter="{{ d.hover }}" onClick="{{ d.open }}" style="opacity: 0; transform: translateY(24px); transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1), background .3s, padding-left .3s; cursor: pointer; border-bottom: 1px solid oklch(0.95 0.008 268 / 0.09); padding: 22px 14px; border-radius: 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; background: {{ d.bg }};" style-hover="background: oklch(0.95 0.008 268 / 0.05);">
+              <div style="min-width: 0;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: {{ d.pathColor }};">{{ d.path }}</div>
+                <div style="margin-top: 8px; font-size: 20px; font-weight: 600; letter-spacing: -0.018em;">{{ d.name }}</div>
+                <div style="margin-top: 6px; font-size: 14px; line-height: 1.6; color: oklch(0.7 0.02 268);">{{ d.desc }}</div>
+                <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 7px;">
+                  <sc-for list="{{ d.tags }}" as="tag" hint-placeholder-count="3">
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; padding: 4px 10px; border-radius: 999px; background: oklch(0.95 0.008 268 / 0.07); color: oklch(0.72 0.02 268);">{{ tag }}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid oklch(0.95 0.008 268 / 0.16); color: oklch(0.9 0.01 268); font-size: 16px;">↗</span>
+            </div>
+          </sc-for>
+          <div style="padding: 20px 14px; display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.56 0.02 268);">
+            <span style="width: 8px; height: 8px; border-radius: 50%; border: 1px dashed oklch(0.6 0.02 268);"></span>{{ t.demosSlot }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="github" data-screen-label="GitHub" style="position: relative; z-index: 2; padding: clamp(70px, 11vh, 150px) 26px; max-width: 1360px; margin: 0 auto;">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px;">
+      <div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc);">05 — GitHub</div>
+        <h2 style="margin: 16px 0 0; font-size: clamp(28px, 4vw, 54px); font-weight: 600; letter-spacing: -0.032em;">
+          <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.githubTitle }}</span></span>
+        </h2>
+      </div>
+      <a href="{{ ghUrl }}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 9px; padding: 12px 20px; border-radius: 999px; border: 1px solid oklch(0.95 0.008 268 / 0.16); font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: oklch(0.9 0.01 268); transition: border-color .3s, transform .3s;" style-hover="border-color: var(--acc2); transform: translateY(-2px);">{{ ghLabel }} ↗</a>
+    </div>
+    <p style="margin: 16px 0 0; max-width: 600px; font-size: 16px; line-height: 1.75; color: oklch(0.7 0.02 268);">{{ t.githubLead }}</p>
+
+    <div style="position: relative; margin-top: 44px; padding-left: 34px;">
+      <div style="position: absolute; left: 8px; top: 6px; bottom: 6px; width: 1px; background: linear-gradient(color-mix(in oklab, var(--acc) 55%, transparent), color-mix(in oklab, var(--acc2) 35%, transparent), transparent);"></div>
+      <div style="position: absolute; left: 4px; top: 0; bottom: 0; width: 9px;">
+        <span style="position: absolute; left: 0; width: 9px; height: 9px; border-radius: 50%; background: var(--acc); animation: travel 7s linear infinite;"></span>
+      </div>
+      <div data-stagger style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+        <sc-for list="{{ repos }}" as="r" hint-placeholder-count="4">
+          <a href="{{ r.url }}" target="_blank" rel="noopener" data-reveal style="opacity: 0; transform: translateY(24px); transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .4s cubic-bezier(.16,1,.3,1), border-color .3s; display: block; padding: 22px; border-radius: 16px; border: 1px solid oklch(0.95 0.008 268 / 0.11); background: oklch(0.95 0.008 268 / 0.028); color: oklch(0.95 0.008 268);" style-hover="border-color: color-mix(in oklab, var(--acc2) 55%, transparent); transform: translateY(-4px);">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px;">{{ r.name }}</span>
+              <span style="color: oklch(0.62 0.02 268);">↗</span>
+            </div>
+            <div style="margin-top: 11px; font-size: 14px; line-height: 1.65; color: oklch(0.7 0.02 268); min-height: 46px;">{{ r.desc }}</div>
+            <div style="margin-top: 16px; display: flex; align-items: center; gap: 14px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: oklch(0.62 0.02 268);">
+              <span style="display: flex; align-items: center; gap: 7px;"><span style="width: 9px; height: 9px; border-radius: 50%; background: {{ r.dot }};"></span>{{ r.lang }}</span>
+              <span>{{ r.updated }}</span>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <footer data-screen-label="İletişim" style="position: relative; z-index: 2; padding: clamp(80px, 12vh, 160px) 26px 36px; border-top: 1px solid oklch(0.95 0.008 268 / 0.08);">
+    <div style="max-width: 1360px; margin: 0 auto;">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc2);">06 — {{ t.contactTitle }}</div>
+      <h2 style="margin: 18px 0 0; font-size: clamp(26px, 3.4vw, 44px); font-weight: 600; letter-spacing: -0.03em;">
+        <span style="display: block; overflow: hidden;"><span data-rise style="display: block; transform: translateY(110%);">{{ t.contactHead }}</span></span>
+      </h2>
+      <a href="{{ mailHref }}" style="display: inline-block; margin-top: 22px; font-family: 'JetBrains Mono', monospace; font-size: clamp(20px, 3.6vw, 46px); letter-spacing: -0.02em; color: oklch(0.95 0.008 268); border-bottom: 1px solid color-mix(in oklab, var(--acc) 50%, transparent); padding-bottom: 6px; transition: color .3s;" style-hover="color: var(--acc);">{{ mail }}</a>
+      <div style="margin-top: 58px; padding-top: 22px; border-top: 1px solid oklch(0.95 0.008 268 / 0.09); display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: oklch(0.56 0.02 268);">
+        <span>© {{ year }} {{ name }} — {{ t.footerNote }}</span>
+        <span style="display: flex; gap: 16px;">
+          <a href="{{ ghUrl }}" target="_blank" rel="noopener" style="color: oklch(0.72 0.02 268);">GitHub</a>
+          <a href="{{ playUrl }}" target="_blank" rel="noopener" style="color: oklch(0.72 0.02 268);">Google Play</a>
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <sc-if value="{{ demoOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; border-bottom: 1px solid oklch(0.95 0.008 268 / 0.12); background: var(--surf);">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: oklch(0.78 0.15 150);"></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: oklch(0.82 0.02 268); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ activeFullPath }}</span>
+        </div>
+        <button onClick="{{ closeDemo }}" style="cursor: pointer; border-radius: 999px; background: transparent; border: 1px solid oklch(0.95 0.008 268 / 0.22); color: oklch(0.95 0.008 268); font-family: 'JetBrains Mono', monospace; font-size: 11.5px; padding: 9px 16px; transition: border-color .3s;" style-hover="border-color: var(--acc);">{{ t.close }} ✕</button>
+      </div>
+      <div style="flex: 1; min-height: 0; background: oklch(0.97 0.005 268);">
+        <iframe title="demo" srcDoc="{{ activeDemoSrc }}" style="width: 100%; height: 100%; border: 0; display: block;"></iframe>
+      </div>
+    </div>
+  </sc-if>
+
+  <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#2a2340"/><circle cx="50" cy="50" r="26" fill="#b98cff"/><text x="50" y="58" font-family="monospace" font-size="20" font-weight="700" text-anchor="middle" fill="#1c1a2b">st</text></svg></template>
+
+  <div data-progress style="position: fixed; left: 0; top: 0; height: 2px; width: 0%; background: linear-gradient(90deg, var(--acc2), var(--acc)); z-index: 60;"></div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;motionIntensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0,&quot;max&quot;:2,&quot;step&quot;:0.1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Hareket&quot;}}">
+const MUT = "oklch(0.66 0.02 268)";
+const THEME_VARS = {
+  "--bg": "oklch(0.205 0.024 278)", "--bg-top": "oklch(0.27 0.036 288)",
+  "--surf": "oklch(0.25 0.028 280)", "--panel": "oklch(0.275 0.032 285)", "--panel2": "oklch(0.23 0.026 275)",
+  "--acc": "oklch(0.76 0.15 300)", "--acc-hi": "oklch(0.88 0.1 300)", "--acc2": "oklch(0.74 0.14 210)",
+  "--glow1": "oklch(0.58 0.16 300)", "--glow2": "oklch(0.6 0.14 205)", "--glow3": "oklch(0.62 0.13 165)"
+};
+
+class Component extends DCLogic {
+  state = { lang: "tr", active: 0, demo: null, data: null };
+
+  componentDidMount() {
+    const root = document.documentElement;
+    Object.keys(THEME_VARS).forEach((k) => root.style.setProperty(k, THEME_VARS[k]));
+
+    try {
+      const l = localStorage.getItem("st-lang");
+      if (l === "tr" || l === "en" || l === "ru") this.setState({ lang: l });
+    } catch (e) {}
+
+    import("./site-data.js").then((m) => {
+      this._mod = m;
+      this.setState({ data: m.loadContent() });
+    });
+
+    this.buildStreams();
+    this.responsive();
+    this._onResize = () => this.responsive();
+    window.addEventListener("resize", this._onResize);
+
+    const bar = document.querySelector("[data-progress]");
+    this._cache = () => { this._pars = Array.from(document.querySelectorAll("[data-par]")).map((el) => ({ el, amt: parseFloat(el.getAttribute("data-par")) || 0 })); };
+    this._cache();
+    let tick = false;
+    const frame = () => {
+      tick = false;
+      const vh = window.innerHeight, sy = window.scrollY, k = this.props.motionIntensity ?? 1;
+      for (const p of this._pars) {
+        const r = p.el.getBoundingClientRect();
+        if (r.bottom < -180 || r.top > vh + 180) continue;
+        const d = (r.top + r.height / 2 - vh / 2) / vh;
+        p.el.style.transform = "translate3d(0," + (d * p.amt * 110 * k).toFixed(1) + "px,0)";
+      }
+      if (bar) {
+        const max = document.documentElement.scrollHeight - vh;
+        bar.style.width = (max > 0 ? (sy / max) * 100 : 0) + "%";
+      }
+    };
+    this._onScroll = () => { if (!tick) { tick = true; requestAnimationFrame(frame); } };
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    requestAnimationFrame(frame);
+
+    this._onKey = (e) => { if (e.key === "Escape") this.setState({ demo: null }); };
+    window.addEventListener("keydown", this._onKey);
+
+    // admin panelde yapılan değişiklikleri geri dönünce al
+    this._onFocus = () => { if (this._mod) this.setState({ data: this._mod.loadContent() }); };
+    window.addEventListener("focus", this._onFocus);
+    this._onStore = (e) => { if (this._mod && e.key === this._mod.KEY) this.setState({ data: this._mod.loadContent() }); };
+    window.addEventListener("storage", this._onStore);
+  }
+
+  responsive() {
+    const w = window.innerWidth;
+    const set = (sel, prop, val) => { const el = document.querySelector(sel); if (el) el.style[prop] = val; };
+    set("[data-navlinks]", "display", w > 1000 ? "flex" : "none");
+    set("[data-hero-grid]", "gridTemplateColumns", w > 1000 ? "1.05fr 0.95fr" : "1fr");
+    set("[data-two-col]", "gridTemplateColumns", w > 900 ? "0.8fr 1.2fr" : "1fr");
+    set("[data-demo-grid]", "gridTemplateColumns", w > 1000 ? "1fr 1fr" : "1fr");
+    const dp = document.querySelector("[data-demo-preview]");
+    if (dp) { dp.style.position = w > 1000 ? "sticky" : "relative"; dp.style.top = w > 1000 ? "92px" : "auto"; }
+  }
+
+  buildStreams() {
+    const host = document.querySelector("[data-streams]");
+    if (!host || host.childElementCount) return;
+    const glyphs = ["01", "{ }", "</>", "10", "fn", "::", "=>", "01"];
+    for (let i = 0; i < 16; i++) {
+      const col = document.createElement("div");
+      const x = (i / 16) * 100 + (Math.random() * 3 - 1.5);
+      col.style.cssText = "position:absolute;top:0;bottom:0;width:1px;left:" + x.toFixed(2) + "%;overflow:hidden;background:linear-gradient(oklch(0.95 0.01 280 / 0.028), oklch(0.95 0.01 280 / 0.01));";
+      const seg = document.createElement("div");
+      const dur = 16 + Math.random() * 22;
+      const hue = i % 2 ? 205 : 300;
+      seg.style.cssText = "position:absolute;left:-9px;width:19px;height:14vh;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:oklch(0.9 0.06 " + hue + " / 0.24);background:linear-gradient(transparent, oklch(0.85 0.09 " + hue + " / 0.1), transparent);animation:stream " + dur.toFixed(1) + "s linear infinite " + (-Math.random() * dur).toFixed(1) + "s;";
+      seg.textContent = glyphs[i % glyphs.length];
+      col.appendChild(seg);
+      host.appendChild(col);
+    }
+  }
+
+  initContentMotion() {
+    if (this._motionReady) return;
+    this._motionReady = true;
+
+    requestAnimationFrame(() => {
+      document.querySelectorAll("[data-rise]").forEach((el, i) => {
+        el.style.transition = "transform 1.05s cubic-bezier(.16,1,.3,1) " + (i * 0.09 + 0.1) + "s";
+      });
+      document.querySelectorAll("#top [data-rise]").forEach((el) => { el.style.transform = "translateY(0)"; });
+    });
+
+    let li = 0;
+    const logEls = Array.from(document.querySelectorAll("[data-log]"));
+    const step = () => {
+      if (li >= logEls.length) return;
+      logEls[li].style.opacity = "1";
+      logEls[li].style.transform = "translateY(0)";
+      li++;
+      this._logTimer = setTimeout(step, 240);
+    };
+    this._logTimer = setTimeout(step, 420);
+
+    const target = document.querySelector("[data-typed]");
+    let ri = 0, ci = 0, del = false;
+    const type = () => {
+      const d = this.state.data;
+      const list = (d && d.i18n[this.state.lang] && d.i18n[this.state.lang].roles) || [""];
+      const word = list[ri % list.length] || "";
+      ci = del ? ci - 1 : ci + 1;
+      if (target) target.textContent = word.slice(0, Math.max(0, ci));
+      let wait = del ? 34 : 62;
+      if (!del && ci >= word.length) { del = true; wait = 1500; }
+      else if (del && ci <= 0) { del = false; ri++; wait = 240; }
+      this._typeTimer = setTimeout(type, wait);
+    };
+    this._typeTimer = setTimeout(type, 700);
+
+    const io = new IntersectionObserver((ents) => {
+      ents.forEach((en) => {
+        if (!en.isIntersecting) return;
+        const el = en.target;
+        if (el.hasAttribute("data-rise")) el.style.transform = "translateY(0)";
+        else { el.style.opacity = "1"; el.style.transform = "none"; }
+        if (el.hasAttribute("data-count")) this.countUp(el);
+        io.unobserve(el);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -5% 0px" });
+
+    this._wire = () => {
+      document.querySelectorAll("[data-stagger]").forEach((p) => {
+        Array.from(p.querySelectorAll("[data-reveal]")).forEach((el, i) => {
+          if (!el.dataset.st) { el.dataset.st = "1"; el.style.transitionDelay = (i * 0.07).toFixed(2) + "s"; }
+        });
+      });
+      document.querySelectorAll("[data-reveal]:not([data-obs]), [data-rise]:not([data-obs]), [data-count]:not([data-obs])").forEach((el) => {
+        el.dataset.obs = "1";
+        io.observe(el);
+      });
+    };
+    this._wire();
+  }
+
+  countUp(el) {
+    const to = parseInt(el.getAttribute("data-count"), 10) || 0;
+    let n = 0;
+    const t = setInterval(() => {
+      n++;
+      el.textContent = n >= to ? String(to) : String(n);
+      if (n >= to) clearInterval(t);
+    }, Math.max(60, 700 / Math.max(to, 1)));
+  }
+
+  componentDidUpdate() {
+    if (this.state.data) this.initContentMotion();
+    if (this._wire) this._wire();
+    if (this._cache) this._cache();
+    this.responsive();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._onResize);
+    window.removeEventListener("keydown", this._onKey);
+    window.removeEventListener("focus", this._onFocus);
+    window.removeEventListener("storage", this._onStore);
+    clearTimeout(this._typeTimer);
+    clearTimeout(this._logTimer);
+  }
+
+  renderVals() {
+    const d = this.state.data;
+    const m = this._mod;
+    if (!d || !m) return { t: {}, langs: [], demos: [], facts: [], games: [], logs: [], techs: [], repos: [] };
+
+    const lang = d.i18n[this.state.lang] ? this.state.lang : "tr";
+    const t = d.i18n[lang];
+    const tx = (o) => (o && (o[lang] || o.tr)) || "";
+
+    const langs = ["tr", "en", "ru"].map((code) => ({
+      code: code.toUpperCase(),
+      bg: code === lang ? "var(--acc)" : "transparent",
+      fg: code === lang ? "var(--bg)" : MUT,
+      pick: () => {
+        this.setState({ lang: code });
+        try { localStorage.setItem("st-lang", code); } catch (e) {}
+      }
+    }));
+
+    const logs = d.logs.map((text) => ({ text, color: m.logColor(text) }));
+
+    const techs = d.techs.map((x, i) => ({ ...x, dot: i % 2 ? "var(--acc2)" : "var(--acc)" }));
+
+    const games = d.games.map((g, i) => {
+      const cov = m.COVERS[g.cover] || m.COVERS.violet;
+      const img = (g.image || "").trim();
+      return { name: g.name, desc: tx(g.desc), url: g.url || d.meta.play, no: String(i + 1).padStart(2, "0"), c1: cov[0], c2: cov[1], image: img, hasImage: !!img, noImage: !img };
+    });
+
+    const repos = d.repos.map((r, i) => ({
+      name: r.name, desc: tx(r.desc), lang: r.lang, updated: r.updated,
+      url: r.url || d.meta.github, dot: i % 2 ? "var(--acc2)" : "var(--acc)"
+    }));
+
+    const facts = d.facts.map((f) => ({ value: f.value, label: tx(f.label) }));
+
+    const demos = d.demos.map((x, i) => ({
+      path: x.path, name: x.name, desc: tx(x.desc), tags: x.tags || [],
+      bg: i === this.state.active ? "oklch(0.95 0.008 268 / 0.055)" : "transparent",
+      pathColor: i === this.state.active ? "var(--acc)" : "oklch(0.62 0.02 268)",
+      hover: () => { if (this.state.active !== i) this.setState({ active: i }); },
+      open: () => this.setState({ demo: i, active: i })
+    }));
+
+    const act = d.demos[this.state.active] || d.demos[0] || { name: "", path: "" };
+    const open = this.state.demo === null ? null : d.demos[this.state.demo];
+    const host = (d.meta.github || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+
+    return {
+      t, langs, logs, techs, games, repos, facts, demos,
+      name: d.meta.name, handle: d.meta.handle, mail: d.meta.mail,
+      mailHref: "mailto:" + d.meta.mail,
+      ghUrl: d.meta.github, ghLabel: host, playUrl: d.meta.play,
+      year: String(new Date().getFullYear()),
+      activeName: act.name, activePath: act.path,
+      openActive: () => this.setState({ demo: this.state.active }),
+      demoOpen: open !== null,
+      activeFullPath: open ? "sinantekin.dev/" + open.path : "",
+      activeDemoSrc: open ? (open.html && open.html.trim() ? open.html : m.demoStub(open.name)) : "",
+      closeDemo: () => this.setState({ demo: null })
+    };
+  }
+}
+
+</script>
+</body>
+</html>
