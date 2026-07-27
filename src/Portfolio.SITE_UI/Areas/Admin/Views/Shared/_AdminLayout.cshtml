@@ -1,8 +1,15 @@
+@using Portfolio.Services.Admin
 @*
-    Admin kalıbı — ana sitenin tasarım dilini paylaşır (aynı tokenlar, aynı fontlar).
-    Prototip: design_handoff_portfolio/live-html/admin.html · tam CRUD Faz 5.2+.
-    ⛔ Arka plan hareket katmanı BURADA YOK: admin bir çalışma ekranı, dikkat dağıtmamalı.
+    Admin kalıbı — ana sitenin tasarım dilini paylaşır (aynı tokenlar, aynı fontlar,
+    ortak components.css). Prototip: design_handoff_portfolio/live-html/admin.html.
+    ⛔ Arka plan hareket katmanı BURADA YOK: admin çalışma ekranı, dikkat dağıtmamalı.
 *@
+@{
+    var aktif = ViewData["AktifBolum"] as string;
+    var dil = ViewData["Lang"] as string ?? "tr";
+    var bosAlanlar = ViewData["BosAlanlar"] as IReadOnlyDictionary<string, int>;
+    var girisli = User.Identity?.IsAuthenticated == true;
+}
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -20,7 +27,7 @@
 <body class="admin">
     <header class="abar">
         <div class="abar__left">
-            <span class="badge">st</span>
+            <a href="/admin" class="abar__marka"><span class="badge">st</span></a>
             <span class="abar__title">Portfolyo yönetimi</span>
             @if (ViewData["AuthAcik"] is bool acik && !acik)
             {
@@ -29,7 +36,22 @@
         </div>
         <div class="abar__right">
             <a href="/" class="pill-link" target="_blank" rel="noopener">Siteyi gör ↗</a>
-            @if (User.Identity?.IsAuthenticated == true)
+            <a href="/admin/icerik/disa-aktar" class="pill-link">JSON indir</a>
+
+            @if (aktif is not null)
+            {
+                @* Gizli input'u saran label — prototipteki desen *@
+                <form method="post" action="/admin/icerik/ice-aktar?slug=@aktif" enctype="multipart/form-data" class="abar__form">
+                    @Html.AntiForgeryToken()
+                    <label class="pill-link" style="cursor: pointer;">
+                        JSON yükle
+                        <input type="file" name="dosya" accept="application/json" hidden
+                               onchange="this.form.submit()" />
+                    </label>
+                </form>
+            }
+
+            @if (girisli)
             {
                 <form method="post" action="/admin/cikis" class="abar__form">
                     @Html.AntiForgeryToken()
@@ -39,8 +61,35 @@
         </div>
     </header>
 
-    <main class="ashell">
-        @RenderBody()
-    </main>
+    <div class="akabuk">
+        @if (aktif is not null)
+        {
+            <nav class="amenu">
+                @foreach (var b in AdminSections.Hepsi)
+                {
+                    <a class="amenu__oge @(b.Slug == aktif ? "is-active" : "")"
+                       href="/admin/icerik/@b.Slug?lang=@dil">@b.Ad</a>
+                }
+                @if (bosAlanlar is not null)
+                {
+                    <div class="amenu__not mono">
+                        boş alanlar:
+                        @string.Join(" · ", bosAlanlar.Select(x => $"{x.Key.ToUpperInvariant()} {x.Value}"))
+                    </div>
+                }
+            </nav>
+        }
+
+        <main class="ashell @(aktif is null ? "ashell--tek" : "")">
+            @RenderBody()
+        </main>
+    </div>
+
+    @if (TempData["Toast"] is string toast && !string.IsNullOrWhiteSpace(toast))
+    {
+        <div class="toast" data-toast>@toast</div>
+    }
+
+    <script src="~/js/admin.js" asp-append-version="true"></script>
 </body>
 </html>

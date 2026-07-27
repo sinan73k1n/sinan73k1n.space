@@ -127,6 +127,9 @@ public sealed class ContentService : IContentService
     };
 
     /// <summary>Boş demo için yer tutucu sayfa (site-data.js → demoStub birebir).</summary>
+    /// <remarks>Admin önizlemesi de aynı stub'ı kullanır → tek kaynak.</remarks>
+    internal static string DemoStubPublic(string baslik) => DemoStub(baslik);
+
     private static string DemoStub(string baslik) =>
         "<!doctype html><html><head><meta charset=\"utf-8\"><style>\n" +
         " body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#14131c;color:#e8e8ef;font-family:ui-monospace,SFMono-Regular,monospace}\n" +

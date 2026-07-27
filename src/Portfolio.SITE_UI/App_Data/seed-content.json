@@ -23,7 +23,7 @@
       "marquee": "unity  ·  c#  ·  javascript  ·  php  ·  mysql  ·  google play  ·  admin panel  ·  forum  ·  api  ·  demo  ·",
       "aboutTitle": "Fikirden yayına, tek başına.",
       "aboutBig": "Ekranda görüneni de arkada çalışanı da ben yazıyorum — tasarım, kod, yayın döngüsü aynı elde.",
-      "aboutSmall": "Oyun tarafında Unity ile geliştirip Google Play'de yayınlıyorum; mağaza, sürüm ve oyuncu geri bildirimi süreçlerini kendim yönetiyorum. Web tarafında yönetim panelleri, forum ve etkileşim yoğun arayüzler kuruyorum. Bu sitedeki demolar ekran görüntüsü değil, tarayıcıda gerçekten açılan sürümler.",
+      "aboutSmall": "Oyun tarafında Unity ile geliştirip Google Play\u0027de yayınlıyorum; mağaza, sürüm ve oyuncu geri bildirimi süreçlerini kendim yönetiyorum. Web tarafında yönetim panelleri, forum ve etkileşim yoğun arayüzler kuruyorum. Bu sitedeki demolar ekran görüntüsü değil, tarayıcıda gerçekten açılan sürümler.",
       "stackTitle": "Çalıştığım teknolojiler",
       "stackLead": "Liste admin panelinden güncellenir.",
       "stackSlot": "yeni teknoloji",
@@ -56,7 +56,7 @@
       "marquee": "unity  ·  c#  ·  javascript  ·  php  ·  mysql  ·  google play  ·  admin panel  ·  forum  ·  api  ·  demo  ·",
       "aboutTitle": "From idea to release, solo.",
       "aboutBig": "I write what you see on screen and what runs behind it — design, code and shipping in one pair of hands.",
-      "aboutSmall": "On the game side I build with Unity and publish on Google Play, handling store presence, releases and player feedback myself. On the web side I build admin panels, forums and interaction-heavy interfaces. The demos here aren't screenshots — they open and run in your browser.",
+      "aboutSmall": "On the game side I build with Unity and publish on Google Play, handling store presence, releases and player feedback myself. On the web side I build admin panels, forums and interaction-heavy interfaces. The demos here aren\u0027t screenshots — they open and run in your browser.",
       "stackTitle": "Technologies I work with",
       "stackLead": "This list is maintained from the admin panel.",
       "stackSlot": "new technology",
@@ -111,12 +111,12 @@
   "roles": {
     "tr": [
       "Unity ile mobil oyunlar",
-      "yönetim panelleri & backend",
+      "yönetim panelleri \u0026 backend",
       "çalışan web demoları"
     ],
     "en": [
       "mobile games with Unity",
-      "admin panels & backend",
+      "admin panels \u0026 backend",
       "web demos that actually run"
     ],
     "ru": [
@@ -140,7 +140,7 @@
     {
       "value": 3,
       "label": {
-        "tr": "Google Play'de yayında oyun",
+        "tr": "Google Play\u0027de yayında oyun",
         "en": "games live on Google Play",
         "ru": "игр в Google Play"
       }
@@ -210,7 +210,7 @@
       "image": "",
       "cover": "cyan",
       "desc": {
-        "tr": "Google Play'de yayında olan projelerden biri.",
+        "tr": "Google Play\u0027de yayında olan projelerden biri.",
         "en": "One of the projects live on Google Play.",
         "ru": "Один из проектов, опубликованных в Google Play."
       }
@@ -281,9 +281,9 @@
       "updated": "2026",
       "url": "",
       "desc": {
-        "tr": "PHP + MySQL tabanlı sunucu yönetim paneli.",
-        "en": "Server admin panel built on PHP + MySQL.",
-        "ru": "Панель управления сервером на PHP + MySQL."
+        "tr": "PHP \u002B MySQL tabanlı sunucu yönetim paneli.",
+        "en": "Server admin panel built on PHP \u002B MySQL.",
+        "ru": "Панель управления сервером на PHP \u002B MySQL."
       }
     },
     {

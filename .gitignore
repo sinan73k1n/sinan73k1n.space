@@ -20,6 +20,13 @@ publish/
 .vs/
 TestResults/
 
+# Admin'den yüklenen görseller — kullanıcı içeriği, sunucuda yaşar
+# (deploy'da rsync --delete YOK kuralı bu yüzden ayrıca önemli)
+src/Portfolio.SITE_UI/wwwroot/uploads/
+
+# İçerik deposu çalışma zamanı yedeği (JsonContentStore atomik yazma üretir)
+*.json.bak
+
 # Playwright / geçici görsel doğrulama çıktıları
 ref-*.png
 shot-*.png

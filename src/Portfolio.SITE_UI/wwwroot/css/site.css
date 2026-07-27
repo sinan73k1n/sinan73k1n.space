@@ -278,22 +278,3 @@
 @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 @keyframes sheen  { 0% { transform: translateX(-120%) skewX(-18deg); } 55%, 100% { transform: translateX(240%) skewX(-18deg); } }
 @keyframes travel { 0% { top: 0%; opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
-
-/* ---------- Tam ekran demo overlay (Faz 3.5) ---------- */
-.demo-overlay { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; }
-.demo-overlay[hidden] { display: none; }
-.demo-overlay__bar {
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 12px 18px; border-bottom: 1px solid oklch(0.95 0.008 268 / 0.12); background: var(--surf);
-}
-.demo-overlay__id { display: flex; align-items: center; gap: 12px; min-width: 0; font-size: 12px; color: oklch(0.82 0.02 268); }
-.demo-overlay__id .mono { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.demo-overlay__close {
-  cursor: pointer; border-radius: var(--r-pill); background: transparent;
-  border: 1px solid oklch(0.95 0.008 268 / 0.22); color: var(--text);
-  font-family: var(--font-mono); font-size: 11.5px; padding: 9px 16px;
-  transition: border-color var(--t-hover);
-}
-.demo-overlay__close:hover { border-color: var(--acc); }
-.demo-overlay__frame { flex: 1; min-height: 0; background: oklch(0.97 0.005 268); }
-.demo-overlay__frame iframe { width: 100%; height: 100%; border: 0; display: block; }

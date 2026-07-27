@@ -18,6 +18,9 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<IContentStore>(_ =>
     new JsonContentStore(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "seed-content.json")));
 builder.Services.AddScoped<IContentService, ContentService>();
+builder.Services.AddScoped<Portfolio.Services.Admin.IAdminContentService, Portfolio.Services.Admin.AdminContentService>();
+// Yüklenen oyun kapakları: wwwroot/uploads/games (dosya sistemi; DB'ye binary konmaz)
+builder.Services.AddSingleton<IMediaStore>(_ => new FileMediaStore(builder.Environment.WebRootPath));
 
 // --- Kimlik doğrulama (Faz 5.1) ---
 // Sırlar env'den gelir: Auth__Username / Auth__PasswordHash / Auth__TotpSecret.

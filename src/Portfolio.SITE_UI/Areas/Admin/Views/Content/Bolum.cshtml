@@ -1,0 +1,241 @@
+@model Portfolio.Services.Admin.BolumGorunumu
+@using Portfolio.Entities
+@using Portfolio.Services.Admin
+@{
+    ViewData["Title"] = Model.Bolum.Ad;
+    ViewData["AktifBolum"] = Model.Bolum.Slug;
+    ViewData["Lang"] = Model.Lang;
+    ViewData["BosAlanlar"] = Model.BosAlanlar;
+
+    // Liste tipine göre alan tarifi: (ad, etiket, tip, dile-bağlı-mı)
+    (string Ad, string Etiket, string Tip, bool Ceviri)[] AlanTarifi(ListeTipi l) => l switch
+    {
+        ListeTipi.Loglar        => new[] { ("text", "satır", "text", false) },
+        ListeTipi.Roller        => new[] { ("text", "rol metni", "text", true) },
+        ListeTipi.Sayaclar      => new[] { ("value", "değer", "number", false), ("label", "etiket", "text", true) },
+        ListeTipi.Teknolojiler  => new[] { ("name", "ad", "text", false), ("note", "not", "text", false) },
+        ListeTipi.Oyunlar       => new[] { ("name", "ad", "text", false), ("url", "Google Play bağlantısı", "text", false),
+                                           ("cover", "kapak rengi (görsel yoksa)", "cover", false),
+                                           ("desc", "açıklama", "textarea", true) },
+        ListeTipi.Demolar       => new[] { ("path", "yol (demo/Ad)", "text", false), ("name", "ad", "text", false),
+                                           ("tags", "etiketler (virgülle)", "text", false),
+                                           ("desc", "açıklama", "textarea", true), ("html", "HTML / JS", "code", false) },
+        ListeTipi.Depolar       => new[] { ("name", "depo adı", "text", false), ("lang", "dil", "text", false),
+                                           ("updated", "yıl", "text", false), ("url", "bağlantı (boşsa otomatik)", "text", false),
+                                           ("desc", "açıklama", "textarea", true) },
+        _ => Array.Empty<(string, string, string, bool)>()
+    };
+    var alanlar = AlanTarifi(Model.Bolum.Liste);
+    var listeAdi = Model.Bolum.Liste switch
+    {
+        ListeTipi.Loglar => "terminal satırı", ListeTipi.Roller => "rol", ListeTipi.Sayaclar => "sayaç",
+        ListeTipi.Teknolojiler => "teknoloji", ListeTipi.Oyunlar => "oyun", ListeTipi.Demolar => "demo",
+        ListeTipi.Depolar => "depo", _ => "kayıt"
+    };
+}
+
+<form method="post" action="/admin/icerik/@Model.Bolum.Slug/kaydet?lang=@Model.Lang" enctype="multipart/form-data" data-kirli-form>
+    @Html.AntiForgeryToken()
+
+    <div class="bolum__ust">
+        <div>
+            <h1 class="apanel__baslik">@Model.Bolum.Ad</h1>
+            <p class="apanel__not">@Model.Bolum.Aciklama</p>
+        </div>
+
+        @* Dil sekmeleri — her sekme o dildeki BOŞ alan sayısını gösterir *@
+        <div class="diller">
+            @foreach (var kod in Lang.All)
+            {
+                var bos = Model.BosAlanlar.TryGetValue(kod, out var b) ? b : 0;
+                <a class="dil @(kod == Model.Lang ? "is-active" : "")"
+                   href="/admin/icerik/@Model.Bolum.Slug?lang=@kod">
+                    @kod.ToUpperInvariant()
+                    @if (bos > 0) { <span class="dil__bos">· @bos</span> }
+                </a>
+            }
+        </div>
+    </div>
+
+    @if (Model.Lang != Lang.Default)
+    {
+        <div class="bolum__ipucu">
+            <span>Boş bıraktığın alanlar sitede otomatik olarak Türkçesine düşer.</span>
+            <button type="submit" class="pill-link" formaction="/admin/icerik/doldur?slug=@Model.Bolum.Slug&lang=@Model.Lang" formnovalidate>
+                Boşları TR'den doldur
+            </button>
+        </div>
+    }
+
+    @* ---------- Dile bağlı metinler ---------- *@
+    @if (Model.Bolum.Kopyalar.Count > 0)
+    {
+        <div class="kart">
+            <div class="kart__baslik"><span class="mono">metinler</span> <span class="kart__dil">@Model.Lang.ToUpperInvariant()</span></div>
+            <div class="izgara">
+                @foreach (var k in Model.Bolum.Kopyalar)
+                {
+                    var deger = Model.Degerler.TryGetValue(k.Anahtar, out var d) ? d : "";
+                    <label class="alan @(k.Tip == AlanTipi.CokSatir ? "alan--genis" : "")">
+                        <span class="alan__etiket">@k.Etiket @if (string.IsNullOrWhiteSpace(deger)) { <em class="bos">boş</em> }</span>
+                        @if (k.Tip == AlanTipi.CokSatir)
+                        {
+                            <textarea class="alan__giris" name="kopya.@k.Anahtar" rows="3">@deger</textarea>
+                        }
+                        else
+                        {
+                            <input class="alan__giris" type="text" name="kopya.@k.Anahtar" value="@deger" />
+                        }
+                    </label>
+                }
+            </div>
+        </div>
+    }
+
+    @* ---------- Künye (yalnız Genel bölümü) ---------- *@
+    @if (Model.Bolum.Liste == ListeTipi.Meta)
+    {
+        <div class="kart">
+            <div class="kart__baslik"><span class="mono">künye</span> <span class="kart__dil">dilden bağımsız</span></div>
+            <div class="izgara">
+                @foreach (var (ad, etiket, deger) in new[] {
+                    ("name", "Ad soyad", Model.Kunye.Name), ("handle", "Kullanıcı adı (menüde)", Model.Kunye.Handle),
+                    ("mail", "E-posta", Model.Kunye.Mail), ("github", "GitHub profili", Model.Kunye.Github),
+                    ("githubUser", "GitHub kullanıcı adı", Model.Kunye.GithubUser), ("play", "Google Play geliştirici", Model.Kunye.Play) })
+                {
+                    <label class="alan">
+                        <span class="alan__etiket">@etiket</span>
+                        <input class="alan__giris" type="text" name="meta.@ad" value="@deger" />
+                    </label>
+                }
+            </div>
+        </div>
+    }
+
+    @* ---------- Liste kayıtları ---------- *@
+    @if (Model.Bolum.Liste != ListeTipi.Yok)
+    {
+        <div class="liste">
+            @foreach (var oge in Model.Ogeler)
+            {
+                <div class="kayit">
+                    <div class="kayit__ust">
+                        <span class="kayit__no mono">@((oge.Index + 1).ToString("00"))</span>
+                        <span class="kayit__ad">@oge.Baslik</span>
+                        <span class="kayit__islem">
+                            <button type="submit" class="ikon" title="yukarı" formnovalidate
+                                    formaction="/admin/icerik/@Model.Bolum.Slug/tasi?index=@oge.Index&yon=-1&lang=@Model.Lang">↑</button>
+                            <button type="submit" class="ikon" title="aşağı" formnovalidate
+                                    formaction="/admin/icerik/@Model.Bolum.Slug/tasi?index=@oge.Index&yon=1&lang=@Model.Lang">↓</button>
+                            @if (Model.Bolum.Liste == ListeTipi.Demolar)
+                            {
+                                <button type="button" class="ikon" title="önizle" data-onizle="@oge.Index">önizle</button>
+                            }
+                            <button type="submit" class="ikon ikon--sil" title="sil" formnovalidate
+                                    data-onay="@oge.Baslik kaydı silinecek. Emin misin?"
+                                    formaction="/admin/icerik/@Model.Bolum.Slug/sil?index=@oge.Index&lang=@Model.Lang">✕</button>
+                        </span>
+                    </div>
+
+                    <div class="izgara">
+                        @foreach (var a in alanlar)
+                        {
+                            var deger = a.Ceviri
+                                ? (oge.CeviriAlanlari.TryGetValue(a.Ad, out var cv) ? cv : "")
+                                : (oge.Alanlar.TryGetValue(a.Ad, out var dv) ? dv : "");
+                            var alanAdi = $"oge[{oge.Index}].{a.Ad}";
+                            <label class="alan @(a.Tip is "textarea" or "code" ? "alan--genis" : "")">
+                                <span class="alan__etiket">
+                                    @a.Etiket
+                                    @if (a.Ceviri) { <em class="ceviri">@Model.Lang.ToUpperInvariant()</em> }
+                                    @if (string.IsNullOrWhiteSpace(deger)) { <em class="bos">boş</em> }
+                                </span>
+
+                                @switch (a.Tip)
+                                {
+                                    case "textarea":
+                                        <textarea class="alan__giris" name="@alanAdi" rows="2">@deger</textarea>
+                                        break;
+                                    case "code":
+                                        <textarea class="alan__giris alan__kod mono" name="@alanAdi" rows="6"
+                                                  spellcheck="false" placeholder="Tek dosya HTML/JS yapıştır — iframe içinde sandbox ile çalışır">@deger</textarea>
+                                        break;
+                                    case "number":
+                                        <input class="alan__giris" type="number" name="@alanAdi" value="@deger" min="0" />
+                                        break;
+                                    case "cover":
+                                        <select class="alan__giris" name="@alanAdi">
+                                            @foreach (var k in Model.KapakSecenekleri)
+                                            {
+                                                <option value="@k" selected="@(k == deger)">@k</option>
+                                            }
+                                        </select>
+                                        break;
+                                    default:
+                                        <input class="alan__giris" type="text" name="@alanAdi" value="@deger" />
+                                        break;
+                                }
+                            </label>
+                        }
+
+                        @* ---- Oyun kapağı: dosya yükleme (Faz 5.7) ---- *@
+                        @if (Model.Bolum.Liste == ListeTipi.Oyunlar)
+                        {
+                            var gorsel = oge.Alanlar.TryGetValue("image", out var gv) ? gv : "";
+                            <div class="alan alan--genis gorsel">
+                                <span class="alan__etiket">
+                                    kapak görseli
+                                    @if (string.IsNullOrWhiteSpace(gorsel)) { <em class="bos">yok — kapak rengi kullanılıyor</em> }
+                                </span>
+                                <div class="gorsel__satir">
+                                    <div class="gorsel__onizleme">
+                                        @if (!string.IsNullOrWhiteSpace(gorsel))
+                                        {
+                                            <img src="@gorsel" alt="" loading="lazy" />
+                                        }
+                                        else
+                                        {
+                                            <span class="gorsel__bos mono">16 / 10</span>
+                                        }
+                                    </div>
+                                    <div class="gorsel__islem">
+                                        <label class="pill-link" style="cursor: pointer;">
+                                            Görsel seç
+                                            <input type="file" name="gorsel[@oge.Index]" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" hidden />
+                                        </label>
+                                        @if (!string.IsNullOrWhiteSpace(gorsel))
+                                        {
+                                            <button type="submit" class="ikon ikon--sil" formnovalidate
+                                                    data-onay="Kapak görseli silinecek. Emin misin?"
+                                                    formaction="/admin/icerik/@Model.Bolum.Slug/gorsel-kaldir?index=@oge.Index&lang=@Model.Lang">Görseli kaldır</button>
+                                        }
+                                        <span class="gorsel__not mono">JPG · PNG · WebP · GIF · AVIF — en fazla 3 MB. Seçince Kaydet'e bas.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <button type="submit" class="ekle" formnovalidate
+                    formaction="/admin/icerik/@Model.Bolum.Slug/ekle?lang=@Model.Lang">+ @listeAdi ekle</button>
+        </div>
+    }
+
+    <div class="kaydet-cubugu">
+        <span class="kaydet-cubugu__durum" data-kirli-durum>kayıtlı</span>
+        <button type="submit" class="btn btn--solid kaydet">Kaydet</button>
+    </div>
+</form>
+
+@* Demo önizleme overlay — sandbox'lı iframe, kaydetmeden çalıştırma *@
+<div class="demo-overlay" data-onizle-overlay hidden>
+    <div class="demo-overlay__bar">
+        <div class="demo-overlay__id"><span class="dot dot--g"></span><span class="mono" data-onizle-ad></span></div>
+        <button type="button" class="demo-overlay__close" data-onizle-kapat>Kapat ✕</button>
+    </div>
+    <div class="demo-overlay__frame">
+        <iframe title="demo önizleme" sandbox="allow-scripts" referrerpolicy="no-referrer" data-onizle-frame></iframe>
+    </div>
+</div>
