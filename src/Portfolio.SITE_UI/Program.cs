@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Portfolio.Repositories;
 using Portfolio.Repositories.Sql;
+using Portfolio.Services.Metrik;
+using Portfolio.SITE_UI.Metrik;
 using Portfolio.Services;
 using Portfolio.Services.Auth;
 using Portfolio.SITE_UI;
@@ -22,13 +24,15 @@ builder.Services.AddControllersWithViews();
 // Aksi halde her rsync, admin'den yapılan düzenlemeleri repo tohumuyla ezer.
 // Sunucuda:  Content__FilePath=$HOME/portfolio-data/content.json
 // Dosya yoksa repodaki tohumdan bir kez kopyalanır (idempotent).
-var tohumYolu = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "seed-content.json");
+// Tohum artık bir DOSYA değil, KOD (`SeedIcerik`) — bkz. o sınıfın notu.
+// Yol verilmezse geliştirme dosyası ContentRoot altında oluşur.
 var icerikYolu = builder.Configuration["Content:FilePath"];
-if (string.IsNullOrWhiteSpace(icerikYolu)) icerikYolu = tohumYolu;
+if (string.IsNullOrWhiteSpace(icerikYolu))
+    icerikYolu = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "content.json");
 
 // JSON depo her hâlükârda kurulur: SQL açıkken bile ilk tohumlama kaynağı odur
-// (sunucudaki canlı content.json → DB). Bağlantı dizesi yoksa deponun kendisi olur.
-var jsonDepo = new JsonContentStore(icerikYolu, tohumYolu);
+// (sunucudaki mevcut content.json → DB; o da yoksa koddaki seed).
+var jsonDepo = new JsonContentStore(icerikYolu);
 
 // Depo seçimi TEK ŞEYE bakar: bağlantı dizesi var mı?
 //   var  → MSSQL (`portfoliodb`, sunucu)      · yok → JSON dosyası (Mac'te geliştirme)
@@ -42,6 +46,15 @@ if (sqlAktif)
     builder.Services.AddDbContextFactory<PortfolioDbContext>(o => o.UseSqlServer(sqlBaglanti));
     builder.Services.AddSingleton<IContentStore>(sp =>
         new SqlContentStore(sp.GetRequiredService<IDbContextFactory<PortfolioDbContext>>()));
+
+    // --- Metrikler (Faz 8) — yalnız DB varken ---
+    // Ölçüm sitenin ÖN KOŞULU değil: DB yoksa (Mac'te geliştirme) hiç kaydedilmez,
+    // site aynen çalışır. Bu yüzden hepsi bu bloğun içinde.
+    builder.Services.AddSingleton<IMetrikDeposu, MetrikDeposu>();
+    builder.Services.AddSingleton<IMetrikKuyrugu>(_ => new MetrikKuyrugu());
+    builder.Services.AddSingleton<IMetrikOkuyucu, MetrikOkuyucu>();
+    builder.Services.AddHostedService<MetrikYazici>();     // kuyruk → DB
+    builder.Services.AddHostedService<MetrikOzetleyici>(); // gecelik özet + temizlik
 }
 else
 {

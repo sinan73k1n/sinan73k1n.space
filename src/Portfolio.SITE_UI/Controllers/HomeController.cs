@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Entities;
 using Portfolio.Services;
+using Portfolio.Services.Metrik;
 using Portfolio.SITE_UI.Models;
 
 namespace Portfolio.SITE_UI.Controllers;
@@ -12,8 +13,47 @@ public class HomeController : Controller
     private const string DilCerezi = "st-lang";
 
     private readonly IContentService _icerik;
+    private readonly IMetrikKuyrugu? _metrik;
 
-    public HomeController(IContentService icerik) => _icerik = icerik;
+    /// <param name="metrik">
+    /// Metrik kuyruğu. **İsteğe bağlı**: DB yokken (Mac'te geliştirme) kayıtlı
+    /// olmaz ve site metriksiz çalışır — ölçüm, sitenin çalışmasının ön koşulu değil.
+    /// </param>
+    public HomeController(IContentService icerik, IMetrikKuyrugu? metrik = null)
+    {
+        _icerik = icerik;
+        _metrik = metrik;
+    }
+
+    /// <summary>
+    /// Sayfa görüntülemeyi SUNUCU tarafında kaydeder.
+    /// <para>
+    /// Neden istemcide değil: JS kapalı olsa da, reklam engelleyici çalışsa da
+    /// sayılsın. Kendi sayfamıza gelen kendi isteğimizi sayıyoruz — engellenecek
+    /// bir üçüncü taraf isteği yok.
+    /// </para>
+    /// <para>
+    /// Kuyruğa atılıp geçilir: yanıt DB'yi beklemez (bkz. <see cref="MetrikKuyrugu"/>).
+    /// </para>
+    /// </summary>
+    private void ZiyaretiKaydet(string dil)
+    {
+        if (_metrik is null) return;
+
+        var tarayici = Request.Headers.UserAgent.ToString();
+        if (IstekCozumleyici.BotMu(tarayici)) return;
+
+        _metrik.Ekle(new ZiyaretIsi(
+            DateTime.UtcNow,
+            // Gerçek IP: Nginx `X-Real-IP`'yi Cloudflare'in CF-Connecting-IP'sinden
+            // dolduruyor, UseForwardedHeaders bunu RemoteIpAddress'e yazıyor.
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            tarayici,
+            Request.Path.Value ?? "/",
+            dil,
+            Request.Headers.Referer.ToString(),
+            Request.Host.Host));
+    }
 
     public async Task<IActionResult> Index(string? lang, CancellationToken ct)
     {
@@ -51,6 +91,8 @@ public class HomeController : Controller
         ViewData["Lang"] = model.Lang;
         ViewData["Title"] = model.Meta.Name;
         ViewData["Description"] = model.T("heroLead");
+
+        ZiyaretiKaydet(model.Lang);
 
         return View(model);
     }

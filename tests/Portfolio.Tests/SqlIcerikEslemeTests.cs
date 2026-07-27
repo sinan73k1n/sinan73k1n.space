@@ -1,6 +1,6 @@
 using System.Text.Json;
+using Portfolio.Entities;
 using Portfolio.Entities.Content;
-using Portfolio.Repositories;
 using Portfolio.Repositories.Sql;
 
 namespace Portfolio.Tests;
@@ -17,26 +17,13 @@ public class SqlIcerikEslemeTests
     /// <summary>Derin karşılaştırma için içerik ağacını tek metne indirger.</summary>
     private static string Imza(SiteContent i) => JsonSerializer.Serialize(i, Karsilastirma);
 
-    /// <summary>Repodaki gerçek tohum dosyası — uydurma değil, sitenin canlı şeması.</summary>
-    private static string TohumYolu()
-    {
-        var klasor = new DirectoryInfo(AppContext.BaseDirectory);
-        while (klasor is not null && !File.Exists(Path.Combine(klasor.FullName, "Portfolio.slnx")))
-            klasor = klasor.Parent;
-
-        Assert.NotNull(klasor);
-        return Path.Combine(klasor!.FullName, "src", "Portfolio.SITE_UI", "App_Data", "seed-content.json");
-    }
-
     [Fact]
-    public async Task Gercek_seed_icerigi_satirlara_donup_geri_gelince_AYNI_kalir()
+    public void Gercek_seed_icerigi_satirlara_donup_geri_gelince_AYNI_kalir()
     {
-        var yol = TohumYolu();
-        Assert.True(File.Exists(yol), $"Tohum dosyası bulunamadı: {yol}");
+        // Uydurma veri değil, sitenin GERÇEK tohumu: şemanın her köşesi temsil edilsin.
+        var once = SeedIcerik.Olustur();
 
-        var once = await new JsonContentStore(yol).LoadAsync();
-
-        // JSON deposundan okunan içerik → SQL satırları → tekrar içerik
+        // İçerik → SQL satırları → tekrar içerik
         var sonra = IcerikSatirlari.Ayristir(once).Birlestir();
 
         Assert.Equal(Imza(once), Imza(sonra));

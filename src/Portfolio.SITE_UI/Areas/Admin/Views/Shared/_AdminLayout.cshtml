@@ -36,6 +36,7 @@
         </div>
         <div class="abar__right">
             <a href="/" class="pill-link" target="_blank" rel="noopener">Siteyi gör ↗</a>
+            <a href="/admin/metrikler" class="pill-link">Metrikler</a>
             <a href="/admin/icerik/disa-aktar" class="pill-link">JSON indir</a>
 
             @if (aktif is not null)
@@ -61,7 +62,9 @@
         </div>
     </header>
 
-    <div class="akabuk">
+    @* Menü yoksa (dashboard, metrikler) grid tek sütuna düşmeli — aksi hâlde
+       içerik 236px'lik menü sütununa sıkışıyordu. *@
+    <div class="akabuk @(aktif is null ? "akabuk--tek" : "")">
         @if (aktif is not null)
         {
             <nav class="amenu">

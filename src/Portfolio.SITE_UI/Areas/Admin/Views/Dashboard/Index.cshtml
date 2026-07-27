@@ -20,6 +20,6 @@
     </div>
 
     <p class="apanel__not mono">
-        Kaynak: App_Data/seed-content.json (JsonContentStore) — Faz 4'te MSSQL'e taşınacak.
+        Kaynak: @(ViewData["IcerikKaynagi"] as string ?? "—")
     </p>
 </div>

@@ -23,6 +23,12 @@ public sealed class PortfolioDbContext : DbContext
     public DbSet<RepoRow> Repos => Set<RepoRow>();
     public DbSet<CoverPresetRow> Covers => Set<CoverPresetRow>();
 
+    // --- Metrikler (Faz 8) — içerikle aynı DB, ayrı tablolar ---
+    public DbSet<ZiyaretRow> Ziyaretler => Set<ZiyaretRow>();
+    public DbSet<OlayRow> Olaylar => Set<OlayRow>();
+    public DbSet<GunlukOzetRow> GunlukOzetler => Set<GunlukOzetRow>();
+    public DbSet<GunlukTuzRow> GunlukTuzlar => Set<GunlukTuzRow>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         // Dil kodu 8 karakteri geçmez ("tr"/"en"/"ru"); indeks dar kalsın.
@@ -123,6 +129,55 @@ public sealed class PortfolioDbContext : DbContext
             e.Property(x => x.Top).HasMaxLength(50);
             e.Property(x => x.Bottom).HasMaxLength(50);
             e.HasIndex(x => x.Name).IsUnique();
+        });
+
+        // --- Metrik tabloları ---------------------------------------------------
+        // Kolon uzunlukları DAR tutuldu: bu tablolar içerikten çok daha hızlı büyür
+        // ve tamamı istemciden gelen (yani güvenilmeyen) değerlerle doluyor.
+
+        b.Entity<ZiyaretRow>(e =>
+        {
+            e.ToTable("Ziyaret");
+            e.Property(x => x.ZiyaretciHash).HasMaxLength(32).IsFixedLength();
+            e.Property(x => x.Yol).HasMaxLength(200);
+            e.Property(x => x.Dil).HasMaxLength(DilUzunluk);
+            e.Property(x => x.KaynakTipi).HasMaxLength(20);
+            e.Property(x => x.KaynakHost).HasMaxLength(120);
+            e.Property(x => x.Cihaz).HasMaxLength(20);
+
+            // Her sorgu ve hem özetleme hem temizlik güne göre çalışır.
+            e.HasIndex(x => x.Gun);
+            // Tekil ziyaretçi sayımı (Gun, Hash) üzerinden DISTINCT alıyor.
+            e.HasIndex(x => new { x.Gun, x.ZiyaretciHash });
+        });
+
+        b.Entity<OlayRow>(e =>
+        {
+            e.ToTable("Olay");
+            e.Property(x => x.ZiyaretciHash).HasMaxLength(32).IsFixedLength();
+            e.Property(x => x.Tip).HasMaxLength(20);
+            e.Property(x => x.Deger).HasMaxLength(200);
+
+            e.HasIndex(x => x.Gun);
+            e.HasIndex(x => new { x.Gun, x.Tip });
+        });
+
+        b.Entity<GunlukOzetRow>(e =>
+        {
+            e.ToTable("GunlukOzet");
+            e.Property(x => x.Tip).HasMaxLength(20);
+            e.Property(x => x.Anahtar).HasMaxLength(200);
+
+            // Aynı (gün, tip, anahtar) iki kez özetlenemez → rollup idempotent olur:
+            // iş yarıda kalıp tekrar çalışsa bile sayılar ikiye katlanmaz.
+            e.HasIndex(x => new { x.Gun, x.Tip, x.Anahtar }).IsUnique();
+        });
+
+        b.Entity<GunlukTuzRow>(e =>
+        {
+            e.ToTable("GunlukTuz");
+            e.HasKey(x => x.Gun);
+            e.Property(x => x.Tuz).HasMaxLength(64);
         });
     }
 

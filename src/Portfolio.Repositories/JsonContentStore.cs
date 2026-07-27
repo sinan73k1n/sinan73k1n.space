@@ -1,18 +1,24 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
+using Portfolio.Entities;
 using Portfolio.Entities.Content;
 
 namespace Portfolio.Repositories;
 
 /// <summary>
-/// İçeriği JSON dosyasından okur/yazar (Faz 3-5 — DB'siz çalışma).
-/// Kaynak dosya `App_Data/seed-content.json`; ilk hâli design_handoff'taki
-/// `site-data.js → SEED`'den ÜRETİLDİ (elle kopyalanmadı).
+/// İçeriği JSON dosyasından okur/yazar — **Mac'te DB'siz geliştirme** içindir.
+/// Production'da içerik MSSQL'den gelir (<c>SqlContentStore</c>).
 ///
 /// Okuma: bir kez okur, bellekte tutar. Yazma: **atomik** (geçici dosya + rename)
 /// → süreç yazarken ölse bile yarım/bozuk dosya kalmaz. Yazımdan önce **yedek**
-/// alınır (`.bak`), çünkü bu dosya sitenin TEK içerik kaynağı.
+/// alınır (`.bak`).
+///
+/// <para>
+/// Dosya yoksa <see cref="SeedIcerik"/>'ten üretilir. Tohum artık bir DOSYA değil,
+/// **kod** (karar: 2026-07-27) — ömründe bir kez çalışan bir şeyin publish çıktısında
+/// taşınması ve "tohum dosyası yok" diye bir başlatma hata sınıfı doğurması gereksizdi.
+/// </para>
 /// </summary>
 public sealed class JsonContentStore : IContentStore
 {
@@ -30,23 +36,23 @@ public sealed class JsonContentStore : IContentStore
     };
 
     private readonly string _dosyaYolu;
-    private readonly string? _tohumYolu;
+    private readonly Func<SiteContent>? _tohum;
     private readonly SemaphoreSlim _kilit = new(1, 1);
     private SiteContent? _onbellek;
 
     /// <param name="dosyaYolu">CANLI içerik dosyası. Production'da publish klasörünün DIŞINDA olmalı.</param>
-    /// <param name="tohumYolu">
-    /// İlk kurulum tohumu (repodaki `App_Data/seed-content.json`). Canlı dosya yoksa
-    /// buradan kopyalanır — bir kez. Varsa DOKUNULMAZ.
+    /// <param name="tohum">
+    /// Dosya yoksa içeriği üreten tohum (varsayılan <see cref="SeedIcerik.Olustur"/>).
+    /// Bir kez çalışır; dosya VARSA çağrılmaz bile.
     /// <para>
-    /// ⚠️ Bu ayrım kritik: canlı içerik publish çıktısının içinde dursaydı her deploy
-    /// (rsync) admin'den yapılan düzenlemeleri repo tohumuyla EZERDİ.
+    /// ⚠️ Canlı dosyanın publish DIŞINDA durması kritik: içeride dursaydı her deploy
+    /// (rsync) admin'den yapılan düzenlemeleri tohumla EZERDİ.
     /// </para>
     /// </param>
-    public JsonContentStore(string dosyaYolu, string? tohumYolu = null)
+    public JsonContentStore(string dosyaYolu, Func<SiteContent>? tohum = null)
     {
         _dosyaYolu = dosyaYolu;
-        _tohumYolu = tohumYolu;
+        _tohum = tohum ?? SeedIcerik.Olustur;
     }
 
     public async Task<SiteContent> LoadAsync(CancellationToken ct = default)
@@ -60,16 +66,12 @@ public sealed class JsonContentStore : IContentStore
 
             if (!File.Exists(_dosyaYolu))
             {
-                // İlk çalıştırma: canlı dosya yok → tohumdan üret.
-                if (_tohumYolu is not null && File.Exists(_tohumYolu))
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(_dosyaYolu)!);
-                    File.Copy(_tohumYolu, _dosyaYolu);
-                }
-                else
-                {
-                    throw new FileNotFoundException($"İçerik dosyası bulunamadı: {_dosyaYolu}", _dosyaYolu);
-                }
+                // İlk çalıştırma: dosya yok → tohumu koddan üret ve YAZ.
+                // Yazıyoruz ki sonraki düzenlemeler kalıcı olsun (tohum salt okunur bir
+                // başlangıç; kullanıcının değiştirdiği içerik dosyada birikir).
+                _onbellek = _tohum!();
+                await YazAsync(_onbellek, ct);
+                return _onbellek;
             }
 
             await using var akis = File.OpenRead(_dosyaYolu);
@@ -91,26 +93,34 @@ public sealed class JsonContentStore : IContentStore
         await _kilit.WaitAsync(ct);
         try
         {
-            var klasor = Path.GetDirectoryName(_dosyaYolu)!;
-            Directory.CreateDirectory(klasor);
-
-            // 1) Geçici dosyaya yaz (aynı dizinde — rename'in atomik olması için aynı birimde olmalı)
-            var gecici = Path.Combine(klasor, $".{Path.GetFileName(_dosyaYolu)}.tmp");
-            await using (var akis = File.Create(gecici))
-                await JsonSerializer.SerializeAsync(akis, icerik, YazmaSecenekleri, ct);
-
-            // 2) Mevcut dosyayı yedekle (tek içerik kaynağı — geri dönüş şansı kalsın)
-            if (File.Exists(_dosyaYolu))
-                File.Copy(_dosyaYolu, _dosyaYolu + ".bak", overwrite: true);
-
-            // 3) Atomik yerine koyma
-            File.Move(gecici, _dosyaYolu, overwrite: true);
-
+            await YazAsync(icerik, ct);
             _onbellek = icerik;
         }
         finally
         {
             _kilit.Release();
         }
+    }
+
+    /// <summary>
+    /// Atomik yazma. ⚠️ Kilidi ALMAZ — çağıran zaten tutuyor olmalı.
+    /// (Tohumlama de bunu kullanıyor; kilit orada Load tarafından tutuluyor.)
+    /// </summary>
+    private async Task YazAsync(SiteContent icerik, CancellationToken ct)
+    {
+        var klasor = Path.GetDirectoryName(_dosyaYolu)!;
+        if (!string.IsNullOrEmpty(klasor)) Directory.CreateDirectory(klasor);
+
+        // 1) Geçici dosyaya yaz (aynı dizinde — rename'in atomik olması için aynı birimde olmalı)
+        var gecici = Path.Combine(klasor, $".{Path.GetFileName(_dosyaYolu)}.tmp");
+        await using (var akis = File.Create(gecici))
+            await JsonSerializer.SerializeAsync(akis, icerik, YazmaSecenekleri, ct);
+
+        // 2) Mevcut dosyayı yedekle (geri dönüş şansı kalsın)
+        if (File.Exists(_dosyaYolu))
+            File.Copy(_dosyaYolu, _dosyaYolu + ".bak", overwrite: true);
+
+        // 3) Atomik yerine koyma
+        File.Move(gecici, _dosyaYolu, overwrite: true);
     }
 }

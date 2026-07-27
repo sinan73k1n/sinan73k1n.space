@@ -1,0 +1,262 @@
+@using Portfolio.Entities.Metrik
+@using Portfolio.Repositories.Sql
+@using Portfolio.SITE_UI.Areas.Admin.Controllers
+@model MetrikOzeti
+@{
+    ViewData["Title"] = "Metrikler";
+    var secilenDonem = ViewData["Donem"] as string ?? "hafta";
+
+    // Yüzde çubuğu: en büyük değere göre orantılı. Sıfıra bölmeye karşı korumalı.
+    string Yuzde(int deger, int enBuyuk) =>
+        enBuyuk <= 0 ? "0" : Math.Round(deger * 100.0 / enBuyuk, 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    string SureMetni(int saniye) =>
+        saniye <= 0 ? "—"
+        : saniye < 60 ? $"{saniye} sn"
+        : saniye < 3600 ? $"{saniye / 60} dk {saniye % 60} sn"
+        : $"{saniye / 3600} sa {(saniye % 3600) / 60} dk";
+
+    string KaynakAdi(string k) => k switch
+    {
+        KaynakTipi.Organik => "Arama motoru",
+        KaynakTipi.Dogrudan => "Doğrudan",
+        KaynakTipi.Sosyal => "Sosyal",
+        KaynakTipi.Yonlendirme => "Diğer siteler",
+        _ => k
+    };
+
+    string CihazAdi(string c) => c switch
+    {
+        CihazTipi.Masaustu => "Masaüstü",
+        CihazTipi.Mobil => "Mobil",
+        CihazTipi.Tablet => "Tablet",
+        _ => c
+    };
+}
+
+<div class="ametrik">
+    <div class="ametrik__ust">
+        <h1 class="ametrik__baslik">Metrikler</h1>
+        <nav class="ametrik__donem">
+            @foreach (var d in Donem.Hepsi)
+            {
+                <a class="pill-link @(d.Anahtar == secilenDonem ? "is-active" : "")"
+                   href="/admin/metrikler?donem=@d.Anahtar">@d.Ad</a>
+            }
+        </nav>
+    </div>
+
+@if (Model is null)
+{
+    <p class="apanel__not mono">
+        Metrikler yalnız veritabanı bağlıyken toplanır. Burada (geliştirme ortamı)
+        bağlantı dizesi tanımlı değil, o yüzden kayıt yapılmıyor.
+    </p>
+}
+else if (!Model.VeriVarMi)
+{
+    <p class="apanel__not mono">
+        Bu dönemde kayıt yok. Ziyaretler sunucu tarafında sayılıyor; sayfa içi
+        olaylar (bölüm, demo, bağlantı) ziyaretçi sayfadan ayrılırken gönderiliyor.
+    </p>
+}
+else
+{
+    var enCokZiyaret = Model.Gunluk.Count == 0 ? 0 : Model.Gunluk.Max(x => x.Ziyaret);
+
+    <div class="ametrik__kartlar">
+        <div class="ozet__kart">
+            <span class="ozet__sayi">@Model.ToplamZiyaret</span>
+            <span class="ozet__ad">sayfa görüntüleme</span>
+        </div>
+        <div class="ozet__kart">
+            <span class="ozet__sayi">@Model.TekilZiyaretciGunToplami</span>
+            <span class="ozet__ad">tekil ziyaretçi <span class="ametrik__ipucu" title="Ziyaretçi kimliği her gece değişiyor (çerezsiz tasarım). Bu sayı günlerin toplamıdır: aynı kişi iki ayrı gün geldiyse iki kez sayılır.">?</span></span>
+        </div>
+        <div class="ozet__kart">
+            <span class="ozet__sayi">@(Model.Kaynak.GetValueOrDefault(KaynakTipi.Organik))</span>
+            <span class="ozet__ad">arama motorundan</span>
+        </div>
+        <div class="ozet__kart">
+            <span class="ozet__sayi">@Model.Demolar.Sum(x => x.Adet)</span>
+            <span class="ozet__ad">demo açılışı</span>
+        </div>
+    </div>
+
+    @* --- Günlük trend: elde çizilmiş SVG sütun grafiği ---
+       Dış kütüphane YOK (CSP dış istekleri zaten engelliyor). *@
+    <section class="apanel">
+        <h2 class="apanel__baslik">Günlük seyir</h2>
+        @{
+            var gunler = Model.Gunluk;
+            var n = Math.Max(gunler.Count, 1);
+            const int cizimGenislik = 900;
+            const int cizimYukseklik = 160;
+            var sutunGenislik = (double)cizimGenislik / n;
+            var barGenislik = Math.Max(sutunGenislik * 0.7, 1.0);
+        }
+        <svg class="ametrik__grafik" viewBox="0 0 @cizimGenislik @(cizimYukseklik + 22)"
+             preserveAspectRatio="none" role="img"
+             aria-label="Seçilen dönemde günlük sayfa görüntüleme sayısı">
+            @for (var i = 0; i < gunler.Count; i++)
+            {
+                var g = gunler[i];
+                var h = enCokZiyaret <= 0 ? 0.0 : g.Ziyaret * (double)cizimYukseklik / enCokZiyaret;
+                var x = i * sutunGenislik + (sutunGenislik - barGenislik) / 2;
+                var y = cizimYukseklik - h;
+                <rect x="@x.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                      y="@y.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                      width="@barGenislik.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                      height="@h.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                      class="ametrik__bar">
+                    <title>@g.Gun.ToString("dd.MM.yyyy") — @g.Ziyaret görüntüleme, @g.Tekil tekil</title>
+                </rect>
+            }
+        </svg>
+        <div class="ametrik__eksen mono">
+            <span>@Model.Baslangic.ToString("dd.MM.yyyy")</span>
+            <span>en yüksek gün: @enCokZiyaret</span>
+            <span>@Model.Bitis.ToString("dd.MM.yyyy")</span>
+        </div>
+    </section>
+
+    @* --- Bölüm derinliği: "nereye kadar indiler" --- *@
+    <section class="apanel">
+        <h2 class="apanel__baslik">Sayfada nereye kadar indiler</h2>
+        <p class="apanel__not mono">
+            Bölümü ekranın yarısına kadar gören ziyaretçi sayılıyor. Yüzdeler
+            <b>Giriş</b> bölümünü görenlere oranla.
+        </p>
+        @{
+            var girisSayisi = Model.Bolum.GetValueOrDefault(Bolumler.Giris);
+            var tabanSayisi = girisSayisi > 0 ? girisSayisi : (Model.Bolum.Count > 0 ? Model.Bolum.Values.Max() : 0);
+        }
+        <div class="ametrik__liste">
+            @foreach (var bolum in Bolumler.Sirali)
+            {
+                var adet = Model.Bolum.GetValueOrDefault(bolum);
+                var sure = Model.BolumSure.GetValueOrDefault(bolum);
+                // Ortalama = o bölümde geçen toplam süre ÷ o bölümü gören kişi.
+                var ortalama = adet > 0 ? sure / adet : 0;
+                <div class="ametrik__satir">
+                    <span class="ametrik__ad">@Bolumler.Ad(bolum)</span>
+                    <span class="ametrik__cubuk">
+                        <span class="ametrik__dolgu" style="width: @Yuzde(adet, tabanSayisi)%"></span>
+                    </span>
+                    <span class="ametrik__deger mono">@adet</span>
+                    <span class="ametrik__yan mono">@(adet > 0 ? "ort. " + SureMetni(ortalama) : "—")</span>
+                </div>
+            }
+        </div>
+    </section>
+
+    <div class="ametrik__ikili">
+        <section class="apanel">
+            <h2 class="apanel__baslik">Nereden geldiler</h2>
+            @{ var kaynakEnBuyuk = Model.Kaynak.Count > 0 ? Model.Kaynak.Values.Max() : 0; }
+            <div class="ametrik__liste">
+                @foreach (var k in KaynakTipi.Hepsi)
+                {
+                    var adet = Model.Kaynak.GetValueOrDefault(k);
+                    <div class="ametrik__satir">
+                        <span class="ametrik__ad">@KaynakAdi(k)</span>
+                        <span class="ametrik__cubuk"><span class="ametrik__dolgu" style="width: @Yuzde(adet, kaynakEnBuyuk)%"></span></span>
+                        <span class="ametrik__deger mono">@adet</span>
+                    </div>
+                }
+            </div>
+
+            @if (Model.KaynakSiteler.Count > 0)
+            {
+                <h3 class="apanel__altbaslik">Yönlendiren siteler</h3>
+                <ul class="ametrik__kucuk mono">
+                    @foreach (var (host, adet) in Model.KaynakSiteler)
+                    {
+                        <li><span>@host</span><span>@adet</span></li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <section class="apanel">
+            <h2 class="apanel__baslik">Dil ve cihaz</h2>
+            @{ var dilEnBuyuk = Model.Dil.Count > 0 ? Model.Dil.Values.Max() : 0; }
+            <div class="ametrik__liste">
+                @foreach (var (dil, adet) in Model.Dil.OrderByDescending(x => x.Value))
+                {
+                    <div class="ametrik__satir">
+                        <span class="ametrik__ad">@dil.ToUpperInvariant()</span>
+                        <span class="ametrik__cubuk"><span class="ametrik__dolgu" style="width: @Yuzde(adet, dilEnBuyuk)%"></span></span>
+                        <span class="ametrik__deger mono">@adet</span>
+                    </div>
+                }
+            </div>
+
+            <h3 class="apanel__altbaslik">Cihaz</h3>
+            @{ var cihazEnBuyuk = Model.Cihaz.Count > 0 ? Model.Cihaz.Values.Max() : 0; }
+            <div class="ametrik__liste">
+                @foreach (var (cihaz, adet) in Model.Cihaz.OrderByDescending(x => x.Value))
+                {
+                    <div class="ametrik__satir">
+                        <span class="ametrik__ad">@CihazAdi(cihaz)</span>
+                        <span class="ametrik__cubuk"><span class="ametrik__dolgu" style="width: @Yuzde(adet, cihazEnBuyuk)%"></span></span>
+                        <span class="ametrik__deger mono">@adet</span>
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+
+    <div class="ametrik__ikili">
+        <section class="apanel">
+            <h2 class="apanel__baslik">Açılan demolar</h2>
+            @if (Model.Demolar.Count == 0)
+            {
+                <p class="apanel__not mono">Bu dönemde demo açılmamış.</p>
+            }
+            else
+            {
+                var demoEnBuyuk = Model.Demolar.Max(x => x.Adet);
+                <div class="ametrik__liste">
+                    @foreach (var (ad, adet) in Model.Demolar)
+                    {
+                        <div class="ametrik__satir">
+                            <span class="ametrik__ad mono">@ad</span>
+                            <span class="ametrik__cubuk"><span class="ametrik__dolgu" style="width: @Yuzde(adet, demoEnBuyuk)%"></span></span>
+                            <span class="ametrik__deger mono">@adet</span>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="apanel">
+            <h2 class="apanel__baslik">Tıklanan dış bağlantılar</h2>
+            @if (Model.Baglantilar.Count == 0)
+            {
+                <p class="apanel__not mono">Bu dönemde dış bağlantıya tıklanmamış.</p>
+            }
+            else
+            {
+                var bagEnBuyuk = Model.Baglantilar.Max(x => x.Adet);
+                <div class="ametrik__liste">
+                    @foreach (var (hedef, adet) in Model.Baglantilar)
+                    {
+                        <div class="ametrik__satir">
+                            <span class="ametrik__ad mono">@hedef</span>
+                            <span class="ametrik__cubuk"><span class="ametrik__dolgu" style="width: @Yuzde(adet, bagEnBuyuk)%"></span></span>
+                            <span class="ametrik__deger mono">@adet</span>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+    </div>
+
+    <p class="apanel__not mono">
+        Çerez kullanılmıyor, ham IP saklanmıyor. Ziyaretçi kimliği her gece değişen
+        bir tuzla üretiliyor; ham kayıtlar 90 gün sonra siliniyor, günlük özetler kalıcı.
+        Bot imzalı istekler sayılmıyor. Saatler UTC.
+    </p>
+}
+</div>

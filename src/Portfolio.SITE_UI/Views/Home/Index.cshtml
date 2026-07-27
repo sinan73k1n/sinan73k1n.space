@@ -46,7 +46,7 @@
 
 <main>
     @* ---------------- HERO ---------------- *@
-    <section id="top" class="hero">
+    <section id="top" class="hero" data-bolum="top">
         <div class="hero__grid">
             <div>
                 <div class="chip">
@@ -106,7 +106,7 @@
     </div>
 
     @* ---------------- HAKKIMDA ---------------- *@
-    <section id="about" class="sec about">
+    <section id="about" class="sec about" data-bolum="about">
         <div class="about__grid">
             <div>
                 <div class="sec__no">01 — @t.T("navAbout")</div>
@@ -129,7 +129,7 @@
     </section>
 
     @* ---------------- TEKNOLOJİLER ---------------- *@
-    <section id="stack" class="sec stack">
+    <section id="stack" class="sec stack" data-bolum="stack">
         <div class="sec__no sec__no--alt">02 — @t.T("navStack")</div>
         <h2 class="sec__head"><span class="mask"><span data-rise>@t.T("stackTitle")</span></span></h2>
         <p class="sec__lead">@t.T("stackLead")</p>
@@ -147,7 +147,7 @@
     </section>
 
     @* ---------------- OYUNLAR ---------------- *@
-    <section id="games" class="sec">
+    <section id="games" class="sec" data-bolum="games">
         <div class="sec__top">
             <div>
                 <div class="sec__no">03 — @t.T("navGames")</div>
@@ -187,7 +187,7 @@
     </section>
 
     @* ---------------- DEMOLAR ---------------- *@
-    <section id="demos" class="demos">
+    <section id="demos" class="demos" data-bolum="demos">
         <div class="demos__inner">
             <div class="sec__no sec__no--alt">04 — @t.T("navDemos")</div>
             <h2 class="sec__head"><span class="mask"><span data-rise>@t.T("demosTitle")</span></span></h2>
@@ -225,6 +225,7 @@
                     @foreach (var d in t.Demos)
                     {
                         <div class="demo @(d.Index == 0 ? "is-active" : "")" data-reveal data-demo="@d.Index"
+                             data-demo-ad="@d.Path"
                              role="button" tabindex="0" aria-label="@d.Name">
                             <div style="min-width: 0;">
                                 <div class="demo__path">@d.Path</div>
@@ -249,7 +250,7 @@
     </section>
 
     @* ---------------- GITHUB ---------------- *@
-    <section id="github" class="sec">
+    <section id="github" class="sec" data-bolum="github">
         <div class="sec__top">
             <div>
                 <div class="sec__no">05 — @t.T("navGithub")</div>
@@ -282,7 +283,7 @@
 </main>
 
 @* ---------------- FOOTER / İLETİŞİM ---------------- *@
-<footer class="foot">
+<footer class="foot" data-bolum="contact">
     <div class="foot__inner">
         <div class="sec__no sec__no--alt">06 — @t.T("contactTitle")</div>
         <h2 class="foot__head"><span class="mask"><span data-rise>@t.T("contactHead")</span></span></h2>
@@ -330,4 +331,7 @@
     <script src="~/js/ui.js" asp-append-version="true"></script>
     <script src="~/js/motion.js" asp-append-version="true"></script>
     <script src="~/js/demo.js" asp-append-version="true"></script>
+    @* Ölçüm EN SONA: sayfanın çalışması buna bağlı değil, bir hata olsa bile
+       diğer script'ler çoktan kurulmuş olur. *@
+    <script src="~/js/olcum.js" asp-append-version="true" defer></script>
 }

@@ -105,6 +105,11 @@ body.admin {
 .ashell { max-width: 900px; margin: 0; padding: 30px 26px 90px; }
 .ashell--tek { margin: 0 auto; max-width: 1100px; }
 
+/* Sol menü olmayan sayfalar (dashboard, metrikler): grid tek sütun olmalı.
+   Aksi hâlde içerik 236px'lik menü sütununa sıkışıyor — .ashell--tek'in
+   max-width'i bunu kurtarmıyor, çünkü sorun sütunun kendi genişliği. */
+@media (min-width: 901px) { .akabuk--tek { grid-template-columns: 1fr; } }
+
 /* ---------- Bölüm üst kısmı ---------- */
 .bolum__ust { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
 .diller { display: flex; gap: 3px; padding: 3px; border-radius: var(--r-pill); border: 1px solid oklch(0.95 0.008 268 / 0.12); height: fit-content; }
@@ -203,3 +208,102 @@ body.admin {
 .gorsel__bos { font-size: 11px; letter-spacing: 0.18em; color: oklch(0.98 0.01 268 / 0.55); }
 .gorsel__islem { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; flex: 1; min-width: 220px; }
 .gorsel__not { flex-basis: 100%; font-size: 11px; line-height: 1.6; color: var(--text-dim); }
+
+/* ============================================================
+   Faz 8 — metrik ekranı
+   Tasarım dili panelin geri kalanıyla aynı: aynı tokenlar, aynı
+   kart/hairline dili. Grafik ELDE çizilmiş SVG — dış kütüphane yok
+   (CSP dış istekleri engelliyor, ayrıca 4 GB'lık sunucuda bedava değil).
+   ============================================================ */
+.ametrik { display: flex; flex-direction: column; gap: 26px; }
+
+.ametrik__ust {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  justify-content: space-between; gap: 14px;
+}
+.ametrik__baslik { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.025em; }
+.ametrik__donem { display: flex; flex-wrap: wrap; gap: 8px; }
+.ametrik__donem .is-active {
+  border-color: var(--acc); color: var(--acc-hi);
+  background: oklch(0.95 0.008 268 / 0.07);
+}
+
+.ametrik__kartlar {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px;
+}
+
+/* Tekil ziyaretçi sayısının yanındaki açıklama işareti */
+.ametrik__ipucu {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; margin-left: 4px; border-radius: 50%;
+  border: 1px solid var(--hair-strong); color: var(--text-dim);
+  font-size: 10px; cursor: help; vertical-align: middle;
+}
+
+.apanel {
+  padding: 22px; border-radius: var(--r-card);
+  border: 1px solid oklch(0.95 0.008 268 / 0.11); background: var(--fill);
+}
+.apanel__altbaslik {
+  margin: 24px 0 10px; font-size: 13px; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-mute);
+}
+
+.ametrik__ikili { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 901px) { .ametrik__ikili { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- Sütun grafiği ---------- */
+.ametrik__grafik {
+  width: 100%; height: 180px; display: block; margin: 6px 0 4px;
+  overflow: visible;
+}
+.ametrik__bar {
+  fill: var(--acc);
+  /* Çok sayıda günde sütunlar inceldiği için opaklıkla derinlik veriyoruz */
+  opacity: 0.75; transition: opacity var(--t-hover);
+}
+.ametrik__bar:hover { opacity: 1; }
+
+.ametrik__eksen {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-dim);
+  padding-top: 6px; border-top: 1px solid var(--hair);
+}
+
+/* ---------- Yüzde çubuklu listeler ---------- */
+.ametrik__liste { display: flex; flex-direction: column; gap: 9px; }
+.ametrik__satir {
+  display: grid; grid-template-columns: minmax(90px, 150px) 1fr auto auto;
+  align-items: center; gap: 12px;
+}
+.ametrik__ad {
+  font-size: 13.5px; color: var(--text-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ametrik__cubuk {
+  height: 7px; border-radius: 4px;
+  background: oklch(0.95 0.008 268 / 0.07); overflow: hidden;
+}
+.ametrik__dolgu {
+  display: block; height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--acc), var(--acc2));
+  /* Sıfır genişlikte bile bir iz kalsın: "veri yok" ile "az veri" ayrışsın */
+  min-width: 2px;
+}
+.ametrik__deger { font-size: 12.5px; color: var(--text); min-width: 38px; text-align: right; }
+.ametrik__yan { font-size: 11px; color: var(--text-dim); min-width: 82px; text-align: right; }
+
+@media (max-width: 620px) {
+  /* Dar ekranda ortalama süre sütunu düşer — asıl sayı korunur */
+  .ametrik__satir { grid-template-columns: minmax(80px, 1fr) 1.2fr auto; }
+  .ametrik__yan { display: none; }
+}
+
+/* ---------- Küçük listeler (yönlendiren siteler) ---------- */
+.ametrik__kucuk { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ametrik__kucuk li {
+  display: flex; justify-content: space-between; gap: 12px;
+  font-size: 12px; color: var(--text-2);
+  padding-bottom: 6px; border-bottom: 1px solid var(--hair);
+}
+.ametrik__kucuk li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
