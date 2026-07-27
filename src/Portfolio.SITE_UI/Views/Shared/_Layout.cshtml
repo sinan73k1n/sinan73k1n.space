@@ -18,6 +18,35 @@
     <meta name="description" content="@(ViewData["Description"] as string ?? "")" />
     <meta name="color-scheme" content="dark" />
 
+    @* --- SEO / paylaşım (Faz 7) ---
+       Site TEK sayfa, diller `?lang=` ile ayrılıyor. Bu yüzden:
+         · canonical  → o dilin adresi (dil seçilmemişse dilsiz kök)
+         · hreflang   → üç dil KARŞILIKLI bağlanır + x-default kök adres
+       Adresler istekten türetilir (ters vekilin şeması UseForwardedHeaders ile doğru gelir),
+       böylece alan adı ne koda ne yapılandırmaya gömülür. *@
+    @{
+        var origin = $"{Context.Request.Scheme}://{Context.Request.Host.Value}";
+        var aktifDil = ViewData["Lang"] as string;
+        var dilSecildi = !string.IsNullOrEmpty(Context.Request.Query["lang"]);
+        var canonical = dilSecildi ? $"{origin}/?lang={aktifDil}" : $"{origin}/";
+    }
+    <link rel="canonical" href="@canonical" />
+    @foreach (var d in Portfolio.Entities.Lang.All)
+    {
+        <link rel="alternate" hreflang="@d" href="@($"{origin}/?lang={d}")" />
+    }
+    <link rel="alternate" hreflang="x-default" href="@($"{origin}/")" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sinan Tekin" />
+    <meta property="og:title" content="@tamBaslik" />
+    <meta property="og:description" content="@(ViewData["Description"] as string ?? "")" />
+    <meta property="og:url" content="@canonical" />
+    <meta property="og:locale" content="@(aktifDil == "tr" ? "tr_TR" : aktifDil == "ru" ? "ru_RU" : "en_US")" />
+    @* og:image henüz YOK — 1200×630 gerçek bir görsel gerekiyor, yer tutucu koymak
+       paylaşımlarda boş kutu göstermekten daha kötü olurdu. Sinan görseli verince eklenir. *@
+    <meta name="twitter:card" content="summary" />
+
     <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />

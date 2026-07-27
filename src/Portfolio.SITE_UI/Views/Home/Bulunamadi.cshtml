@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "Sayfa bulunamadı";
+    var kod = ViewData["DurumKodu"] as int? ?? 404;
+}
+
+@* 404 (ve diğer istemci hataları). Error.cshtml ile aynı görsel dil —
+   ayrı bir tasarım değil, aynı kalıbın farklı metni. *@
+<main class="wrap" style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: 18px;">
+    <p class="mono" style="margin: 0; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--acc2);">
+        hata @kod
+    </p>
+
+    <h1 style="margin: 0; font-size: var(--fs-h2); font-weight: 600; letter-spacing: -0.032em;">
+        @(kod == 404 ? "Bu sayfa yok." : "İstek karşılanamadı.")
+    </h1>
+
+    <p style="max-width: 520px; margin: 0; color: var(--text-2);">
+        @(kod == 404
+            ? "Aradığın adres taşınmış ya da hiç var olmamış olabilir."
+            : "İsteğin işlenemedi.")
+        <a href="/">Ana sayfaya</a> dönebilirsin.
+    </p>
+</main>

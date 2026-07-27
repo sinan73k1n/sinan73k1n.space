@@ -55,6 +55,19 @@ public class HomeController : Controller
         return View(model);
     }
 
+    /// <summary>
+    /// 404 ve diğer istemci hataları (Faz 7). `UseStatusCodePagesWithReExecute`
+    /// buraya yönlendirir; **durum kodu korunur** — arama motoru 404'ü 200 sanmaz.
+    /// </summary>
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Bulunamadi(int? kod)
+    {
+        var durum = kod is >= 400 and < 600 ? kod.Value : 404;
+        ViewData["DurumKodu"] = durum;
+        Response.StatusCode = durum;
+        return View();
+    }
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

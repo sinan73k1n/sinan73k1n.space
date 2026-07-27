@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Portfolio.Repositories;
+using Portfolio.Repositories.Sql;
 using Portfolio.Services;
 using Portfolio.Services.Auth;
 using Portfolio.SITE_UI;
@@ -14,8 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-// --- İçerik katmanı (Faz 3) ---
-// JSON depo: DB'siz çalışma. Faz 4'te ortam bazlı SqlContentStore devreye girecek.
+// --- İçerik katmanı (Faz 3 JSON · Faz 4 MSSQL) ---
 //
 // ⚠️ DEPLOY GÜVENLİĞİ: canlı içerik dosyası publish klasörünün DIŞINDA durmalı.
 // Aksi halde her rsync, admin'den yapılan düzenlemeleri repo tohumuyla ezer.
@@ -25,7 +26,27 @@ var tohumYolu = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "s
 var icerikYolu = builder.Configuration["Content:FilePath"];
 if (string.IsNullOrWhiteSpace(icerikYolu)) icerikYolu = tohumYolu;
 
-builder.Services.AddSingleton<IContentStore>(_ => new JsonContentStore(icerikYolu, tohumYolu));
+// JSON depo her hâlükârda kurulur: SQL açıkken bile ilk tohumlama kaynağı odur
+// (sunucudaki canlı content.json → DB). Bağlantı dizesi yoksa deponun kendisi olur.
+var jsonDepo = new JsonContentStore(icerikYolu, tohumYolu);
+
+// Depo seçimi TEK ŞEYE bakar: bağlantı dizesi var mı?
+//   var  → MSSQL (`portfoliodb`, sunucu)      · yok → JSON dosyası (Mac'te geliştirme)
+// Dize REPODA DURMAZ; systemd EnvironmentFile'ından gelir:
+//   ConnectionStrings__Portfolio=Server=...;Database=portfoliodb;User Id=portfolio_app;...
+var sqlBaglanti = builder.Configuration.GetConnectionString("Portfolio");
+var sqlAktif = !string.IsNullOrWhiteSpace(sqlBaglanti);
+
+if (sqlAktif)
+{
+    builder.Services.AddDbContextFactory<PortfolioDbContext>(o => o.UseSqlServer(sqlBaglanti));
+    builder.Services.AddSingleton<IContentStore>(sp =>
+        new SqlContentStore(sp.GetRequiredService<IDbContextFactory<PortfolioDbContext>>()));
+}
+else
+{
+    builder.Services.AddSingleton<IContentStore>(jsonDepo);
+}
 
 // --- Demo izolasyonu (Faz 5.7a) ---
 // Ayarlıysa demolar AYRI ORIGIN'den servis edilir (demo.sinan73k1n.space):
@@ -91,6 +112,39 @@ builder.Services.AddAuthorization(o =>
 
 var app = builder.Build();
 
+// --- DB hazırlığı (Faz 4) ---
+// Şema + tohumlama açılışta, TEK SEFER. İkisi de idempotent:
+//   · Migrate  → uygulanmamış migration varsa uygular, yoksa dokunmaz.
+//   · Tohumla  → DB boşsa canlı JSON içeriğini aktarır, DOLUYSA HİÇBİR ŞEY YAPMAZ.
+// Böylece JSON'dan SQL'e geçiş elle bir aktarım adımı gerektirmiyor ve sonraki
+// her deploy'da bu blok zararsızca no-op oluyor.
+// ⚠️ KARAR: DB erişilemezse uygulama BAŞLAMAZ (sessizce JSON'a düşmez).
+// Alternatifi denendi ve elendi: JSON'a düşmek, admin'den yapılan kayıtların
+// "kaydedildi" görünüp kaybolmasına ve ziyaretçiye sessizce eski içerik
+// sunulmasına yol açardı. Açık bir systemd hatası, sessiz yanlış içerikten iyi.
+if (sqlAktif)
+{
+    await using var kapsam = app.Services.CreateAsyncScope();
+    var fabrika = kapsam.ServiceProvider.GetRequiredService<IDbContextFactory<PortfolioDbContext>>();
+    await using (var db = await fabrika.CreateDbContextAsync())
+        await db.Database.MigrateAsync();
+
+    var depo = (SqlContentStore)kapsam.ServiceProvider.GetRequiredService<IContentStore>();
+
+    // JSON tohumu YALNIZ gerçekten gerekiyorsa okunur. Aksi hâlde DB'ye geçtikten
+    // sonra o dosyanın silinmesi (artık kaynak değil, yalnız anlık görüntü)
+    // uygulamayı başlatamaz hâle getirirdi.
+    if (await depo.TohumlamaGerekliMiAsync())
+    {
+        await depo.SaveAsync(await jsonDepo.LoadAsync());
+        app.Logger.LogInformation("İçerik JSON'dan portfoliodb'ye aktarıldı (ilk tohumlama).");
+    }
+    else
+    {
+        app.Logger.LogInformation("İçerik kaynağı: portfoliodb (tohumlama gerekmedi, DB zaten dolu).");
+    }
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -107,6 +161,10 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     // KnownProxies varsayılanı loopback → yalnız yerel Nginx'e güvenilir,
     // dışarıdan gelen sahte X-Forwarded-* başlıkları dikkate alınmaz.
 });
+
+// 404 vb. için kendi sayfamız (Faz 7). ReExecute: adres çubuğu değişmez,
+// durum kodu 404 kalır — yönlendirme yapan varyantı SEO açısından yanlış olurdu.
+app.UseStatusCodePagesWithReExecute("/Home/Bulunamadi/{0}");
 
 app.UseRouting();
 

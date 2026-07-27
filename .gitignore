@@ -10,6 +10,9 @@ appsettings.Local.json
 *.key
 *.pfx
 secrets.json
+# Sunucu adresi/izin listesi içerir. Küresel ignore zaten kapsıyor ama o dosya
+# depoda değil — koruma klonla birlikte taşınsın diye burada da duruyor.
+.claude/settings.local.json
 
 # .NET
 bin/

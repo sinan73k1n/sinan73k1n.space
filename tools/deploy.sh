@@ -29,7 +29,9 @@ echo "▶ 2/5  Release publish"
 dotnet publish "$KOK/src/Portfolio.SITE_UI" -c Release -o "$CIKTI" --nologo | tail -1
 
 echo "▶ 3/5  Sır taraması (publish çıktısında kimlik/sır olmamalı)"
-if grep -rlE 'pbkdf2\$|TotpSecret=|Auth__PasswordHash' "$CIKTI" 2>/dev/null; then
+# Faz 4'te ikinci sır tipi eklendi: DB bağlantı dizesi. O da yalnız
+# /etc/portfolio/auth.env içinde yaşar, publish çıktısına ASLA girmez.
+if grep -rlE 'pbkdf2\$|TotpSecret=|Auth__PasswordHash|ConnectionStrings__Portfolio|User Id=portfolio_app' "$CIKTI" 2>/dev/null; then
   echo "✗ Publish çıktısında sır bulundu — DEPLOY DURDURULDU."; exit 1
 fi
 echo "  temiz"
@@ -48,6 +50,12 @@ ssh "$SUNUCU" '
     printf "  %-16s → %s\n" "$yol" "$kod"
   done
   echo "  içerik: $(ls -la ~/portfolio-data/content.json 2>/dev/null | awk "{print \$5\" bayt, \"\$6\" \"\$7\" \"\$8}")"
+  # Faz 4: içerik kaynağı hangisi? Bağlantı dizesi varsa MSSQL, yoksa JSON dosyası.
+  if sudo -n grep -q ConnectionStrings__Portfolio /etc/portfolio/auth.env 2>/dev/null; then
+    echo "  içerik kaynağı: MSSQL (portfoliodb)"
+  else
+    echo "  içerik kaynağı: JSON dosyası (DB bağlantı dizesi tanımlı değil)"
+  fi
   echo "  görseller: $(ls ~/publish/portfolio/wwwroot/uploads/games 2>/dev/null | wc -l) dosya (deploy sonrası KORUNMALI)"
 '
 echo "✔ Bitti."
