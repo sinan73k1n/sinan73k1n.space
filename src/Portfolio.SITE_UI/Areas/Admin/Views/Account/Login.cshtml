@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "Giriş";
+    Layout = "_AdminLayout";
+}
+
+<div class="giris">
+    <div class="giris__kart">
+        <div class="sec__no">portfolyo yönetimi</div>
+        <h1 class="giris__baslik">Giriş</h1>
+        <p class="giris__not">Şifre <strong>ve</strong> doğrulama kodu gerekir.</p>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="giris__hata" role="alert">
+                @foreach (var h in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <div>@h.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <form method="post" action="/admin/giris" autocomplete="off">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="donus" value="@ViewData["Donus"]" />
+
+            <label class="alan">
+                <span class="alan__etiket">kullanıcı adı</span>
+                <input class="alan__giris" type="text" name="kullanici" autocomplete="username" required autofocus />
+            </label>
+
+            <label class="alan">
+                <span class="alan__etiket">şifre</span>
+                <input class="alan__giris" type="password" name="parola" autocomplete="current-password" required />
+            </label>
+
+            <label class="alan">
+                <span class="alan__etiket">doğrulama kodu (TOTP)</span>
+                <input class="alan__giris mono" type="text" name="kod" inputmode="numeric" pattern="[0-9]{6}"
+                       maxlength="6" autocomplete="one-time-code" placeholder="000000" required />
+            </label>
+
+            <button type="submit" class="btn btn--solid giris__btn">Giriş yap</button>
+        </form>
+    </div>
+</div>

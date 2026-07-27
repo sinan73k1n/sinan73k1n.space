@@ -1,0 +1,46 @@
+@*
+    Admin kalıbı — ana sitenin tasarım dilini paylaşır (aynı tokenlar, aynı fontlar).
+    Prototip: design_handoff_portfolio/live-html/admin.html · tam CRUD Faz 5.2+.
+    ⛔ Arka plan hareket katmanı BURADA YOK: admin bir çalışma ekranı, dikkat dağıtmamalı.
+*@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] · Portfolyo yönetimi</title>
+    <meta name="robots" content="noindex, nofollow" />   @* admin arama motorlarına girmez *@
+    <meta name="color-scheme" content="dark" />
+
+    <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body class="admin">
+    <header class="abar">
+        <div class="abar__left">
+            <span class="badge">st</span>
+            <span class="abar__title">Portfolyo yönetimi</span>
+            @if (ViewData["AuthAcik"] is bool acik && !acik)
+            {
+                <span class="abar__uyari">auth kapalı — geliştirme modu</span>
+            }
+        </div>
+        <div class="abar__right">
+            <a href="/" class="pill-link" target="_blank" rel="noopener">Siteyi gör ↗</a>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <form method="post" action="/admin/cikis" class="abar__form">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="pill-link">Çıkış</button>
+                </form>
+            }
+        </div>
+    </header>
+
+    <main class="ashell">
+        @RenderBody()
+    </main>
+</body>
+</html>

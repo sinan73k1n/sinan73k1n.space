@@ -1,0 +1,25 @@
+@model SiteContentDto
+@{
+    ViewData["Title"] = "Panel";
+}
+
+<div class="apanel">
+    <h1 class="apanel__baslik">İçerik özeti</h1>
+    <p class="apanel__not">
+        Faz 5.1 tamamlandı: kimlik doğrulama + 2FA çalışıyor.
+        Bölüm bölüm CRUD ekranları Faz 5.2'de geliyor.
+    </p>
+
+    <div class="ozet">
+        <div class="ozet__kart"><span class="ozet__sayi">@Model.Techs.Count</span><span class="ozet__ad">teknoloji</span></div>
+        <div class="ozet__kart"><span class="ozet__sayi">@Model.Games.Count</span><span class="ozet__ad">oyun</span></div>
+        <div class="ozet__kart"><span class="ozet__sayi">@Model.Demos.Count</span><span class="ozet__ad">demo</span></div>
+        <div class="ozet__kart"><span class="ozet__sayi">@Model.Repos.Count</span><span class="ozet__ad">depo</span></div>
+        <div class="ozet__kart"><span class="ozet__sayi">@Model.Facts.Count</span><span class="ozet__ad">sayaç</span></div>
+        <div class="ozet__kart"><span class="ozet__sayi">@Model.Copy.Count</span><span class="ozet__ad">metin anahtarı</span></div>
+    </div>
+
+    <p class="apanel__not mono">
+        Kaynak: App_Data/seed-content.json (JsonContentStore) — Faz 4'te MSSQL'e taşınacak.
+    </p>
+</div>

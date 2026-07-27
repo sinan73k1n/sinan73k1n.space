@@ -1,0 +1,12 @@
+{
+  "name": "portfolio-tools",
+  "private": true,
+  "description": "Prototip <-> implementasyon karşılaştırma araçları (repo dışına çıkmaz)",
+  "scripts": {
+    "olc": "node olc.js",
+    "ss": "node screenshot.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}

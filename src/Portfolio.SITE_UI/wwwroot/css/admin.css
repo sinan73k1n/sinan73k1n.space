@@ -1,0 +1,83 @@
+/* ============================================================
+   admin.css — yönetim paneli (Faz 5.1: giriş + iskelet)
+   Ana sitenin tokenlarını kullanır (variables.css) ama arka plan hareket
+   katmanı YOK: admin çalışma ekranı, dikkat dağıtmamalı.
+   Tam CRUD düzeni (8 bölüm, sol menü, dil sekmeleri) Faz 5.2'de.
+   ============================================================ */
+
+body.admin {
+  min-height: 100vh;
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in oklab, var(--bg-top) 70%, transparent), transparent 60%),
+    var(--bg);
+}
+
+/* ---------- Üst bar ---------- */
+.abar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  padding: 14px 22px;
+  background: color-mix(in oklab, var(--bg) 82%, transparent);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--hair);
+}
+.abar__left, .abar__right { display: flex; align-items: center; gap: 12px; }
+.abar__title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.abar__uyari {
+  font-family: var(--font-mono); font-size: 11px; padding: 4px 10px;
+  border-radius: var(--r-pill); color: var(--warn);
+  border: 1px solid color-mix(in oklab, var(--warn) 45%, transparent);
+  background: color-mix(in oklab, var(--warn) 10%, transparent);
+}
+.abar__form { margin: 0; }
+.abar button.pill-link { cursor: pointer; background: transparent; font-family: var(--font-mono); }
+
+.ashell { max-width: 1100px; margin: 0 auto; padding: 34px 22px 60px; }
+
+/* ---------- Giriş ekranı ---------- */
+.giris { min-height: calc(100vh - 120px); display: flex; align-items: center; justify-content: center; padding: 30px 22px; }
+.giris__kart {
+  width: 100%; max-width: 420px;
+  padding: 34px 32px 30px; border-radius: var(--r-panel);
+  border: 1px solid var(--hair-strong); background: var(--fill);
+  box-shadow: var(--shadow-panel);
+}
+.giris__baslik { margin: 14px 0 0; font-size: 30px; font-weight: 600; letter-spacing: -0.028em; }
+.giris__not { margin: 8px 0 24px; font-size: 14px; line-height: 1.6; color: var(--text-2); }
+.giris__hata {
+  margin-bottom: 18px; padding: 12px 14px; border-radius: 12px;
+  font-size: 13.5px; line-height: 1.55; color: var(--warn);
+  border: 1px solid color-mix(in oklab, var(--warn) 45%, transparent);
+  background: color-mix(in oklab, var(--warn) 10%, transparent);
+}
+.giris__btn { width: 100%; justify-content: center; margin-top: 6px; border: 0; cursor: pointer; font-family: var(--font-sans); }
+
+/* ---------- Form alanları ---------- */
+.alan { display: block; margin-bottom: 16px; }
+.alan__etiket {
+  display: block; margin-bottom: 7px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-mute);
+}
+.alan__giris {
+  width: 100%; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid var(--hair-strong); background: oklch(0.95 0.008 268 / 0.04);
+  color: var(--text); font-family: var(--font-sans); font-size: 15px;
+  transition: border-color var(--t-hover), background var(--t-hover);
+}
+.alan__giris:focus { outline: none; border-color: var(--acc); background: oklch(0.95 0.008 268 / 0.07); }
+.alan__giris.mono { font-family: var(--font-mono); letter-spacing: 0.3em; text-align: center; font-size: 18px; }
+
+/* ---------- Panel ---------- */
+.apanel__baslik { margin: 0 0 8px; font-size: 28px; font-weight: 600; letter-spacing: -0.025em; }
+.apanel__not { margin: 0 0 26px; font-size: 14.5px; line-height: 1.7; color: var(--text-2); max-width: 620px; }
+.apanel__not.mono { font-size: 12px; color: var(--text-dim); }
+
+.ozet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 30px; }
+.ozet__kart {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 20px; border-radius: var(--r-card);
+  border: 1px solid oklch(0.95 0.008 268 / 0.11); background: var(--fill);
+}
+.ozet__sayi { font-family: var(--font-mono); font-size: 28px; font-weight: 500; color: var(--acc-hi); }
+.ozet__ad { font-size: 13px; color: var(--text-2); }

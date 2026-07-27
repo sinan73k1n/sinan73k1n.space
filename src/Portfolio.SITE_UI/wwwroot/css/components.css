@@ -1,0 +1,46 @@
+/* ============================================================
+   components.css — ANA SİTE ve ADMİN'in ORTAK bileşenleri
+   Ev kuralı (CasinoBonus'tan): paylaşımlı dosya zorunlu, kod tekrarı yasak.
+   Buraya yalnız İKİ tarafta da kullanılan şeyler girer.
+   ============================================================ */
+
+/* Marka rozeti (üst menü + admin bar) */
+.badge, .nav__badge {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(140deg, var(--acc), var(--acc2));
+  font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--bg);
+}
+
+/* Bölüm/etiket numarası (mono, küçük) */
+.sec__no { font-family: var(--font-mono); font-size: 12px; color: var(--acc); }
+.sec__no--alt { color: var(--acc2); }
+
+/* Outline pill bağlantı/buton */
+.pill-link {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 12px 20px; border-radius: var(--r-pill);
+  border: 1px solid oklch(0.95 0.008 268 / 0.16);
+  font-family: var(--font-mono); font-size: 12.5px; color: oklch(0.9 0.01 268);
+  transition: border-color var(--t-hover), transform var(--t-hover);
+}
+.pill-link:hover { border-color: var(--acc); transform: translateY(-2px); color: oklch(0.9 0.01 268); }
+.pill-link--alt:hover { border-color: var(--acc2); }
+
+/* Dolu / outline buton */
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 14px 22px; border-radius: var(--r-pill);
+  font-size: 14.5px; font-weight: 500;
+  transition: transform var(--t-hover), box-shadow var(--t-hover), border-color var(--t-hover);
+}
+.btn--solid { background: var(--acc); color: var(--bg); }
+.btn--solid:hover { transform: translateY(-2px); box-shadow: var(--shadow-btn); color: var(--bg); }
+.btn--ghost { border: 1px solid oklch(0.95 0.008 268 / 0.18); color: var(--text); }
+.btn--ghost:hover { border-color: var(--acc2); transform: translateY(-2px); color: var(--text); }
+
+/* Trafik ışığı noktaları (terminal + tarayıcı mockup + demo overlay) */
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot--r { background: oklch(0.7 0.16 25); }
+.dot--y { background: oklch(0.8 0.14 85); }
+.dot--g { background: oklch(0.78 0.15 150); }

@@ -8,9 +8,8 @@
    ============================================================ */
 
 /* ---------- Ortak bölüm iskeleti ---------- */
+/* NOT: .badge/.sec__no/.pill-link/.btn/.dot → components.css (admin ile PAYLAŞILIYOR) */
 .sec { position: relative; z-index: 2; max-width: var(--maxw-box); margin: 0 auto; padding: clamp(70px, 11vh, 150px) var(--pad-x); }
-.sec__no { font-family: var(--font-mono); font-size: 12px; color: var(--acc); }
-.sec__no--alt { color: var(--acc2); }
 .sec__head { margin: 16px 0 0; font-size: var(--fs-h2); font-weight: 600; letter-spacing: -0.032em; }
 .sec__lead { margin: 16px 0 0; max-width: 600px; font-size: 16px; line-height: 1.75; color: var(--text-2); }
 .sec__top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px; }
@@ -19,16 +18,6 @@
 .mask { display: block; overflow: hidden; }
 .mask > span { display: block; }
 
-/* Outline pill buton (Google Play / GitHub bağlantıları) */
-.pill-link {
-  display: inline-flex; align-items: center; gap: 9px;
-  padding: 12px 20px; border-radius: var(--r-pill);
-  border: 1px solid oklch(0.95 0.008 268 / 0.16);
-  font-family: var(--font-mono); font-size: 12.5px; color: oklch(0.9 0.01 268);
-  transition: border-color var(--t-hover), transform var(--t-hover);
-}
-.pill-link:hover { border-color: var(--acc); transform: translateY(-2px); color: oklch(0.9 0.01 268); }
-.pill-link--alt:hover { border-color: var(--acc2); }
 
 /* ---------- Üst menü ---------- */
 .nav {
@@ -41,11 +30,6 @@
 }
 .nav__brand { display: flex; align-items: center; gap: 10px; color: var(--text); }
 .nav__brand:hover { color: var(--text); }
-.nav__badge {
-  display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;
-  border-radius: 50%; background: linear-gradient(140deg, var(--acc), var(--acc2));
-  font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--bg);
-}
 .nav__handle { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.08em; }
 .nav__right { display: flex; align-items: center; gap: 22px; }
 .nav__links { display: none; gap: 22px; font-family: var(--font-mono); font-size: 12.5px; }
@@ -106,16 +90,6 @@
 .hero__lead { margin: 26px 0 0; max-width: 520px; font-size: clamp(15.5px, 1.4vw, 18px); line-height: 1.7; color: oklch(0.74 0.02 268); text-wrap: pretty; }
 .hero__cta { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; }
 
-.btn {
-  display: inline-flex; align-items: center; gap: 10px;
-  padding: 14px 22px; border-radius: var(--r-pill);
-  font-size: 14.5px; font-weight: 500;
-  transition: transform var(--t-hover), box-shadow var(--t-hover), border-color var(--t-hover);
-}
-.btn--solid { background: var(--acc); color: var(--bg); }
-.btn--solid:hover { transform: translateY(-2px); box-shadow: var(--shadow-btn); color: var(--bg); }
-.btn--ghost { border: 1px solid oklch(0.95 0.008 268 / 0.18); color: var(--text); }
-.btn--ghost:hover { border-color: var(--acc2); transform: translateY(-2px); color: var(--text); }
 
 .scrollhint { display: flex; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.6 0.02 268); }
 .scrollhint__line { display: block; width: 54px; height: 1px; background: linear-gradient(90deg, var(--acc), transparent); }
@@ -129,10 +103,6 @@
   overflow: hidden; animation: floaty 9s ease-in-out infinite;
 }
 .term__bar { display: flex; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid var(--hair); }
-.dot { width: 10px; height: 10px; border-radius: 50%; }
-.dot--r { background: oklch(0.7 0.16 25); }
-.dot--y { background: oklch(0.8 0.14 85); }
-.dot--g { background: oklch(0.78 0.15 150); }
 .term__path { margin-left: 10px; font-family: var(--font-mono); font-size: 11.5px; color: oklch(0.62 0.02 268); }
 .term__body { padding: 18px 18px 22px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.95; min-height: 250px; }
 .term__line { white-space: pre-wrap; word-break: break-word; color: var(--text-mute); }
