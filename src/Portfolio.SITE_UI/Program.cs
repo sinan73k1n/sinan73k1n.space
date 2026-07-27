@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Portfolio.Repositories;
 using Portfolio.Services;
 using Portfolio.Services.Auth;
@@ -14,9 +15,23 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 // --- İçerik katmanı (Faz 3) ---
-// JSON depo: DB'siz geliştirme. Faz 4'te ortam bazlı SqlContentStore devreye girecek.
-builder.Services.AddSingleton<IContentStore>(_ =>
-    new JsonContentStore(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "seed-content.json")));
+// JSON depo: DB'siz çalışma. Faz 4'te ortam bazlı SqlContentStore devreye girecek.
+//
+// ⚠️ DEPLOY GÜVENLİĞİ: canlı içerik dosyası publish klasörünün DIŞINDA durmalı.
+// Aksi halde her rsync, admin'den yapılan düzenlemeleri repo tohumuyla ezer.
+// Sunucuda:  Content__FilePath=$HOME/portfolio-data/content.json
+// Dosya yoksa repodaki tohumdan bir kez kopyalanır (idempotent).
+var tohumYolu = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "seed-content.json");
+var icerikYolu = builder.Configuration["Content:FilePath"];
+if (string.IsNullOrWhiteSpace(icerikYolu)) icerikYolu = tohumYolu;
+
+builder.Services.AddSingleton<IContentStore>(_ => new JsonContentStore(icerikYolu, tohumYolu));
+
+// --- Demo izolasyonu (Faz 5.7a) ---
+// Ayarlıysa demolar AYRI ORIGIN'den servis edilir (demo.sinan73k1n.space):
+// tarayıcının origin kuralı, sandbox'ın yanında ikinci bağımsız katman olur.
+// Boşsa (geliştirme) srcdoc + sandbox ile çalışır.
+builder.Services.AddSingleton(new DemoOrigin(builder.Configuration["Demo:Origin"]));
 builder.Services.AddScoped<IContentService, ContentService>();
 builder.Services.AddScoped<Portfolio.Services.Admin.IAdminContentService, Portfolio.Services.Admin.AdminContentService>();
 // Yüklenen oyun kapakları: wwwroot/uploads/games (dosya sistemi; DB'ye binary konmaz)
@@ -82,7 +97,17 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// ⚠️ UseHttpsRedirection YOK — TLS yukarıda sonlanıyor (Cloudflare "Always Use HTTPS"),
+// Kestrel yalnız 127.0.0.1'de HTTP dinliyor. Uygulama içi yönlendirme hem gereksiz
+// hem de "https portu belirlenemedi" uyarısı üretiyordu.
+// Bunun yerine ters vekilin ilettiği şema/IP başlıklarını tanı:
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
+    // KnownProxies varsayılanı loopback → yalnız yerel Nginx'e güvenilir,
+    // dışarıdan gelen sahte X-Forwarded-* başlıkları dikkate alınmaz.
+});
+
 app.UseRouting();
 
 app.UseAuthentication();

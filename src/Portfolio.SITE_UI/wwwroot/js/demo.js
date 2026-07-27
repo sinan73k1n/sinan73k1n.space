@@ -31,7 +31,16 @@
     sonOdak = document.activeElement;
     if (yolEtiketi) yolEtiketi.textContent = "sinantekin.dev/" + veri.path;
 
-    frame.srcdoc = veri.html;
+    // Ayrı origin kuruluysa demoyu ORADAN yükle (tarayıcının origin duvarı devreye girer);
+    // yoksa srcdoc + sandbox ile aynı origin'de ama izole çalıştır.
+    var ayriOrigin = frame.getAttribute("data-demo-origin");
+    if (ayriOrigin) {
+      frame.removeAttribute("srcdoc");
+      frame.src = ayriOrigin + "/d/" + index;
+    } else {
+      frame.removeAttribute("src");
+      frame.srcdoc = veri.html;
+    }
     overlay.hidden = false;
     document.body.style.overflow = "hidden";        // arka planda kaydırma kilitlensin
 
@@ -41,6 +50,7 @@
 
   function kapat() {
     overlay.hidden = true;
+    frame.removeAttribute("src");
     frame.srcdoc = "";                              // demo çalışmaya devam etmesin
     document.body.style.overflow = "";
     if (sonOdak && sonOdak.focus) sonOdak.focus();

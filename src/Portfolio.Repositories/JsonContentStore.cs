@@ -30,10 +30,24 @@ public sealed class JsonContentStore : IContentStore
     };
 
     private readonly string _dosyaYolu;
+    private readonly string? _tohumYolu;
     private readonly SemaphoreSlim _kilit = new(1, 1);
     private SiteContent? _onbellek;
 
-    public JsonContentStore(string dosyaYolu) => _dosyaYolu = dosyaYolu;
+    /// <param name="dosyaYolu">CANLI içerik dosyası. Production'da publish klasörünün DIŞINDA olmalı.</param>
+    /// <param name="tohumYolu">
+    /// İlk kurulum tohumu (repodaki `App_Data/seed-content.json`). Canlı dosya yoksa
+    /// buradan kopyalanır — bir kez. Varsa DOKUNULMAZ.
+    /// <para>
+    /// ⚠️ Bu ayrım kritik: canlı içerik publish çıktısının içinde dursaydı her deploy
+    /// (rsync) admin'den yapılan düzenlemeleri repo tohumuyla EZERDİ.
+    /// </para>
+    /// </param>
+    public JsonContentStore(string dosyaYolu, string? tohumYolu = null)
+    {
+        _dosyaYolu = dosyaYolu;
+        _tohumYolu = tohumYolu;
+    }
 
     public async Task<SiteContent> LoadAsync(CancellationToken ct = default)
     {
@@ -45,7 +59,18 @@ public sealed class JsonContentStore : IContentStore
             if (_onbellek is not null) return _onbellek;   // kilidi beklerken başkası doldurmuş olabilir
 
             if (!File.Exists(_dosyaYolu))
-                throw new FileNotFoundException($"İçerik dosyası bulunamadı: {_dosyaYolu}", _dosyaYolu);
+            {
+                // İlk çalıştırma: canlı dosya yok → tohumdan üret.
+                if (_tohumYolu is not null && File.Exists(_tohumYolu))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(_dosyaYolu)!);
+                    File.Copy(_tohumYolu, _dosyaYolu);
+                }
+                else
+                {
+                    throw new FileNotFoundException($"İçerik dosyası bulunamadı: {_dosyaYolu}", _dosyaYolu);
+                }
+            }
 
             await using var akis = File.OpenRead(_dosyaYolu);
             _onbellek = await JsonSerializer.DeserializeAsync<SiteContent>(akis, OkumaSecenekleri, ct)

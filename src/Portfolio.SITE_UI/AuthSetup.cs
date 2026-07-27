@@ -39,7 +39,11 @@ public static class AuthSetup
         Directory.CreateDirectory(Path.GetDirectoryName(cikti)!);
         File.WriteAllText(cikti,
             $"Auth__Username={user}\nAuth__PasswordHash={hash}\nAuth__TotpSecret={secret}\n");
-        try { File.SetUnixFileMode(cikti, UnixFileMode.UserRead | UnixFileMode.UserWrite); } catch { /* Windows */ }
+        // 0600: sır dosyasını yalnız sahibi okuyabilsin (Unix). Windows'ta bu API yok.
+        if (!OperatingSystem.IsWindows())
+        {
+            try { File.SetUnixFileMode(cikti, UnixFileMode.UserRead | UnixFileMode.UserWrite); } catch { /* dosya sistemi desteklemiyor */ }
+        }
 
         Console.WriteLine();
         Console.WriteLine($"✅ Kimlik env dosyası yazıldı (0600): {cikti}");

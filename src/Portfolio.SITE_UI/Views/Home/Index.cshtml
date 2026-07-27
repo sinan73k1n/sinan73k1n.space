@@ -1,5 +1,6 @@
 @model Portfolio.Services.Dtos.SiteContentDto
 @using Portfolio.Entities
+@inject Portfolio.SITE_UI.DemoOrigin DemoOrigin
 @*
     Ana sayfa — Faz 3: içerik katmanından beslenir (statik metin KALMADI).
     Kaynak: JsonContentStore → ContentService → SiteContentDto (dil çözümlenmiş, eksik çeviri TR'ye düşmüş).
@@ -314,7 +315,9 @@
         <button type="button" class="demo-overlay__close" data-demo-close>@t.T("close") ✕</button>
     </div>
     <div class="demo-overlay__frame">
-        <iframe title="demo" sandbox="allow-scripts" referrerpolicy="no-referrer" data-demo-frame></iframe>
+        @* sandbox HER İKİ durumda da uygulanır; ayrı origin ikinci bağımsız katmandır *@
+        <iframe title="demo" sandbox="allow-scripts" referrerpolicy="no-referrer"
+                data-demo-frame data-demo-origin="@(DemoOrigin.Deger ?? "")"></iframe>
     </div>
 </div>
 
