@@ -17,13 +17,24 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index(string? lang, CancellationToken ct)
     {
-        // Öncelik: adres çubuğundaki ?lang= → çerez → varsayılan (TR).
-        // Serbest girdi Lang.Normalize'dan geçer; bilinmeyen değer TR'ye düşer.
-        var secilen = lang is not null
-            ? Lang.Normalize(lang)
-            : Lang.Normalize(Request.Cookies[DilCerezi]);
+        // Dil seçimi — öncelik sırası (karar: 2026-07-27):
+        //   1) Adres çubuğundaki `?lang=` (yalnız GEÇERLİ bir kod ise)
+        //   2) Ziyaretçinin daha önce seçtiği dil (çerez)
+        //   3) İlk ziyaret → Lang.Initial (EN)
+        //
+        // ⚠️ Burada Lang.Normalize KULLANILMAZ: o, bilinmeyen girdiyi çeviri
+        // tabanına (TR) düşürür. Ziyaretçiye açılacak dil ayrı bir karardır —
+        // geçersiz `?lang=zz` yazan birine TR değil, kendi çerezi ya da EN gelmeli.
+        var istenen = Lang.Gecerli(lang) ? lang!.Trim().ToLowerInvariant() : null;
+        var cerezdeki = Lang.Gecerli(Request.Cookies[DilCerezi])
+            ? Request.Cookies[DilCerezi]!.Trim().ToLowerInvariant()
+            : null;
 
-        if (lang is not null)
+        var secilen = istenen ?? cerezdeki ?? Lang.Initial;
+
+        // Tercih yalnız kullanıcı AÇIKÇA seçtiğinde yazılır; ilk ziyarette
+        // (EN varsayılanı) çerez oluşturulmaz — seçim değil, varsayılandır.
+        if (istenen is not null)
         {
             Response.Cookies.Append(DilCerezi, secilen, new CookieOptions
             {

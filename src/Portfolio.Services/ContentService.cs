@@ -38,7 +38,7 @@ public sealed class ContentService : IContentService
             Copy = KopyaCoz(i, lang),
             Roles = i.Roles.TryGetValue(lang, out var r) && r.Count > 0
                     ? r
-                    : (i.Roles.TryGetValue(Lang.Default, out var rt) ? rt : new List<string>()),
+                    : (i.Roles.TryGetValue(Lang.Fallback, out var rt) ? rt : new List<string>()),
 
             Logs = i.Logs.Select(s => new LogLineDto { Text = s, CssClass = LogSinifi(s) }).ToList(),
 
@@ -88,10 +88,10 @@ public sealed class ContentService : IContentService
     {
         var sonuc = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        if (i.I18n.TryGetValue(Lang.Default, out var taban))
+        if (i.I18n.TryGetValue(Lang.Fallback, out var taban))
             foreach (var (k, v) in taban) sonuc[k] = v;
 
-        if (lang != Lang.Default && i.I18n.TryGetValue(lang, out var ust))
+        if (lang != Lang.Fallback && i.I18n.TryGetValue(lang, out var ust))
             foreach (var (k, v) in ust)
                 if (!string.IsNullOrWhiteSpace(v)) sonuc[k] = v;
 

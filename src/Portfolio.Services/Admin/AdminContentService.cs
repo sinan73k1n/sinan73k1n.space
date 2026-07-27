@@ -56,7 +56,7 @@ public interface IAdminContentService
 public sealed class BolumGorunumu
 {
     public AdminSections.Bolum Bolum { get; init; } = null!;
-    public string Lang { get; init; } = Portfolio.Entities.Lang.Default;
+    public string Lang { get; init; } = Portfolio.Entities.Lang.Fallback;
     /// <summary>Kopya anahtarı → o dildeki DEĞER (boşsa boş string; TR'ye DÜŞMEZ — admin gerçeği görmeli).</summary>
     public IReadOnlyDictionary<string, string> Degerler { get; init; } = new Dictionary<string, string>();
     /// <summary>Liste öğeleri (bölümün tipine göre doldurulur).</summary>
@@ -243,7 +243,7 @@ public sealed class AdminContentService : IAdminContentService
                 if (!i.Roles.TryGetValue(d, out var l)) i.Roles[d] = l = new List<string>();
                 l.Add("");
             }
-            return i.Roles[Lang.Default].Count - 1;
+            return i.Roles[Lang.Fallback].Count - 1;
         }
     }
 
@@ -415,7 +415,7 @@ public sealed class AdminContentService : IAdminContentService
 
             // Roller
             var roller = i.Roles.TryGetValue(d, out var r) ? r : new List<string>();
-            var rolHedef = i.Roles.TryGetValue(Lang.Default, out var rt) ? rt.Count : 0;
+            var rolHedef = i.Roles.TryGetValue(Lang.Fallback, out var rt) ? rt.Count : 0;
             sayi += Math.Max(0, rolHedef - roller.Count) + roller.Count(x => string.IsNullOrWhiteSpace(x));
 
             // Dile bağlı açıklamalar
@@ -432,13 +432,13 @@ public sealed class AdminContentService : IAdminContentService
     public async Task<int> BoslariTrdenDoldurAsync(string lang, CancellationToken ct = default)
     {
         lang = Lang.Normalize(lang);
-        if (lang == Lang.Default) return 0;                    // TR'yi TR'den doldurmak anlamsız
+        if (lang == Lang.Fallback) return 0;                    // kaynağı kendisinden doldurmak anlamsız
 
         var i = await _depo.LoadAsync(ct);
         var doldurulan = 0;
 
         if (!i.I18n.TryGetValue(lang, out var hedef)) i.I18n[lang] = hedef = new Dictionary<string, string>();
-        var taban = i.I18n.TryGetValue(Lang.Default, out var t) ? t : new Dictionary<string, string>();
+        var taban = i.I18n.TryGetValue(Lang.Fallback, out var t) ? t : new Dictionary<string, string>();
 
         foreach (var k in AdminSections.TumKopyaAnahtarlari)
             if ((!hedef.TryGetValue(k, out var v) || string.IsNullOrWhiteSpace(v)) &&
@@ -446,7 +446,7 @@ public sealed class AdminContentService : IAdminContentService
             { hedef[k] = trDeger; doldurulan++; }
 
         // Roller: TR listesindeki karşılığı boşsa kopyala
-        if (i.Roles.TryGetValue(Lang.Default, out var trRoller))
+        if (i.Roles.TryGetValue(Lang.Fallback, out var trRoller))
         {
             if (!i.Roles.TryGetValue(lang, out var hedefRoller)) i.Roles[lang] = hedefRoller = new List<string>();
             while (hedefRoller.Count < trRoller.Count) { hedefRoller.Add(""); }
@@ -492,7 +492,7 @@ public sealed class AdminContentService : IAdminContentService
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                     ?? throw new InvalidOperationException("JSON boş ya da geçersiz.");
 
-        if (gelen.I18n.Count == 0 || !gelen.I18n.ContainsKey(Lang.Default))
+        if (gelen.I18n.Count == 0 || !gelen.I18n.ContainsKey(Lang.Fallback))
             throw new InvalidOperationException("JSON geçerli görünmüyor: `i18n.tr` bulunamadı.");
 
         await _depo.SaveAsync(gelen, ct);
