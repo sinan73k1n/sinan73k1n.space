@@ -30,7 +30,12 @@
             <a href="#games">@t.T("navGames")</a>
             <a href="#demos">@t.T("navDemos")</a>
             <a href="#github">@t.T("navGithub")</a>
-            <a href="/admin" class="is-admin">admin</a>
+            @* Faz 9.3 — `admin` bağlantısı yalnız giriş yapmış olana görünür.
+               Bu bir GİZLEME, koruma değil: /admin yine erişilebilir, asıl koruma auth+2FA+IP kilidi. *@
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a href="/admin" class="is-admin">admin</a>
+            }
         </div>
         @* Dil anahtarı: sunucu tarafı: ?lang=xx → çerezde saklanır *@
         <div class="langs" role="group" aria-label="Dil / Language">
@@ -142,7 +147,8 @@
                     <span class="tech__note">@tech.Note</span>
                 </div>
             }
-            <div class="slot">+ @t.T("stackSlot")</div>
+            @* Faz 9.4 — prototipteki kesikli "+ new technology" kutusu KALDIRILDI:
+               ziyaretçiye anlamsız bir yönetim izi bırakıyordu. Çipler normal akışta sıralanır. *@
         </div>
     </section>
 

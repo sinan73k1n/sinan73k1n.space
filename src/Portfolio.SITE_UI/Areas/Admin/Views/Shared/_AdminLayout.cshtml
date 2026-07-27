@@ -1,4 +1,5 @@
 @using Portfolio.Services.Admin
+@inject Portfolio.Services.Auth.IAdminAuthenticator Kimlik
 @*
     Admin kalıbı — ana sitenin tasarım dilini paylaşır (aynı tokenlar, aynı fontlar,
     ortak components.css). Prototip: design_handoff_portfolio/live-html/admin.html.
@@ -9,6 +10,19 @@
     var dil = ViewData["Lang"] as string ?? "tr";
     var bosAlanlar = ViewData["BosAlanlar"] as IReadOnlyDictionary<string, int>;
     var girisli = User.Identity?.IsAuthenticated == true;
+
+    // Faz 9.1 — yönetim izleri yalnız içeridekine gösterilir.
+    // Giriş EKRANINDA "Siteyi gör / Metrikler / JSON indir" görünmesi, henüz doğrulanmamış
+    // birine panelin neler barındırdığını anlatıyordu. Auth kapalıyken (yalnız Development)
+    // kimse "giriş yapmış" sayılmaz ama panel serbesttir → o durumda da gösterilir.
+    var yonetim = girisli || !Kimlik.Enabled;
+
+    // Faz 9.2 — üst bardaki sekmeler. Aktif sekme yol üzerinden bulunur:
+    // ViewData["AktifBolum"] yalnız içerik sayfalarında dolu, metrik/dashboard'da yok.
+    var yol = Context.Request.Path.Value ?? "";
+    var metrikte = yol.StartsWith("/admin/metrikler", StringComparison.OrdinalIgnoreCase);
+    var icerikte = aktif is not null;
+    var ozette = yonetim && !metrikte && !icerikte;
 }
 <!DOCTYPE html>
 <html lang="tr">
@@ -18,6 +32,13 @@
     <title>@ViewData["Title"] · Portfolyo yönetimi</title>
     <meta name="robots" content="noindex, nofollow" />   @* admin arama motorlarına girmez *@
     <meta name="color-scheme" content="dark" />
+
+    @* İkon admin sekmelerinde de görünsün (Faz 9.5: "tüm sayfalarda").
+       Manifest BURADA YOK: admin yüklenebilir uygulama değil. *@
+    <link rel="icon" href="~/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="~/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="apple-touch-icon" href="~/apple-touch-icon.png" />
+    <meta name="theme-color" content="#141622" />
 
     <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
@@ -34,22 +55,41 @@
                 <span class="abar__uyari">auth kapalı — geliştirme modu</span>
             }
         </div>
-        <div class="abar__right">
-            <a href="/" class="pill-link" target="_blank" rel="noopener">Siteyi gör ↗</a>
-            <a href="/admin/metrikler" class="pill-link">Metrikler</a>
-            <a href="/admin/icerik/disa-aktar" class="pill-link">JSON indir</a>
+        @* Gezinme sekmeleri — panelin üç ana ekranı aynı dilde, aynı yerde.
+           Daha önce düzenlemeye tek giriş dashboard metnindeki bağlantıydı, keşfedilmiyordu. *@
+        @if (yonetim)
+        {
+            <nav class="abar__nav" aria-label="Panel gezinmesi">
+                <a href="/admin" class="pill-link @(ozette ? "is-active" : "")"
+                   @(ozette ? Html.Raw("aria-current=\"page\"") : Html.Raw(""))>İçerik özeti</a>
+                <a href="/admin/icerik/@(aktif ?? AdminSections.Hepsi[0].Slug)?lang=@dil"
+                   class="pill-link @(icerikte ? "is-active" : "")"
+                   @(icerikte ? Html.Raw("aria-current=\"page\"") : Html.Raw(""))>Sayfayı düzenle</a>
+                <a href="/admin/metrikler" class="pill-link @(metrikte ? "is-active" : "")"
+                   @(metrikte ? Html.Raw("aria-current=\"page\"") : Html.Raw(""))>Metrikler</a>
+            </nav>
+        }
 
-            @if (aktif is not null)
+        <div class="abar__right">
+            @* Faz 9.1 — bu düğmeler giriş EKRANINDA görünmez: doğrulanmamış birine
+               panelin içeriğini (yedek indirme, metrik) duyurmanın gereği yok. *@
+            @if (yonetim)
             {
-                @* Gizli input'u saran label — prototipteki desen *@
-                <form method="post" action="/admin/icerik/ice-aktar?slug=@aktif" enctype="multipart/form-data" class="abar__form">
-                    @Html.AntiForgeryToken()
-                    <label class="pill-link" style="cursor: pointer;">
-                        JSON yükle
-                        <input type="file" name="dosya" accept="application/json" hidden
-                               onchange="this.form.submit()" />
-                    </label>
-                </form>
+                <a href="/" class="pill-link" target="_blank" rel="noopener">Siteyi gör ↗</a>
+                <a href="/admin/icerik/disa-aktar" class="pill-link">JSON indir</a>
+
+                @if (aktif is not null)
+                {
+                    @* Gizli input'u saran label — prototipteki desen *@
+                    <form method="post" action="/admin/icerik/ice-aktar?slug=@aktif" enctype="multipart/form-data" class="abar__form">
+                        @Html.AntiForgeryToken()
+                        <label class="pill-link" style="cursor: pointer;">
+                            JSON yükle
+                            <input type="file" name="dosya" accept="application/json" hidden
+                                   onchange="this.form.submit()" />
+                        </label>
+                    </form>
+                }
             }
 
             @if (girisli)

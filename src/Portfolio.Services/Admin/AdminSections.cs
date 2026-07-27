@@ -57,8 +57,10 @@ public static class AdminSections
             new KopyaAlani[]
             {
                 new("stackTitle", "Bölüm başlığı"),
-                new("stackLead",  "Bölüm açıklaması", AlanTipi.CokSatir),
-                new("stackSlot",  "Boş çip etiketi")
+                new("stackLead",  "Bölüm açıklaması", AlanTipi.CokSatir)
+                // "stackSlot" (boş çip etiketi) Faz 9.4'te sayfadan kaldırıldı → artık hiçbir
+                // yerde render edilmiyor. Düzenlenebilir bırakmak "yazdım ama değişmedi" tuzağı
+                // olurdu. Veri anahtarı seed/JSON'da duruyor, yalnız düzenleme alanı kalktı.
             }, ListeTipi.Teknolojiler),
 
         new("oyunlar", "Oyunlar",

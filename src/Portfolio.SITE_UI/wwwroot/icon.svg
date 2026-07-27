@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Sinan Tekin">
+  <!--
+    Site ikonu (Faz 9.5) — "yazılımcı" işareti: terminal komut istemi >_
+    Tasarım dili sitenin kendisiyle aynı: derin indigo taban + tek yön palet (mor → camgöbeği).
+    ⛔ Metin/font YOK — bilinçli: favicon'u render eden ortamda site fontu bulunmaz,
+       harf yerine çizgi kullanılırsa 16px'te de aynı görünür.
+    Renkler variables.css tokenlarının sRGB karşılığı (--bg / --bg-top / --acc / --acc2).
+  -->
+  <defs>
+    <linearGradient id="yuzey" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#252437"/>
+      <stop offset="1" stop-color="#141622"/>
+    </linearGradient>
+    <!-- gradientUnits="userSpaceOnUse" ZORUNLU: varsayılan objectBoundingBox'ta
+         yatay çizginin sınır kutusu sıfır yükseklikte olur ve tarayıcı o öğeyi HİÇ çizmez
+         (alt tire kaybolur). Kullanıcı uzayında tanımlayınca tüm işaret aynı degradeyi paylaşır. -->
+    <linearGradient id="vurgu" gradientUnits="userSpaceOnUse" x1="14" y1="18" x2="50" y2="46">
+      <stop offset="0" stop-color="#c099ff"/>
+      <stop offset="1" stop-color="#00c2db"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#yuzey)"/>
+  <rect x="3.25" y="3.25" width="57.5" height="57.5" rx="14.75" fill="none" stroke="url(#vurgu)" stroke-width="2.5"/>
+
+  <g fill="none" stroke="url(#vurgu)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20,23 30,32 20,41"/>
+    <line x1="36" y1="41" x2="46" y2="41"/>
+  </g>
+</svg>

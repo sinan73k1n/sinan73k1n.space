@@ -18,6 +18,16 @@
     <meta name="description" content="@(ViewData["Description"] as string ?? "")" />
     <meta name="color-scheme" content="dark" />
 
+    @* --- Site ikonu (Faz 9.5) — terminal istemi `>_`, tek yön palet.
+       SVG önce gelir (her ölçekte keskin); .ico eski tarayıcılar ve /favicon.ico'yu
+       kendiliğinden isteyen istemciler için durur. Kaynak: wwwroot/icon.svg,
+       türevleri `node tools/ikon-uret.js` üretir. *@
+    <link rel="icon" href="~/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="~/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="apple-touch-icon" href="~/apple-touch-icon.png" />
+    <link rel="manifest" href="~/site.webmanifest" />
+    <meta name="theme-color" content="#141622" />
+
     @* --- SEO / paylaşım (Faz 7) ---
        Site TEK sayfa, diller `?lang=` ile ayrılıyor. Bu yüzden:
          · canonical  → o dilin adresi (dil seçilmemişse dilsiz kök)
@@ -43,9 +53,15 @@
     <meta property="og:description" content="@(ViewData["Description"] as string ?? "")" />
     <meta property="og:url" content="@canonical" />
     <meta property="og:locale" content="@(aktifDil == "tr" ? "tr_TR" : aktifDil == "ru" ? "ru_RU" : "en_US")" />
-    @* og:image henüz YOK — 1200×630 gerçek bir görsel gerekiyor, yer tutucu koymak
-       paylaşımlarda boş kutu göstermekten daha kötü olurdu. Sinan görseli verince eklenir. *@
-    <meta name="twitter:card" content="summary" />
+    @* og:image (Faz 7.4) — sitenin kendi görsel dilinden üretilmiş 1200×630 kart.
+       ⚠️ Kart METNİ DİLDEN BAĞIMSIZ (ad · teknolojiler · adres): site üç dilli, karta
+       çevrilebilir bir slogan koymak üç ayrı görsel + üç ayrı bakım noktası demekti.
+       Adres mutlak olmalı — paylaşım botları göreli yolu çözmez. *@
+    <meta property="og:image" content="@($"{origin}/og-image.png")" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Sinan Tekin — Unity · ASP.NET Core · C#" />
+    <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
