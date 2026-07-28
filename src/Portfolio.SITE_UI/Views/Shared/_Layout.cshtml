@@ -19,13 +19,15 @@
     <meta name="color-scheme" content="dark" />
 
     @* --- Site ikonu (Faz 9.5) — terminal istemi `>_`, tek yön palet.
-       SVG önce gelir (her ölçekte keskin); .ico eski tarayıcılar ve /favicon.ico'yu
-       kendiliğinden isteyen istemciler için durur. Kaynak: wwwroot/icon.svg,
-       türevleri `node tools/ikon-uret.js` üretir. *@
-    <link rel="icon" href="~/icon.svg" type="image/svg+xml" />
-    <link rel="icon" href="~/favicon.ico" sizes="16x16 32x32 48x48" />
-    <link rel="apple-touch-icon" href="~/apple-touch-icon.png" />
-    <link rel="manifest" href="~/site.webmanifest" />
+       Kaynak: wwwroot/icon.svg; türevleri `node tools/ikon-uret.js` üretir.
+       Sıra bilinçli: **.ico ÖNCE**, SVG sonra. SVG bir gün yine geçersiz olursa
+       (bkz. icon.svg içindeki XML yorumu uyarısı) tarayıcı .ico'ya düşer.
+       `asp-append-version` ŞART: ikon dosyaları Cloudflare'de 4 saat önbelleğe alınıyor;
+       içerik değişince adres de değişsin ki elle purge gerekmesin. *@
+    <link rel="icon" href="~/favicon.ico" sizes="16x16 32x32 48x48" asp-append-version="true" />
+    <link rel="icon" href="~/icon.svg" type="image/svg+xml" asp-append-version="true" />
+    <link rel="apple-touch-icon" href="~/apple-touch-icon.png" asp-append-version="true" />
+    <link rel="manifest" href="~/site.webmanifest" asp-append-version="true" />
     <meta name="theme-color" content="#141622" />
 
     @* --- SEO / paylaşım (Faz 7) ---

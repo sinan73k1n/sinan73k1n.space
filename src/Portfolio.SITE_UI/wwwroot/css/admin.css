@@ -32,9 +32,14 @@ body.admin {
 .abar__form { margin: 0; }
 .abar button.pill-link { cursor: pointer; background: transparent; font-family: var(--font-mono); }
 
-/* Gezinme sekmeleri (Faz 9.2) — panelin üç ana ekranı. Ortada durur ki
-   "neredeyim / nereye gidebilirim" bir bakışta okunsun. */
-.abar__nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Gezinme sekmeleri (Faz 9.2) — panelin üç ana ekranı.
+   ⭐ SOLA YASLI, marka bloğunun devamında. Ortalanmış hâli sayfa değiştikçe yana
+   kayıyordu: konumu sağdaki düğme sayısına bağlıydı (JSON yükle yalnız içerik
+   sayfalarında var). Sola yaslı hâlde başlangıç noktası sabit → geçişler sakin. */
+.abar__nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: 10px; }
+.abar__nav::before {                      /* marka ile sekmeleri ayıran ince çizgi */
+  content: ""; width: 1px; height: 22px; margin-right: 10px; background: var(--hair-strong);
+}
 .abar__nav .pill-link { padding: 10px 16px; }
 .abar__nav .pill-link.is-active {
   border-color: color-mix(in oklab, var(--acc) 55%, transparent);
@@ -43,10 +48,13 @@ body.admin {
 }
 .abar__nav .pill-link.is-active:hover { transform: none; }
 
-/* Dar ekran: üst bar tek satıra sığmaz, sekmeler alta iner */
+/* Dar ekran: üst bar tek satıra sığmaz → sol blok sarılır, sekmeler alt satıra iner.
+   Ayırıcı çizgi orada anlamını yitiriyor, kaldırılıyor. */
 @media (max-width: 900px) {
   .abar { flex-wrap: wrap; }
-  .abar__nav { order: 3; width: 100%; }
+  .abar__left { flex-wrap: wrap; }
+  .abar__nav { margin-left: 0; }
+  .abar__nav::before { display: none; }
 }
 
 .ashell { max-width: 1100px; margin: 0 auto; padding: 34px 22px 60px; }

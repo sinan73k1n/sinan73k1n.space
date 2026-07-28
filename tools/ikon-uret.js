@@ -24,6 +24,34 @@ const WWW = path.join(KOK, 'src/Portfolio.SITE_UI/wwwroot');
 const GECICI = fs.mkdtempSync(path.join(os.tmpdir(), 'ikon-'));
 
 const ikonSvg = fs.readFileSync(path.join(WWW, 'icon.svg'), 'utf8');
+
+/*
+  ⭐ ÖNCE DOĞRULA — 2026-07-28'de canlıda yakalanan sessiz hatanın tekrarını engeller.
+  icon.svg tarayıcıya AYRI BELGE olarak gidiyor → KATI XML ayrıştırılıyor. Bir XML
+  yorumunun içinde iki tire yan yana bulunamaz; CSS değişkeni adı yazmak (iki tire + ad)
+  belgeyi geçersiz kılar ve tarayıcı ikonu HİÇ göstermez. HTML içine gömülünce aynı dosya
+  sorunsuz açılır — bu yüzden PNG/OG üretimi ÇALIŞIR ama sekmedeki ikon boş kalır.
+  Aşağıdaki iki kontrol o boşluğu kapatır.
+*/
+{
+  const yorumlar = ikonSvg.match(/<!--[\s\S]*?-->/g) || [];
+  for (const y of yorumlar) {
+    if (/-{2}/.test(y.slice(4, -3))) {
+      console.error('✗ icon.svg: XML yorumunun içinde iki tire yan yana var → belge geçersiz, ikon görünmez.');
+      process.exit(1);
+    }
+  }
+  // Kaba ama yeterli ikinci kontrol: gerçek bir XML ayrıştırıcıdan geçsin.
+  try {
+    execFileSync('python3', ['-c',
+      'import sys,xml.dom.minidom; xml.dom.minidom.parse(sys.argv[1])',
+      path.join(WWW, 'icon.svg')], { stdio: 'pipe' });
+  } catch (e) {
+    console.error('✗ icon.svg geçerli XML değil:\n' + String(e.stderr || e.message));
+    process.exit(1);
+  }
+}
+
 const yorumsuz = ikonSvg.replace(/<!--[\s\S]*?-->/g, '');
 
 /** Bir HTML'i verilen boyutta ekran görüntüsüne çevirir. */

@@ -1,19 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Sinan Tekin">
   <!--
-    Site ikonu (Faz 9.5) — "yazılımcı" işareti: terminal komut istemi >_
-    Tasarım dili sitenin kendisiyle aynı: derin indigo taban + tek yön palet (mor → camgöbeği).
-    ⛔ Metin/font YOK — bilinçli: favicon'u render eden ortamda site fontu bulunmaz,
-       harf yerine çizgi kullanılırsa 16px'te de aynı görünür.
-    Renkler variables.css tokenlarının sRGB karşılığı (--bg / --bg-top / --acc / --acc2).
+    Site ikonu (Faz 9.5) : terminal komut istemi >_ , "yazılımcı" işareti.
+    Tasarım dili sitenin kendisiyle aynı: derin indigo taban, tek yön palet (mor, camgöbeği).
+    Metin/font YOK (bilinçli): favicon'u render eden ortamda site fontu bulunmaz,
+    harf yerine çizgi kullanılırsa 16px'te de aynı görünür.
+    Renkler variables.css tokenlarının sRGB karşılığı: bg / bg-top / acc / acc2.
+
+    UYARI 1: bu dosya tarayıcıya AYRI BELGE olarak gidiyor, yani KATI XML ayrıştırılıyor.
+    XML yorumunun içinde iki tire yan yana (CSS değişkeni yazar gibi) bulunamaz:
+    belge ayrıştırılamaz, ikon sessizce kaybolur. HTML içine gömülünce sorun çıkmaz,
+    o yüzden yerelde fark edilmedi. tools/ikon-uret.js artık üretimden önce doğruluyor.
   -->
   <defs>
     <linearGradient id="yuzey" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#252437"/>
       <stop offset="1" stop-color="#141622"/>
     </linearGradient>
-    <!-- gradientUnits="userSpaceOnUse" ZORUNLU: varsayılan objectBoundingBox'ta
-         yatay çizginin sınır kutusu sıfır yükseklikte olur ve tarayıcı o öğeyi HİÇ çizmez
-         (alt tire kaybolur). Kullanıcı uzayında tanımlayınca tüm işaret aynı degradeyi paylaşır. -->
+    <!--
+      UYARI 2: gradientUnits="userSpaceOnUse" ZORUNLU. Varsayılan objectBoundingBox'ta
+      yatay çizginin sınır kutusu sıfır yükseklikte olur ve tarayıcı o öğeyi HİÇ çizmez
+      (alt tire kaybolur). Kullanıcı uzayında tanımlanınca tüm işaret aynı degradeyi paylaşır.
+    -->
     <linearGradient id="vurgu" gradientUnits="userSpaceOnUse" x1="14" y1="18" x2="50" y2="46">
       <stop offset="0" stop-color="#c099ff"/>
       <stop offset="1" stop-color="#00c2db"/>

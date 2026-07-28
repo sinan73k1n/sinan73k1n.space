@@ -35,9 +35,11 @@
 
     @* İkon admin sekmelerinde de görünsün (Faz 9.5: "tüm sayfalarda").
        Manifest BURADA YOK: admin yüklenebilir uygulama değil. *@
-    <link rel="icon" href="~/icon.svg" type="image/svg+xml" />
-    <link rel="icon" href="~/favicon.ico" sizes="16x16 32x32 48x48" />
-    <link rel="apple-touch-icon" href="~/apple-touch-icon.png" />
+    @* Sıra bilinçli: .ico ÖNCE. SVG bir gün yine geçersiz olursa tarayıcı .ico'ya
+       düşer; tersi sırada bazı tarayıcılarda hiç ikon görünmüyordu. *@
+    <link rel="icon" href="~/favicon.ico" sizes="16x16 32x32 48x48" asp-append-version="true" />
+    <link rel="icon" href="~/icon.svg" type="image/svg+xml" asp-append-version="true" />
+    <link rel="apple-touch-icon" href="~/apple-touch-icon.png" asp-append-version="true" />
     <meta name="theme-color" content="#141622" />
 
     <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
@@ -54,9 +56,11 @@
             {
                 <span class="abar__uyari">auth kapalı — geliştirme modu</span>
             }
-        </div>
         @* Gezinme sekmeleri — panelin üç ana ekranı aynı dilde, aynı yerde.
-           Daha önce düzenlemeye tek giriş dashboard metnindeki bağlantıydı, keşfedilmiyordu. *@
+           Daha önce düzenlemeye tek giriş dashboard metnindeki bağlantıydı, keşfedilmiyordu.
+           ⭐ SOLA YASLI ve `abar__left`in İÇİNDE: ortada dursaydı konumu sağdaki düğme
+           sayısına bağlı olurdu (JSON yükle yalnız içerik sayfalarında var) → sekmeler her
+           geçişte yana kayardı. Sola yaslanınca sabit kalıyor, geçişler sakin görünüyor. *@
         @if (yonetim)
         {
             <nav class="abar__nav" aria-label="Panel gezinmesi">
@@ -69,6 +73,7 @@
                    @(metrikte ? Html.Raw("aria-current=\"page\"") : Html.Raw(""))>Metrikler</a>
             </nav>
         }
+        </div>
 
         <div class="abar__right">
             @* Faz 9.1 — bu düğmeler giriş EKRANINDA görünmez: doğrulanmamış birine
