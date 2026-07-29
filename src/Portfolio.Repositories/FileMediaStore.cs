@@ -19,11 +19,17 @@ public sealed class FileMediaStore : IMediaStore
     /// <summary>Web'den erişilen önek — bu önekle başlamayan yollar bize ait değildir.</summary>
     public const string WebOnek = "/uploads/games/";
 
-    private readonly string _kokKlasor;   // wwwroot
+    /// <summary>`/uploads` adresine karşılık gelen DİSK klasörü (publish klasörünün DIŞINDA).</summary>
+    private readonly string _medyaKok;
 
-    public FileMediaStore(string wwwrootYolu) => _kokKlasor = wwwrootYolu;
+    /// <param name="medyaKok">
+    /// `/uploads` yolunun disk karşılığı. ⚠️ publish klasörünün İÇİNDE OLMAMALI:
+    /// orada dursaydı `dotnet publish`/temiz kurulum yüklenen kapakları uçururdu
+    /// (canlı içerik dosyasının publish dışında durmasıyla aynı gerekçe).
+    /// </param>
+    public FileMediaStore(string medyaKok) => _medyaKok = medyaKok;
 
-    private string DiskKlasoru => Path.Combine(_kokKlasor, "uploads", "games");
+    private string DiskKlasoru => Path.Combine(_medyaKok, "games");
 
     public async Task<string> KaydetAsync(Stream akis, string uzanti, CancellationToken ct = default)
     {

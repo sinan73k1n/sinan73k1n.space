@@ -5,10 +5,9 @@
 # NE YAPMAZ: sudo gerektiren ilk kurulum (systemd birimi, nginx, auth env). Onlar bir
 # kereliktir ve Sinan kendi terminalinde yapar (bkz. vault wiki/deploy-and-infra.md).
 #
-# ⛔ KRİTİK: rsync'te --delete YOK.
-#    Sunucuda repoda BULUNMAYAN iki şey var ve silinirlerse kaybolurlar:
-#      · wwwroot/uploads/  → admin'den yüklenen oyun kapakları
-#      · (canlı içerik zaten publish DIŞINDA — yolu systemd'deki Content__FilePath belirler)
+# ⛔ KRİTİK: rsync'te --delete YOK. (Yüklenen kapaklar 2026-07-29'da publish DIŞINA,
+#    içerik dosyasının yanına taşındı: `portfolio-data/uploads/games`. Yine de --delete
+#    eklenmez: publish klasöründe elle bırakılmış bir şey olabilir.)
 #
 set -euo pipefail
 
@@ -56,6 +55,9 @@ ssh "$SUNUCU" '
   else
     echo "  içerik kaynağı: JSON dosyası (DB bağlantı dizesi tanımlı değil)"
   fi
-  echo "  görseller: $(ls ~/publish/portfolio/wwwroot/uploads/games 2>/dev/null | wc -l) dosya (deploy sonrası KORUNMALI)"
+  echo "  görseller: $(ls ~/portfolio-data/uploads/games 2>/dev/null | wc -l) dosya (publish DIŞINDA — deploy dokunmaz)"
+  # Eski konumda kalıntı varsa uyar: 2026-07-29 öncesi yüklemeler publish içindeydi.
+  eski=$(ls ~/publish/portfolio/wwwroot/uploads/games 2>/dev/null | wc -l)
+  [ "$eski" -gt 0 ] && echo "  ⚠️  ESKİ konumda $eski dosya duruyor → taşı: mv ~/publish/portfolio/wwwroot/uploads/games/* ~/portfolio-data/uploads/games/"
 '
 echo "✔ Bitti."

@@ -68,8 +68,20 @@ else
 builder.Services.AddSingleton(new DemoOrigin(builder.Configuration["Demo:Origin"]));
 builder.Services.AddScoped<IContentService, ContentService>();
 builder.Services.AddScoped<Portfolio.Services.Admin.IAdminContentService, Portfolio.Services.Admin.AdminContentService>();
-// Yüklenen oyun kapakları: wwwroot/uploads/games (dosya sistemi; DB'ye binary konmaz)
-builder.Services.AddSingleton<IMediaStore>(_ => new FileMediaStore(builder.Environment.WebRootPath));
+// --- Yüklenen oyun kapakları (dosya sistemi; DB'ye binary konmaz) ---
+//
+// ⚠️ İKİ AYRI TUZAK VARDI, ikisi de burada kapanıyor:
+//  1) Dosyalar `wwwroot/uploads` altına, yani PUBLISH KLASÖRÜNÜN İÇİNE yazılıyordu.
+//     İçerik dosyasıyla aynı gerekçe: publish içinde duran veri deploy'da kaybolur.
+//     Artık canlı içerik dosyasının YANINDA durur (`portfolio-data/uploads`).
+//  2) Statik dosyalar `MapStaticAssets()` ile servis ediliyor; o, DERLEME ANINDA
+//     üretilmiş bir manifestten okur → çalışma anında yüklenen dosya orada YOKTUR
+//     ve 404 döner. Yükleme klasörü bu yüzden AYRICA `UseStaticFiles` ile bağlanır.
+var medyaKok = builder.Configuration["Media:Root"];
+if (string.IsNullOrWhiteSpace(medyaKok))
+    medyaKok = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(icerikYolu))!, "uploads");
+Directory.CreateDirectory(medyaKok);                    // yoksa dosya sağlayıcı açılışta patlar
+builder.Services.AddSingleton<IMediaStore>(_ => new FileMediaStore(medyaKok));
 
 // --- Kimlik doğrulama (Faz 5.1) ---
 // Sırlar env'den gelir: Auth__Username / Auth__PasswordHash / Auth__TotpSecret.
@@ -178,6 +190,20 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 // 404 vb. için kendi sayfamız (Faz 7). ReExecute: adres çubuğu değişmez,
 // durum kodu 404 kalır — yönlendirme yapan varyantı SEO açısından yanlış olurdu.
 app.UseStatusCodePagesWithReExecute("/Home/Bulunamadi/{0}");
+
+// Yüklenen kapaklar: `/uploads/**` → `medyaKok`. MapStaticAssets bu dosyaları GÖREMEZ
+// (derleme anı manifesti), bu yüzden klasik statik dosya ara katmanı ile bağlanıyor.
+// Dosya adlarını biz üretiyoruz (tarih + guid) ve asla yeniden kullanmıyoruz →
+// içerik değişmez, uzun önbellek güvenli.
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(medyaKok),
+    RequestPath = "/uploads",
+    // ⛔ Bilinmeyen uzantı SERVİS EDİLMEZ (varsayılan). Yükleyici zaten yalnız
+    // görsel uzantısına izin veriyor; bu ikinci kapı.
+    OnPrepareResponse = ctx =>
+        ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable"
+});
 
 app.UseRouting();
 

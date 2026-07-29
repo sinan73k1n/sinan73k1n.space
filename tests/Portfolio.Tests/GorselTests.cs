@@ -120,7 +120,7 @@ public class FileMediaStoreTests : IDisposable
 
         Assert.StartsWith(FileMediaStore.WebOnek, yol);
         Assert.EndsWith(".png", yol);
-        Assert.True(File.Exists(Path.Combine(_kok, "uploads", "games", Path.GetFileName(yol))));
+        Assert.True(File.Exists(Path.Combine(_kok, "games", Path.GetFileName(yol))));
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class FileMediaStoreTests : IDisposable
     {
         var depo = Kur();
         var yol = await depo.KaydetAsync(new MemoryStream(new byte[] { 1 }), ".png");
-        var disk = Path.Combine(_kok, "uploads", "games", Path.GetFileName(yol));
+        var disk = Path.Combine(_kok, "games", Path.GetFileName(yol));
 
         await depo.SilAsync(yol);
 
