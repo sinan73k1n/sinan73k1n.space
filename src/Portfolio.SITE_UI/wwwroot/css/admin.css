@@ -224,7 +224,7 @@ body.admin {
 /* ---------- Oyun kapağı yükleme (Faz 5.7) ---------- */
 .gorsel__satir { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
 .gorsel__onizleme {
-  flex: 0 0 200px; aspect-ratio: 16 / 10; overflow: hidden;
+  flex: 0 0 200px; aspect-ratio: 1 / 1; overflow: hidden;   /* sitedeki kart oranıyla AYNI (kare) */
   border-radius: 12px; border: 1px solid var(--hair-strong);
   background: linear-gradient(150deg, oklch(0.42 0.15 300), oklch(0.26 0.09 280));
   display: flex; align-items: center; justify-content: center;

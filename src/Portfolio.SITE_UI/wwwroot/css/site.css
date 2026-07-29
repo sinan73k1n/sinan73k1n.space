@@ -163,7 +163,10 @@
   transition: border-color var(--t-hover), transform 0.5s var(--ease);
 }
 .game:hover { border-color: color-mix(in oklab, var(--acc) 50%, transparent); transform: translateY(-6px); color: var(--text); }
-.game__cover { position: relative; aspect-ratio: 16 / 10; overflow: hidden; }
+/* KARE (2026-07-29, Sinan): kapaklar Google Play ikonu — kaynak zaten 1:1.
+   Prototipteki 16/10 çerçeve ikonun altını üstünü kırpıyordu. Demolardaki
+   tarayıcı mockup'ı (.browser__screen) 16/10 KALIR: o gerçek bir ekran görüntüsü. */
+.game__cover { position: relative; aspect-ratio: 1 / 1; overflow: hidden; }
 .game__cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .game__gloss { position: absolute; inset: 0; background: radial-gradient(120% 90% at 20% 10%, oklch(0.95 0.008 268 / 0.16), transparent 60%); }
 .game__sheen { position: absolute; top: 0; bottom: 0; width: 42%; background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.22), transparent); animation: sheen 6.5s ease-in-out infinite; }
