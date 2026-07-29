@@ -77,8 +77,8 @@ public sealed class PortfolioDbContext : DbContext
         {
             e.ToTable("Tech");
             e.Property(x => x.Name).HasMaxLength(100);
-            e.Property(x => x.Note).HasMaxLength(200);
             e.HasIndex(x => x.Order);
+            CeviriKolonlari(e.OwnsOne(x => x.Note), "Note", 200);
         });
 
         b.Entity<FactRow>(e =>

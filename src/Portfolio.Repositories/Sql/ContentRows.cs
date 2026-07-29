@@ -76,7 +76,8 @@ public sealed class TechRow
     public int Id { get; set; }
     public int Order { get; set; }
     public string Name { get; set; } = "";
-    public string Note { get; set; } = "";
+    /// <summary>Dile bağlı not — NoteTr/NoteEn/NoteRu kolonlarına yayılır.</summary>
+    public Localized Note { get; set; } = new();
 }
 
 public sealed class GameRow

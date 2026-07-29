@@ -151,7 +151,8 @@ public sealed class AdminContentService : IAdminContentService
         ListeTipi.Teknolojiler => i.Techs.Select((t, ix) => new ListeOgesi
         {
             Index = ix, Baslik = string.IsNullOrWhiteSpace(t.Name) ? $"teknoloji {ix + 1}" : t.Name,
-            Alanlar = { ["name"] = t.Name, ["note"] = t.Note }
+            Alanlar = { ["name"] = t.Name },
+            CeviriAlanlari = { ["note"] = DilDegeri(t.Note, lang) }
         }).ToList(),
 
         ListeTipi.Oyunlar => i.Games.Select((g, ix) => new ListeOgesi
@@ -335,7 +336,7 @@ public sealed class AdminContentService : IAdminContentService
                 for (var ix = 0; ix < i.Techs.Count; ix++)
                 {
                     i.Techs[ix].Name = Al(ix, "name") ?? i.Techs[ix].Name;
-                    i.Techs[ix].Note = Al(ix, "note") ?? i.Techs[ix].Note;
+                    DilDegeriYaz(i.Techs[ix].Note, lang, Al(ix, "note"));
                 }
                 break;
 
@@ -420,6 +421,7 @@ public sealed class AdminContentService : IAdminContentService
 
             // Dile bağlı açıklamalar
             sayi += i.Facts.Count(f => string.IsNullOrWhiteSpace(DilDegeri(f.Label, d)));
+            sayi += i.Techs.Count(t => string.IsNullOrWhiteSpace(DilDegeri(t.Note, d)));
             sayi += i.Games.Count(g => string.IsNullOrWhiteSpace(DilDegeri(g.Desc, d)));
             sayi += i.Demos.Count(x => string.IsNullOrWhiteSpace(DilDegeri(x.Desc, d)));
             sayi += i.Repos.Count(x => string.IsNullOrWhiteSpace(DilDegeri(x.Desc, d)));
@@ -456,6 +458,7 @@ public sealed class AdminContentService : IAdminContentService
         }
 
         doldurulan += Doldur(i.Facts.Select(f => f.Label), lang);
+        doldurulan += Doldur(i.Techs.Select(t => t.Note), lang);
         doldurulan += Doldur(i.Games.Select(g => g.Desc), lang);
         doldurulan += Doldur(i.Demos.Select(d => d.Desc), lang);
         doldurulan += Doldur(i.Repos.Select(r => r.Desc), lang);

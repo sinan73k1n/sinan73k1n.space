@@ -53,7 +53,7 @@ public static class AdminSections
             }, ListeTipi.Sayaclar),
 
         new("teknolojiler", "Teknolojiler",
-            "Teknoloji çipleri. Ad ve not dile bağlı DEĞİLDİR (tasarım kararı).",
+            "Teknoloji çipleri. Ad dile bağlı DEĞİL (marka adı, üç dilde aynı); NOT dile bağlıdır — her dilde ayrı yazılır.",
             new KopyaAlani[]
             {
                 new("stackTitle", "Bölüm başlığı"),

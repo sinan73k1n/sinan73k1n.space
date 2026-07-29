@@ -172,13 +172,14 @@ public static class SeedIcerik
 
         Techs = new()
         {
-            new() { Name = "Unity", Note = "oyun motoru" },
-            new() { Name = "C#", Note = "gameplay · backend" },
-            new() { Name = "JavaScript", Note = "arayüz · demo" },
-            new() { Name = "PHP", Note = "panel · api" },
-            new() { Name = "MySQL", Note = "veri" },
-            new() { Name = "HTML / CSS", Note = "arayüz" },
-            new() { Name = "Git", Note = "sürüm" },
+            // Ad çevrilmez (marka), not üç dillidir.
+            new() { Name = "Unity",      Note = new() { Tr = "oyun motoru",      En = "game engine",        Ru = "игровой движок" } },
+            new() { Name = "C#",         Note = new() { Tr = "gameplay · backend", En = "gameplay · backend", Ru = "геймплей · бэкенд" } },
+            new() { Name = "JavaScript", Note = new() { Tr = "arayüz · demo",    En = "frontend · demos",   Ru = "интерфейс · демо" } },
+            new() { Name = "PHP",        Note = new() { Tr = "panel · api",      En = "panels · api",       Ru = "панели · api" } },
+            new() { Name = "MySQL",      Note = new() { Tr = "veri",             En = "data",               Ru = "данные" } },
+            new() { Name = "HTML / CSS", Note = new() { Tr = "arayüz",           En = "frontend",           Ru = "интерфейс" } },
+            new() { Name = "Git",        Note = new() { Tr = "sürüm",            En = "version control",    Ru = "контроль версий" } },
         },
 
         Games = new()

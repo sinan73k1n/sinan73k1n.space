@@ -68,7 +68,7 @@ public sealed class IcerikSatirlari
             s.Facts.Add(new FactRow { Order = n, Value = i.Facts[n].Value, Label = Kopya(i.Facts[n].Label) });
 
         for (var n = 0; n < i.Techs.Count; n++)
-            s.Techs.Add(new TechRow { Order = n, Name = i.Techs[n].Name, Note = i.Techs[n].Note });
+            s.Techs.Add(new TechRow { Order = n, Name = i.Techs[n].Name, Note = Kopya(i.Techs[n].Note) });
 
         for (var n = 0; n < i.Games.Count; n++)
         {
@@ -164,7 +164,7 @@ public sealed class IcerikSatirlari
             .Select(x => new Fact { Value = x.Value, Label = Kopya(x.Label) }).ToList();
 
         i.Techs = Techs.OrderBy(x => x.Order)
-            .Select(x => new Tech { Name = x.Name, Note = x.Note }).ToList();
+            .Select(x => new Tech { Name = x.Name, Note = Kopya(x.Note) }).ToList();
 
         i.Games = Games.OrderBy(x => x.Order).Select(x => new Game
         {

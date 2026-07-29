@@ -46,7 +46,7 @@ public sealed class ContentService : IContentService
 
             Techs = i.Techs.Select((t, ix) => new TechDto
             {
-                Name = t.Name, Note = t.Note,
+                Name = t.Name, Note = t.Note.Get(lang),
                 Dot = ix % 2 == 0 ? "var(--acc)" : "var(--acc2)"
             }).ToList(),
 
