@@ -207,16 +207,27 @@
                             <span class="browser__url" data-demo-url>sinantekin.dev/@demoYolu</span>
                         </div>
                         <div class="browser__screen">
-                            <div class="browser__app">
-                                <span class="browser__icon"></span>
-                                <span class="browser__title" data-demo-name>@demoAdi</span>
-                            </div>
-                            <div class="browser__boxes">
-                                <div class="browser__box"></div><div class="browser__box"></div><div class="browser__box"></div>
-                            </div>
-                            <div class="browser__lines">
-                                <div class="browser__line"></div><div class="browser__line"></div>
-                                <div class="browser__line"></div><div class="browser__line"></div>
+                            @*
+                                CANLI ÖNİZLEME (Faz 3.6): mockup'ın içi artık iskelet çubukları değil,
+                                demonun KENDİSİ — küçük, tıklanamaz (pointer-events:none) bir kopya.
+                                ⛔ Aynı güvenlik kuralı: sandbox="allow-scripts", allow-same-origin ASLA.
+                                Demonun HTML'i yoksa (boş kayıt) iskelet geri gelir.
+                            *@
+                            <iframe class="browser__live" data-demo-preview
+                                    sandbox="allow-scripts" referrerpolicy="no-referrer"
+                                    tabindex="-1" aria-hidden="true" title="önizleme" hidden></iframe>
+                            <div data-demo-skeleton>
+                                <div class="browser__app">
+                                    <span class="browser__icon"></span>
+                                    <span class="browser__title" data-demo-name>@demoAdi</span>
+                                </div>
+                                <div class="browser__boxes">
+                                    <div class="browser__box"></div><div class="browser__box"></div><div class="browser__box"></div>
+                                </div>
+                                <div class="browser__lines">
+                                    <div class="browser__line"></div><div class="browser__line"></div>
+                                    <div class="browser__line"></div><div class="browser__line"></div>
+                                </div>
                             </div>
                             <div class="browser__fade"></div>
                             <div class="browser__open">

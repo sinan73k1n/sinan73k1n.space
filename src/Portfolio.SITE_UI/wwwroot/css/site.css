@@ -211,6 +211,13 @@
 .browser__line:nth-child(2) { width: 84%; }
 .browser__line:nth-child(3) { width: 48%; }
 .browser__line:nth-child(4) { width: 72%; background: color-mix(in oklab, var(--acc2) 30%, transparent); }
+/* Canlı önizleme: demonun kendisi, küçük ve TIKLANAMAZ.
+   pointer-events:none olmadan mockup'ın üstündeki "tam ekran aç" düğmesi
+   tıklanamaz hâle gelirdi (iframe faresi yutar). */
+.browser__live {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  border: 0; display: block; pointer-events: none; background: var(--panel);
+}
 .browser__fade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(transparent 60%, color-mix(in oklab, var(--panel2) 90%, transparent)); }
 .browser__open { position: absolute; left: 0; right: 0; bottom: 16px; display: flex; justify-content: center; }
 .demos__hint { margin-top: 12px; font-family: var(--font-mono); font-size: 11.5px; color: oklch(0.58 0.02 268); }
