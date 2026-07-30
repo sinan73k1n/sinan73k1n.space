@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Server Admin Panel — demo</title>
+<!--
+  ============================================================================
+  SERVER ADMIN PANEL — TEK DOSYA DEMO
+  ============================================================================
+  Ev sunucusu için yazdığım ASP.NET Core yönetim panelinin gezilebilir taklidi.
+  Portfolyodaki demo alanına yapıştırılır, iframe içinde `sandbox="allow-scripts"`
+  ile çalışır.
+
+  ⛔ ANONİM: buradaki HİÇBİR veri gerçek değil. Makine adı, IP, port, servis,
+     container, cihaz ve olay kayıtlarının tamamı kurgu. Gerçek panel özel ağın
+     arkasında, iki adımlı doğrulama ile duruyor; dışarıya açılmıyor.
+
+  🌍 ARAYÜZ DİLİ İNGİLİZCE (karar: 2026-07-30): site TR/EN/RU üç dilli, demo tek
+     dilli. Ortak dil İngilizce olunca üç dilin hiçbirinde yabancı durmuyor.
+     Kod yorumları Türkçe kalır — onlar ziyaretçiye değil bana.
+
+  Kısıtlar (bilinçli):
+   · Tek dosya, sıfır dış istek — font/CDN/görsel YOK (sandbox + CSP dostu).
+   · localStorage/cookie KULLANILMAZ: `allow-same-origin` verilmediği için
+     depolama erişimi hata atar. Tüm durum bellekte (`S` nesnesi).
+   · prefers-reduced-motion: reduce → CRT taraması ve akış animasyonları kapanır.
+   · `window.__onizleme()`: site bu demoyu KÜÇÜK ÖNİZLEME olarak gömdüğünde
+     çağırır → giriş ekranı atlanır (önizleme tıklanamaz, panel görünmeli).
+  ============================================================================
+-->
+<style>
+:root{
+  --bg:#050a05; --bg-side:#060f08; --bg-card:#070f09; --bg-hover:#0e1f12; --bg-head:#0a160d;
+  --border:#1c3a24; --border-soft:#0e1f12;
+  --text:#7dff9b; --bright:#baffcf; --green:#4ade80; --dim:#3f7a54; --dimmer:#2f5c3e;
+  --blue:#38bdf8; --yellow:#facc15; --red:#f87171; --red-soft:#fca5a5;
+  --red-border:#3a1c1c; --red-bg:#120808;
+  --warn-border:#3a2a12; --warn-bg:#12100a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg); color:var(--text); font-size:12.5px;
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;font-size:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+@keyframes ring{0%{transform:scale(1);opacity:.6}70%,100%{transform:scale(2.8);opacity:0}}
+@keyframes scan{from{transform:translateY(-10%)}to{transform:translateY(1000%)}}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes slidein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.blink{animation:blink 1s step-end infinite}
+.glow{text-shadow:0 0 6px currentColor}
+
+/* ---------- iskelet ---------- */
+.shell{position:relative;height:100vh;display:grid;grid-template-columns:216px 1fr;overflow:hidden}
+.shell::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:40;
+  background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.22) 2px 4px)}
+.scan-line{position:absolute;left:216px;right:0;height:70px;z-index:30;pointer-events:none;
+  background:linear-gradient(#7dff9b18,transparent);animation:scan 7s linear infinite}
+
+.side{border-right:1px solid var(--border);background:var(--bg-side);display:flex;flex-direction:column;z-index:20}
+.side-head{padding:16px 16px 14px;border-bottom:1px solid var(--border)}
+.side-host{color:var(--green);font-weight:800;letter-spacing:.14em;font-size:13px}
+.side-sub{color:var(--dim);font-size:10.5px;margin-top:3px}
+.nav{display:flex;flex-direction:column;padding:10px 8px;gap:2px;flex:1;overflow-y:auto}
+.nav-i{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:5px;cursor:pointer;
+  color:var(--dim);border:0;border-left:2px solid transparent;background:none;text-align:left;width:100%}
+.nav-i:hover{background:var(--bg-hover);color:var(--bright)}
+.nav-i.active{background:var(--bg-hover);color:var(--bright);border-left-color:var(--green)}
+.nav-i .icon{width:16px;text-align:center;flex:none}
+.nav-i .badge{margin-left:auto;font-size:10px;color:var(--dimmer)}
+.side-foot{padding:12px 16px;border-top:1px solid var(--border);color:var(--dim);font-size:10px;line-height:1.7}
+
+.main{overflow-y:auto;position:relative;z-index:10}
+.prompt{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--border);
+  padding:13px 22px;display:flex;justify-content:space-between;align-items:center;gap:14px;z-index:25;color:var(--green)}
+.prompt .user{color:var(--dim)}
+.prompt .path{color:var(--blue)}
+.prompt .arg{color:var(--bright)}
+.prompt .clock{color:var(--dim);flex:none}
+.prompt-cmd{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page{padding:20px 22px 46px}
+
+/* demo şeridi — ziyaretçi bunun canlı sunucu OLMADIĞINI bilmeli */
+.demobar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  border:1px solid var(--warn-border);background:var(--warn-bg);border-radius:6px;
+  padding:9px 13px;margin-bottom:16px;color:#c9b26a;font-size:11px;line-height:1.6}
+.demobar b{color:var(--yellow)}
+
+/* ---------- ortak ---------- */
+.card{border:1px solid var(--border);border-radius:6px;padding:13px 15px;background:var(--bg-card)}
+.card-t{display:flex;justify-content:space-between;gap:10px;color:var(--green);
+  border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:8px}
+.card-t .more{color:var(--dim);font-size:10.5px;cursor:pointer}
+.row-c{cursor:pointer;transition:background .12s}
+.row-c:hover{background:var(--bg-hover)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;flex:none;background:currentColor;
+  box-shadow:0 0 7px currentColor}
+.dot.xl{width:11px;height:11px;box-shadow:0 0 10px currentColor}
+.muted{color:var(--dim)}
+.hint{color:var(--dim);font-size:10.5px;line-height:1.75;margin-top:9px}
+.empty{color:var(--dimmer);padding:10px 4px;font-size:11px}
+.back{color:var(--dim);margin-bottom:16px;display:inline-block;cursor:pointer;background:none;border:0;padding:0;font-family:inherit;font-size:inherit}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g-main{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}
+.g-detail{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+.mb16{margin-bottom:16px}
+
+.stat{border:1px solid var(--border);border-radius:6px;padding:13px 14px;background:var(--bg-card);
+  text-align:left;width:100%;font-family:inherit;font-size:inherit;color:inherit}
+.stat .l{color:var(--dim);font-size:10px;letter-spacing:.05em}
+.stat .v{font-size:24px;font-weight:800;margin:4px 0 2px}
+.stat .s{color:var(--dim);font-size:10px}
+
+.meter{border:1px solid var(--border);border-radius:6px;padding:14px 16px;background:var(--bg-card)}
+.meter-h{display:flex;justify-content:space-between}
+.meter-h .l{color:var(--dim);font-size:10.5px}
+.meter-h .v{font-weight:700}
+.meter-bar{letter-spacing:1px;margin:7px 0;word-break:break-all}
+.meter-foot{color:var(--dim);font-size:10.5px;margin-top:8px}
+
+.item{display:flex;align-items:center;gap:9px;padding:6px 7px;border-radius:4px;color:var(--bright);
+  width:100%;background:none;border:0;font-family:inherit;font-size:inherit;text-align:left}
+.item .st{margin-left:auto;font-size:10.5px}
+.item .port{color:var(--dim);font-size:10.5px;width:58px;text-align:right;flex:none}
+
+.feed-row{display:flex;gap:12px;padding:5px 4px;align-items:baseline;animation:slidein .3s ease}
+.feed-row .t{color:var(--dimmer);font-size:10.5px;width:64px;flex:none}
+.feed-row .tag{font-size:10px;width:64px;flex:none;font-weight:600}
+.feed-row .m{color:var(--bright);font-size:11.5px}
+
+.f2b{border:1px solid var(--red-border);border-radius:6px;padding:13px 15px;background:var(--red-bg);
+  display:block;width:100%;text-align:left;font-family:inherit;font-size:inherit;color:inherit}
+.f2b .card-t{color:var(--red);border-bottom-color:var(--red-border);margin-bottom:9px}
+.f2b .n{font-size:22px;font-weight:800}
+.f2b .l{color:#7a4a4a;font-size:10px}
+.ring-wrap{position:relative;display:flex;align-items:center}
+.ring{position:absolute;inset:-3px;border-radius:50%;background:var(--red);animation:ring 2s infinite}
+.ring-core{width:8px;height:8px;border-radius:50%;background:var(--red)}
+
+.tbl{border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.tbl-h{padding:11px 16px;background:var(--bg-head);color:var(--dim);font-size:10.5px;border-bottom:1px solid var(--border)}
+.tbl-r{padding:12px 16px;border-bottom:1px solid var(--border-soft);align-items:center;color:var(--bright)}
+.tbl-r:last-child{border-bottom:none}
+.tbl.danger{border-color:var(--red-border);background:#0e0606}
+.tbl.danger .tbl-h{background:transparent;color:var(--red);border-bottom-color:var(--red-border)}
+.tbl.danger .tbl-r{border-bottom-color:#1c0e0e;color:var(--red-soft);font-size:11.5px}
+.svc-cols{display:grid;grid-template-columns:22px 1.4fr 1fr .8fr .7fr 96px;gap:10px}
+.ban-cols{display:grid;grid-template-columns:1.1fr .9fr .5fr 1fr 78px;gap:10px}
+.ts-cols{display:grid;grid-template-columns:22px 1.2fr 1fr .9fr .9fr;gap:10px}
+
+.panel{border:1px solid var(--border);border-radius:6px;padding:14px 16px;background:#040804}
+.panel-t{color:var(--green)}
+.btn{background:transparent;border:1px solid var(--border);color:var(--text);border-radius:5px;
+  padding:6px 12px;cursor:pointer;transition:background .12s}
+.btn:hover{background:var(--bg-hover);color:var(--bright)}
+.btn.go{border-color:var(--green);color:var(--green)}
+.btn.warn{border-color:var(--yellow);color:var(--yellow)}
+.btn.stop{border-color:var(--red);color:var(--red)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.chip{border:1px solid var(--border);border-radius:20px;padding:3px 11px;color:var(--dim);
+  cursor:pointer;font-size:10.5px;background:none;font-family:inherit}
+.chip.on{border-color:var(--green);color:var(--green)}
+
+.ok-box{border:1px solid var(--green);border-radius:6px;padding:10px 14px;margin-bottom:14px;color:var(--green);background:#04140a}
+.fail-box{border:1px solid var(--red);border-radius:6px;padding:10px 14px;margin-bottom:14px;color:var(--red-soft);background:var(--red-bg)}
+.confirm{border:2px solid var(--yellow);border-radius:6px;padding:16px 18px;background:var(--warn-bg);margin-bottom:16px}
+.confirm.high{border-color:var(--red)}
+.confirm h4{margin:0 0 8px;font-size:14px;color:var(--yellow)}
+.confirm.high h4{color:var(--red)}
+.confirm p{margin:0;color:var(--bright);line-height:1.75}
+
+table.t{width:100%;border-collapse:collapse;margin-top:10px}
+table.t th{text-align:left;color:var(--dim);font-size:10.5px;font-weight:400;
+  border-bottom:1px solid var(--border);padding:8px 6px}
+table.t td{border-bottom:1px solid var(--border-soft);padding:10px 6px;color:var(--bright);vertical-align:middle}
+table.t tr:last-child td{border-bottom:none}
+table.t td.r,table.t th.r{text-align:right}
+
+.logline{display:flex;gap:10px;padding:3px 4px;font-size:11.5px;animation:slidein .25s ease}
+.logline .t{color:var(--dimmer);width:64px;flex:none}
+.logline .u{width:78px;flex:none;font-weight:600}
+.logbox{max-height:340px;overflow-y:auto;background:#030603;border:1px solid var(--border-soft);
+  border-radius:5px;padding:8px 10px;margin-top:10px}
+
+input[type=range]{accent-color:#4ade80;width:100%}
+input[type=text],input[type=password],select{
+  background:#030603;border:1px solid var(--border);color:var(--bright);border-radius:5px;
+  padding:8px 10px;font-family:inherit;font-size:12.5px;width:100%}
+input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+/* ---------- giriş ekranı (şifre + TOTP) ---------- */
+.login{position:absolute;inset:0;z-index:60;background:var(--bg);display:grid;place-items:center;padding:20px}
+.login-box{width:min(380px,100%);border:1px solid var(--border);border-radius:8px;padding:26px 24px;background:var(--bg-card)}
+.login-box h1{margin:0;font-size:15px;color:var(--green);letter-spacing:.14em}
+.login-box .sub{color:var(--dim);font-size:10.5px;margin:5px 0 20px}
+.login-box label{display:block;color:var(--dim);font-size:10.5px;margin:12px 0 5px}
+.login-err{color:var(--red);font-size:11px;margin-top:10px;min-height:15px}
+
+@media (max-width:1100px){
+  .g5{grid-template-columns:repeat(2,1fr)}
+  .g4,.g3,.g2,.g-main,.g-detail{grid-template-columns:1fr}
+  .shell{grid-template-columns:168px 1fr}
+  .scan-line{left:168px}
+  .svc-cols{grid-template-columns:22px 1.2fr .9fr 92px}
+  .hide-s{display:none}
+  .ban-cols{grid-template-columns:1fr .8fr 78px}
+  .ts-cols{grid-template-columns:22px 1fr .9fr}
+}
+@media (max-width:620px){
+  .shell{grid-template-columns:1fr;height:auto;min-height:100vh}
+  .side{border-right:0;border-bottom:1px solid var(--border)}
+  .nav{flex-direction:row;flex-wrap:wrap}
+  .nav-i{width:auto;border-left:0;border-bottom:2px solid transparent}
+  .nav-i.active{border-left:0;border-bottom-color:var(--green)}
+  .nav-i .badge{margin-left:6px}
+  .scan-line{display:none}
+  .page{padding:16px 14px 40px}
+}
+@media (prefers-reduced-motion:reduce){
+  .scan-line,.blink,.ring,.feed-row,.logline{animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="scan-line" aria-hidden="true"></div>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="side">
+    <div class="side-head">
+      <div class="side-host glow">SERVERDEMO</div>
+      <div class="side-sub">admin@10.0.0.42</div>
+    </div>
+    <nav class="nav" id="nav" aria-label="Panel sections"></nav>
+    <div class="side-foot">
+      up <span id="footUp">14d 06:21</span><br>
+      load <span id="footLoad">0.21 0.34 0.29</span><br>
+      <span id="footState" style="color:var(--green)" class="glow">● all systems go</span>
+    </div>
+  </aside>
+
+  <!-- ===== ANA ALAN ===== -->
+  <main class="main" id="main">
+    <div class="prompt">
+      <span class="prompt-cmd">
+        <span class="user">admin@serverdemo</span>:<span class="path" id="pPath">~/overview</span>$
+        <span class="arg" id="pCmd">./status --watch</span><span class="blink">▊</span>
+      </span>
+      <span class="clock" id="clock">—</span>
+    </div>
+    <div class="page" id="page"></div>
+  </main>
+
+  <!-- ===== GİRİŞ — panelin gerçek akışı: şifre + 6 haneli TOTP kodu ===== -->
+  <div class="login" id="login">
+    <div class="login-box">
+      <h1 class="glow">SERVERDEMO</h1>
+      <div class="sub">admin panel · private network access only</div>
+      <label for="lu">user</label>
+      <input id="lu" type="text" value="admin" autocomplete="off">
+      <label for="lp">password</label>
+      <input id="lp" type="password" value="demo1234" autocomplete="off">
+      <label for="lc">verification code (TOTP)</label>
+      <input id="lc" type="text" inputmode="numeric" maxlength="6" placeholder="6 digits" autocomplete="off">
+      <div class="login-err" id="lerr"></div>
+      <div style="display:flex;gap:9px;margin-top:14px">
+        <button class="btn go" id="lgo" style="flex:1">sign in ▸</button>
+        <button class="btn" id="lskip">skip</button>
+      </div>
+      <div class="hint" style="margin-top:14px">
+        ▸ Demo: any 6-digit code is accepted. In the real panel the password is stored as a PBKDF2
+        hash, the code is verified as RFC 6238 TOTP, and the IP is locked out after 5 failures.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===========================================================================
+   1) DURUM — hepsi bellekte. sandbox'ta depolama yok (bilinçli).
+   Veriler KURGU: makine/servis/container/IP/port/cihaz adlarının gerçekle
+   ilgisi yok. Banlı IP'ler RFC 5737 dokümantasyon bloklarından.
+   =========================================================================== */
+const S = {
+  page: "overview",
+  detail: null,                 // {tip:"service"|"container", id}
+  metric: { cpu: 12, ram: 68, disk: 41, netDown: 1.4, netUp: 0.6 },
+  hist:   { cpu: [], ram: [] }, // sparkline geçmişi
+  services: [
+    { id:"reverse-proxy", name:"reverse-proxy.service", state:"active",  port:":443",   since:"14d",   mem:"38M",  desc:"HTTP/HTTPS front door, TLS termination" },
+    { id:"app-alpha",     name:"app-alpha.service",     state:"active",  port:":7101",  since:"6d",    mem:"212M", desc:"Alpha web app (ASP.NET Core)" },
+    { id:"app-beta",      name:"app-beta.service",      state:"active",  port:":7102",  since:"2d",    mem:"186M", desc:"Beta web app (ASP.NET Core)" },
+    { id:"panel",         name:"panel.service",         state:"active",  port:":7100",  since:"14d",   mem:"149M", desc:"This panel — cannot manage itself (by design)" },
+    { id:"git-server",    name:"git-server.service",    state:"active",  port:":7300",  since:"11d",   mem:"264M", desc:"Self-hosted git remote" },
+    { id:"metrics",       name:"metrics.service",       state:"active",  port:":9100",  since:"14d",   mem:"96M",  desc:"System metrics collector" },
+    { id:"mesh",          name:"mesh.service",          state:"active",  port:"—",      since:"14d",   mem:"44M",  desc:"Private mesh VPN client" },
+    { id:"guard",         name:"guard.service",         state:"active",  port:"—",      since:"14d",   mem:"31M",  desc:"Intrusion detection / IP banning" },
+    { id:"backup-timer",  name:"backup.timer",          state:"waiting", port:"—",      since:"03:30", mem:"—",    desc:"Nightly backup schedule" }
+  ],
+  containers: [
+    { id:"db-main", name:"db-main", image:"mssql:2022",   status:"Up 14 days", up:true,  mem:"1.6G", ports:"127.0.0.1:14330" },
+    { id:"db-side", name:"db-side", image:"postgres:16",  status:"Up 14 days", up:true,  mem:"188M", ports:"127.0.0.1:54320" },
+    { id:"cache",   name:"cache",   image:"redis:7",      status:"Up 6 days",  up:true,  mem:"42M",  ports:"127.0.0.1:63790" },
+    { id:"cloud",   name:"cloud",   image:"cloud:latest", status:"Exited (0)", up:false, mem:"—",    ports:"—" }
+  ],
+  jails: [
+    { jail:"sshd",       banned:12, findtime:"10m", maxretry:5 },
+    { jail:"web-login",  banned:5,  findtime:"10m", maxretry:5 },
+    { jail:"http-flood", banned:3,  findtime:"5m",  maxretry:20 }
+  ],
+  bans: [
+    { ip:"203.0.113.47",   jail:"sshd",       tries:38, when:"12m ago" },
+    { ip:"198.51.100.9",   jail:"sshd",       tries:21, when:"41m ago" },
+    { ip:"203.0.113.128",  jail:"web-login",  tries:14, when:"1h 12m ago" },
+    { ip:"192.0.2.77",     jail:"http-flood", tries:96, when:"2h 03m ago" },
+    { ip:"198.51.100.203", jail:"sshd",       tries:11, when:"3h 47m ago" }
+  ],
+  devices: [
+    { name:"serverdemo",  ip:"100.x.x.10", os:"linux",   online:true,  last:"now",    self:true },
+    { name:"laptop-demo", ip:"100.x.x.11", os:"macos",   online:true,  last:"now",    self:false },
+    { name:"phone-demo",  ip:"100.x.x.12", os:"android", online:true,  last:"2m ago", self:false },
+    { name:"tablet-demo", ip:"100.x.x.13", os:"ipados",  online:false, last:"3d ago", self:false }
+  ],
+  events: [
+    { time:"09:41:02", tag:"BACKUP",  sev:"ok",   msg:"db-main backup completed (412 MB) → external disk" },
+    { time:"09:12:55", tag:"GUARD",   sev:"bad",  msg:"203.0.113.47 banned (jail: sshd, 38 attempts)" },
+    { time:"08:30:00", tag:"SYSTEMD", sev:"ok",   msg:"app-beta.service restarted (deploy)" },
+    { time:"07:58:14", tag:"NOTIFY",  sev:"warn", msg:"RAM 86% → threshold crossed, alert sent" },
+    { time:"07:58:41", tag:"NOTIFY",  sev:"ok",   msg:"RAM 71% → recovered (hysteresis band)" },
+    { time:"03:30:07", tag:"TIMER",   sev:"ok",   msg:"nightly backup cycle ran (4 sources)" }
+  ],
+  logs: [
+    { t:"09:41:02", u:"backup",  m:"BACKUP DATABASE db-main → /mnt/backup/db-main-20260730.bak" },
+    { t:"09:40:58", u:"backup",  m:"source lock acquired, starting full backup" },
+    { t:"09:12:55", u:"guard",   m:"[sshd] Ban 203.0.113.47" },
+    { t:"09:12:54", u:"sshd",    m:"Failed password for invalid user root from 203.0.113.47 port 51422" },
+    { t:"08:30:00", u:"systemd", m:"Started app-beta.service" },
+    { t:"08:29:58", u:"systemd", m:"Stopping app-beta.service..." },
+    { t:"08:12:33", u:"proxy",   m:"GET /health 200 1.2ms" },
+    { t:"07:58:14", u:"notify",  m:"threshold RAM 85% exceeded → alert sent" },
+    { t:"07:41:09", u:"guard",   m:"[http-flood] Ban 192.0.2.77" },
+    { t:"06:15:00", u:"cron",    m:"metric rollup ran: 1440 samples → daily summary" }
+  ],
+  logFilter: "all",
+  streaming: true,
+  backups: [
+    { src:"db-main",    type:"MSSQL", last:"09:41 · 412 MB",     state:"ok",      target:"external disk" },
+    { src:"db-side",    type:"PgSQL", last:"03:31 · 88 MB",      state:"ok",      target:"internal HDD" },
+    { src:"app-config", type:"files", last:"03:30 · 2.4 MB",     state:"ok",      target:"internal HDD" },
+    { src:"git-repos",  type:"files", last:"yesterday · 1.2 GB", state:"pending", target:"external disk" }
+  ],
+  restorePoints: [
+    { src:"db-main", file:"db-main-20260730-0341.bak",  size:"412 MB", date:"Jul 30, 03:41" },
+    { src:"db-main", file:"db-main-20260729-0340.bak",  size:"409 MB", date:"Jul 29, 03:40" },
+    { src:"db-side", file:"db-side-20260730-0331.dump", size:"88 MB",  date:"Jul 30, 03:31" }
+  ],
+  notify: {
+    channel:"Telegram bot", channelOn:true,
+    cpu:90, ram:85, disk:80, band:5,
+    alarms:[
+      { t:"07:58", m:"RAM 86% (threshold 85%) — alert sent", sev:"warn" },
+      { t:"07:58", m:"RAM 71% — recovered", sev:"ok" },
+      { t:"yesterday 22:14", m:"DISK 81% (threshold 80%) — alert sent", sev:"warn" }
+    ]
+  },
+  metricRange:"24h",
+  toast:null,           // {kind:"ok"|"fail", msg}
+  confirm:null,         // {id,name,op,risk,warn,kind}
+  busy:false
+};
+
+/* Makul görünen başlangıç geçmişi — rastgele değil, tekrarlanabilir olsun. */
+for (let i = 0; i < 40; i++) {
+  S.hist.cpu.push(10 + Math.round(8 * Math.abs(Math.sin(i / 5))));
+  S.hist.ram.push(64 + Math.round(7 * Math.abs(Math.sin(i / 7 + 1))));
+}
+
+const NAV = [
+  { id:"overview", icon:"▦", label:"overview", cmd:"./status --watch" },
+  { id:"services", icon:"⚙", label:"services", cmd:"systemctl list-units --type=service" },
+  { id:"docker",   icon:"▤", label:"docker",   cmd:"docker ps -a" },
+  { id:"security", icon:"⛨", label:"security", cmd:"./guard --status" },
+  { id:"mesh",     icon:"◈", label:"mesh vpn", cmd:"./mesh status" },
+  { id:"logs",     icon:"≣", label:"logs",     cmd:"journalctl -f" },
+  { id:"history",  icon:"⟲", label:"history",  cmd:"./events --since 7d" },
+  { id:"metrics",  icon:"◹", label:"metrics",  cmd:"./metrics" },
+  { id:"backup",   icon:"⇪", label:"backup",   cmd:"./backup --run" },
+  { id:"restore",  icon:"⤓", label:"restore",  cmd:"./restore --inspect" },
+  { id:"notify",   icon:"◔", label:"alerts",   cmd:"./notify --status" },
+  { id:"control",  icon:"⏻", label:"control",  cmd:"./control" }
+];
+
+/* ===========================================================================
+   2) YARDIMCILAR
+   =========================================================================== */
+const $  = (s) => document.querySelector(s);
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => (
+  { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]
+));
+const bar = (pct, w = 28) => {
+  const f = Math.round((pct / 100) * w);
+  return { f:"█".repeat(f), e:"░".repeat(Math.max(0, w - f)) };
+};
+const stateColor = (st) => st === "active" ? "var(--green)" : st === "waiting" ? "var(--yellow)" : "var(--dim)";
+const sevColor   = (s)  => s === "bad" ? "var(--red)" : s === "warn" ? "var(--yellow)" : "var(--green)";
+const nowClock   = () => new Date().toLocaleTimeString("en-GB", { hour12:false });
+const spark = (arr, color) => {
+  const max = Math.max(...arr, 1);
+  const pts = arr.map((v, i) =>
+    `${(i / (arr.length - 1) * 300).toFixed(1)},${(32 - (v / max) * 30).toFixed(1)}`).join(" ");
+  return `<svg width="100%" height="34" viewBox="0 0 300 34" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6"/></svg>`;
+};
+/* `.timer` bir servis değil, zamanlayıcı → "hepsi active mi?" sayımına girmez. */
+const realSvc     = () => S.services.filter(s => !s.name.endsWith(".timer"));
+const activeCount = () => realSvc().filter(s => s.state === "active").length;
+const svcTotal    = () => realSvc().length;
+const banTotal    = () => S.bans.length;
+const onlineCount = () => S.devices.filter(d => d.online).length;
+
+function toast(kind, msg) {
+  S.toast = { kind, msg };
+  render();
+  setTimeout(() => { if (S.toast && S.toast.msg === msg) { S.toast = null; render(); } }, 4200);
+}
+function pushEvent(tag, sev, msg) {
+  S.events.unshift({ time:nowClock(), tag, sev, msg });
+  S.events = S.events.slice(0, 14);
+  S.logs.unshift({ t:nowClock(), u:tag.toLowerCase(), m:msg });
+  S.logs = S.logs.slice(0, 60);
+}
+
+/* ===========================================================================
+   3) SAYFALAR
+   =========================================================================== */
+const DEMOBAR = `<div class="demobar">
+  <b>DEMO</b>
+  <span>Not connected to a real server — every host name, IP, service and event here is fictional.
+  The buttons work, the results are simulated. The real panel lives behind a private network with
+  two-factor auth.</span>
+</div>`;
+
+function pageOverview() {
+  const m = S.metric, c = bar(m.cpu), r = bar(m.ram), d = bar(m.disk);
+  const allGood = activeCount() === svcTotal();
+  return DEMOBAR + `
+  <div class="g5 mb16">
+    <button class="stat row-c" data-go="services">
+      <div class="l">SERVICES</div>
+      <div class="v glow" style="color:${allGood ? "var(--green)" : "var(--yellow)"}">${activeCount()}/${svcTotal()}</div>
+      <div class="s">${allGood ? "all active" : "needs attention"} · 1 timer</div>
+    </button>
+    <button class="stat row-c" data-go="docker">
+      <div class="l">DOCKER</div>
+      <div class="v glow" style="color:var(--green)">${S.containers.filter(x=>x.up).length}/${S.containers.length}</div>
+      <div class="s">containers up</div>
+    </button>
+    <button class="stat row-c" data-go="security">
+      <div class="l">BANS</div>
+      <div class="v glow" style="color:var(--red)">▲ ${banTotal()}</div>
+      <div class="s">${S.jails.length} jails active</div>
+    </button>
+    <button class="stat row-c" data-go="mesh">
+      <div class="l">MESH VPN</div>
+      <div class="v glow" style="color:var(--blue)">${onlineCount()}/${S.devices.length}</div>
+      <div class="s">devices online</div>
+    </button>
+    <div class="stat">
+      <div class="l">UPTIME</div>
+      <div class="v glow" style="color:var(--yellow)">14d</div>
+      <div class="s">load 0.21</div>
+    </div>
+  </div>
+
+  <div class="g3 mb16">
+    <div class="meter">
+      <div class="meter-h"><span class="l">CPU</span><span class="v" style="color:var(--green)">${m.cpu}%</span></div>
+      <div class="meter-bar glow"><span style="color:var(--green)">${c.f}</span><span style="color:#12261a">${c.e}</span></div>
+      ${spark(S.hist.cpu, "#4ade80")}
+      <div class="meter-foot">24h ▼${Math.min(...S.hist.cpu)}% ▲${Math.max(...S.hist.cpu)}%</div>
+    </div>
+    <div class="meter">
+      <div class="meter-h"><span class="l">RAM · 8.0G</span><span class="v" style="color:var(--yellow)">${m.ram}%</span></div>
+      <div class="meter-bar glow"><span style="color:var(--yellow)">${r.f}</span><span style="color:#2a2410">${r.e}</span></div>
+      ${spark(S.hist.ram, "#facc15")}
+      <div class="meter-foot">24h ▼${Math.min(...S.hist.ram)}% ▲${Math.max(...S.hist.ram)}%</div>
+    </div>
+    <div class="meter">
+      <div class="meter-h"><span class="l">DISK · 512G</span><span class="v" style="color:var(--blue)">${m.disk}%</span></div>
+      <div class="meter-bar glow"><span style="color:var(--blue)">${d.f}</span><span style="color:#0e2230">${d.e}</span></div>
+      <div class="meter-foot">210G / 512G · ↓${m.netDown.toFixed(1)} ↑${m.netUp.toFixed(1)} MB/s</div>
+      <div class="meter-foot">24h ▼40% ▲43%</div>
+    </div>
+  </div>
+
+  <div class="g-main mb16">
+    <div class="card">
+      <div class="card-t"><span>SYSTEMCTL</span><span class="more" data-go="services">all &gt;</span></div>
+      ${S.services.map(s => `
+        <button class="item row-c" data-svc="${s.id}">
+          <span class="dot" style="color:${stateColor(s.state)}"></span>${esc(s.name)}
+          <span class="st" style="color:${stateColor(s.state)}">${s.state}</span>
+          <span class="port">${esc(s.port)}</span>
+        </button>`).join("")}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-t"><span>DOCKER PS</span><span class="more" data-go="docker">all &gt;</span></div>
+        ${S.containers.map(c2 => `
+          <button class="item row-c" data-cnt="${c2.id}">
+            <span class="dot" style="color:${c2.up ? "var(--green)" : "var(--dim)"}"></span>${esc(c2.name)}
+            <span class="st" style="color:${c2.up ? "var(--green)" : "var(--dim)"}">${esc(c2.status)}</span>
+          </button>`).join("")}
+      </div>
+      <button class="f2b row-c" data-go="security">
+        <div class="card-t"><span>GUARD · IP BANS</span>
+          <span class="ring-wrap"><span class="ring"></span><span class="ring-core"></span></span></div>
+        <div style="display:flex;gap:22px">
+          <div><div class="n glow" style="color:var(--red)">${banTotal()}</div><div class="l">banned IPs</div></div>
+          <div><div class="n" style="color:var(--red-soft)">${S.jails.length}</div>
+               <div class="l">jails: ${S.jails.map(j=>j.jail).join(" · ")}</div></div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-t"><span>RECENT ACTIVITY · tail -f /var/log/events</span>
+      <span class="more" data-go="logs">logs &gt;</span></div>
+    ${S.events.map(e => `<div class="feed-row">
+      <span class="t">${esc(e.time)}</span>
+      <span class="tag" style="color:${sevColor(e.sev)}">${esc(e.tag)}</span>
+      <span class="m">${esc(e.msg)}</span></div>`).join("")}
+  </div>`;
+}
+
+function pageServices() {
+  return DEMOBAR + `
+  <div class="tbl">
+    <div class="tbl-h svc-cols"><span></span><span>UNIT</span><span class="hide-s">DESCRIPTION</span>
+      <span class="hide-s">UPTIME</span><span class="hide-s">MEMORY</span><span>STATE</span></div>
+    ${S.services.map(s => `
+      <div class="tbl-r svc-cols row-c" data-svc="${s.id}">
+        <span class="dot" style="color:${stateColor(s.state)}"></span>
+        <span>${esc(s.name)}<div class="muted" style="font-size:10.5px">${esc(s.port)}</div></span>
+        <span class="hide-s muted">${esc(s.desc)}</span>
+        <span class="hide-s muted">${esc(s.since)}</span>
+        <span class="hide-s muted">${esc(s.mem)}</span>
+        <span style="color:${stateColor(s.state)}">${s.state}</span>
+      </div>`).join("")}
+  </div>
+  <div class="hint">▸ Click a row for unit details. Start/stop actions live on the <b>control</b> page —
+  every one of them goes through a confirmation step.</div>`;
+}
+
+function pageDocker() {
+  return DEMOBAR + `
+  <div class="tbl">
+    <div class="tbl-h svc-cols"><span></span><span>CONTAINER</span><span class="hide-s">IMAGE</span>
+      <span class="hide-s">PORTS</span><span class="hide-s">MEMORY</span><span>STATUS</span></div>
+    ${S.containers.map(c => `
+      <div class="tbl-r svc-cols row-c" data-cnt="${c.id}">
+        <span class="dot" style="color:${c.up ? "var(--green)" : "var(--dim)"}"></span>
+        <span>${esc(c.name)}</span>
+        <span class="hide-s muted">${esc(c.image)}</span>
+        <span class="hide-s muted">${esc(c.ports)}</span>
+        <span class="hide-s muted">${esc(c.mem)}</span>
+        <span style="color:${c.up ? "var(--green)" : "var(--dim)"}">${esc(c.status)}</span>
+      </div>`).join("")}
+  </div>
+  <div class="hint">▸ Ports are bound to <b>127.0.0.1 only</b>: the databases are invisible from
+  outside, the reverse proxy is the single entry point.</div>`;
+}
+
+function pageSecurity() {
+  return DEMOBAR + `
+  <div class="g3 mb16">
+    ${S.jails.map(j => `
+      <div class="stat">
+        <div class="l">JAIL · ${esc(j.jail)}</div>
+        <div class="v glow" style="color:var(--red)">${j.banned}</div>
+        <div class="s">${j.maxretry} retries / ${esc(j.findtime)}</div>
+      </div>`).join("")}
+  </div>
+  <div class="tbl danger">
+    <div class="tbl-h ban-cols"><span>IP</span><span>JAIL</span><span class="hide-s">ATTEMPTS</span>
+      <span class="hide-s">WHEN</span><span></span></div>
+    ${S.bans.length === 0 ? `<div class="tbl-r"><span class="empty">— no banned IPs —</span></div>` :
+      S.bans.map(b => `
+      <div class="tbl-r ban-cols">
+        <span>${esc(b.ip)}</span><span>${esc(b.jail)}</span>
+        <span class="hide-s">${b.tries}</span><span class="hide-s">${esc(b.when)}</span>
+        <span style="text-align:right"><button class="btn stop" data-unban="${esc(b.ip)}">unban</button></span>
+      </div>`).join("")}
+  </div>
+  <div class="hint">▸ <b>Why a custom filter instead of the bundled one:</b> the scans actually hitting
+  the server asked for <code>/wp-admin/install.php</code>, while the stock filter matched
+  <code>wp-login.php</code> — so it never fired. A rule that never fires is worse than no rule at all:
+  it makes you believe you are protected.</div>`;
+}
+
+function pageMesh() {
+  return DEMOBAR + `
+  <div class="tbl">
+    <div class="tbl-h ts-cols"><span></span><span>DEVICE</span><span>PRIVATE IP</span>
+      <span class="hide-s">OS</span><span class="hide-s">LAST SEEN</span></div>
+    ${S.devices.map(d => `
+      <div class="tbl-r ts-cols">
+        <span class="dot" style="color:${d.online ? "var(--blue)" : "var(--dim)"}"></span>
+        <span>${esc(d.name)}${d.self ? ` <span class="muted">(this machine)</span>` : ""}</span>
+        <span class="muted">${esc(d.ip)}</span>
+        <span class="hide-s muted">${esc(d.os)}</span>
+        <span class="hide-s muted">${esc(d.last)}</span>
+      </div>`).join("")}
+  </div>
+  <div class="hint">▸ The panel is reachable <b>only</b> from this private network — it never faces the
+  public internet. Private addresses are masked in the demo.</div>`;
+}
+
+function pageLogs() {
+  const sources = ["all", ...new Set(S.logs.map(l => l.u))];
+  const list = S.logs.filter(l => S.logFilter === "all" || l.u === S.logFilter);
+  return DEMOBAR + `
+  <div class="panel">
+    <div class="panel-t">journalctl -f <span class="muted">· live stream</span></div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px">
+      ${sources.map(k => `<button class="chip ${S.logFilter===k?"on":""}" data-logf="${esc(k)}">${esc(k)}</button>`).join("")}
+      <button class="btn ${S.streaming ? "go" : ""}" data-stream style="margin-left:auto">
+        ${S.streaming ? "■ pause stream" : "▶ resume stream"}</button>
+    </div>
+    <div class="logbox">
+      ${list.map(l => `<div class="logline"><span class="t">${esc(l.t)}</span>
+        <span class="u" style="color:var(--dim)">${esc(l.u)}</span>
+        <span>${esc(l.m)}</span></div>`).join("")}
+    </div>
+    <div class="hint">▸ In the real panel the stream arrives over <b>SSE</b>; if the connection drops
+    the browser reconnects on its own. In this demo the lines are
+    ${S.streaming ? "being generated" : "paused"}.</div>
+  </div>`;
+}
+
+function pageHistory() {
+  return DEMOBAR + `
+  <div class="panel">
+    <div class="panel-t">./events --since 7d <span class="muted">· persisted event history</span></div>
+    <table class="t">
+      <thead><tr><th>time</th><th>source</th><th>event</th></tr></thead>
+      <tbody>
+        ${S.events.map(e => `<tr>
+          <td class="muted">${esc(e.time)}</td>
+          <td style="color:${sevColor(e.sev)}">${esc(e.tag)}</td>
+          <td>${esc(e.msg)}</td></tr>`).join("")}
+      </tbody>
+    </table>
+    <div class="hint">▸ The logs page shows the <b>live stream</b>; this history is written to the
+    <b>database</b>, so events survive a panel restart. The split is deliberate — a stream is cheap,
+    history has to be durable.</div>
+  </div>`;
+}
+
+function pageMetrics() {
+  const ranges = ["1h","24h","7d","30d"];
+  const data = S.hist.cpu.map((v, i) => ({ cpu:v, ram:S.hist.ram[i] }));
+  const line = (key, color) => {
+    const pts = data.map((d, i) =>
+      `${(i / (data.length - 1) * 600).toFixed(1)},${(140 - (d[key] / 100) * 130).toFixed(1)}`).join(" ");
+    return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" vector-effect="non-scaling-stroke"/>`;
+  };
+  return DEMOBAR + `
+  <div class="panel">
+    <div class="panel-t" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <span>./metrics --range ${S.metricRange} <span class="muted">· persisted metric history</span></span>
+      <span style="display:flex;gap:6px">
+        ${ranges.map(r => `<button class="chip ${S.metricRange===r?"on":""}" data-range="${r}">${r}</button>`).join("")}
+      </span>
+    </div>
+    <svg viewBox="0 0 600 150" width="100%" height="200" preserveAspectRatio="none"
+         style="margin-top:12px" aria-label="CPU and RAM chart">
+      ${[0,32.5,65,97.5,130].map(y => `<line x1="0" y1="${y+10}" x2="600" y2="${y+10}" stroke="#12261a" stroke-width="1" vector-effect="non-scaling-stroke"/>`).join("")}
+      ${line("ram","#facc15")}
+      ${line("cpu","#4ade80")}
+    </svg>
+    <div style="display:flex;gap:18px;color:var(--dim);font-size:10.5px">
+      <span><span style="color:var(--green)">──</span> CPU</span>
+      <span><span style="color:var(--yellow)">──</span> RAM</span>
+      <span style="margin-left:auto">sample interval: 1 min · retention: 30 days</span>
+    </div>
+    <div class="g4" style="margin-top:14px">
+      <div class="stat"><div class="l">CPU AVG</div><div class="v" style="color:var(--green)">14%</div><div class="s">peak 31%</div></div>
+      <div class="stat"><div class="l">RAM AVG</div><div class="v" style="color:var(--yellow)">69%</div><div class="s">peak 86%</div></div>
+      <div class="stat"><div class="l">DISK GROWTH</div><div class="v" style="color:var(--blue)">+1.2G</div><div class="s">last 7 days</div></div>
+      <div class="stat"><div class="l">SAMPLES</div><div class="v">43.2k</div><div class="s">in database</div></div>
+    </div>
+    <div class="hint">▸ The collector only kept <b>the last few hours</b>, so "what was RAM doing last
+    week?" had no answer. The panel now writes samples to its own database and the chart reads from
+    there.</div>
+  </div>`;
+}
+
+function pageBackup() {
+  return DEMOBAR + `
+  <div class="panel mb16">
+    <div class="panel-t">./backup --run <span class="muted">· take a backup</span></div>
+    <div class="hint">▸ <b>Paths are never typed</b>, they are picked from a fixed list. Sources and
+    targets are predefined — the panel accepts no free-form file path (security decision).</div>
+    <table class="t">
+      <thead><tr><th>source</th><th>method</th><th class="hide-s">last backup</th>
+        <th class="hide-s">target</th><th class="r">action</th></tr></thead>
+      <tbody>
+        ${S.backups.map(b => `<tr>
+          <td>${esc(b.src)}</td>
+          <td class="muted">${esc(b.type)}</td>
+          <td class="hide-s muted">${esc(b.last)}</td>
+          <td class="hide-s muted">${esc(b.target)}</td>
+          <td class="r"><button class="btn go" data-backup="${esc(b.src)}" ${S.busy?"disabled":""}>▸ back up</button></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>
+  <div class="g2">
+    <div class="panel">
+      <div class="panel-t">backup targets</div>
+      <table class="t">
+        <thead><tr><th>target</th><th>state</th><th class="r">free space</th></tr></thead>
+        <tbody>
+          <tr><td>internal HDD</td><td style="color:var(--green)">● mounted</td><td class="r muted">1.2 TB</td></tr>
+          <tr><td>external disk</td><td style="color:var(--green)">● mounted</td><td class="r muted">640 GB</td></tr>
+          <tr><td>cloud copy</td><td style="color:var(--dim)">○ disabled</td><td class="r muted">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="panel-t">schedule</div>
+      <table class="t">
+        <thead><tr><th>job</th><th>time</th><th class="r">state</th></tr></thead>
+        <tbody>
+          <tr><td>database backup</td><td class="muted">03:30</td><td class="r" style="color:var(--green)">enabled</td></tr>
+          <tr><td>file backup</td><td class="muted">03:40</td><td class="r" style="color:var(--green)">enabled</td></tr>
+          <tr><td>copy to external</td><td class="muted">04:10</td><td class="r" style="color:var(--green)">enabled</td></tr>
+          <tr><td>prune old backups</td><td class="muted">04:30</td><td class="r" style="color:var(--green)">enabled</td></tr>
+        </tbody>
+      </table>
+      <div class="hint">▸ The loop checks every 5 minutes. If a target is not mounted the job does not
+      <b>crash</b> — it is marked failed and an alert goes out. A backup that fails silently is the
+      worst possible outcome.</div>
+    </div>
+  </div>`;
+}
+
+function pageRestore() {
+  return DEMOBAR + `
+  <div class="panel mb16">
+    <div class="panel-t">./restore --inspect <span class="muted">· restore points</span></div>
+    <table class="t">
+      <thead><tr><th>source</th><th>file</th><th class="hide-s">size</th>
+        <th class="hide-s">date</th><th class="r">action</th></tr></thead>
+      <tbody>
+        ${S.restorePoints.map(p => `<tr>
+          <td>${esc(p.src)}</td>
+          <td class="muted" style="word-break:break-all">${esc(p.file)}</td>
+          <td class="hide-s muted">${esc(p.size)}</td>
+          <td class="hide-s muted">${esc(p.date)}</td>
+          <td class="r"><button class="btn warn" data-restore="${esc(p.file)}">⤓ restore</button></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+    <div class="hint">▸ A restore <b>overwrites</b>: the confirmation screen spells out which database
+    returns to which point in time. The file header is read first, so a corrupt backup is caught
+    before it is half-applied.</div>
+  </div>
+  <div class="panel">
+    <div class="panel-t">./restore --upload <span class="muted">· bring a backup from outside</span></div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <button class="btn" data-upload>choose file…</button>
+      <span class="muted"><b>.bak</b> / <b>.dump</b> only · max 2 GB</span>
+    </div>
+    <div class="hint">▸ An uploaded file never goes straight into the database: it lands in a separate
+    staging folder, its header is validated, and only then does it become a restore candidate.</div>
+  </div>`;
+}
+
+function pageNotify() {
+  const n = S.notify;
+  /* Band bir EŞİK değil, eşiğin altındaki tolerans → kendi aralığı olmalı
+     (5 değeri 40-99 ölçeğinde kaydırıcıyı sola dayardı, bozuk görünürdü). */
+  const slider = (key, label, val, min = 40, max = 99) => `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between">
+        <span class="muted">${label}</span>
+        <span style="color:var(--bright)">${val}%</span>
+      </div>
+      <input type="range" min="${min}" max="${max}" value="${val}" data-thresh="${key}" aria-label="${label}">
+    </div>`;
+  return DEMOBAR + `
+  <div class="g2 mb16">
+    <div class="panel">
+      <div class="panel-t">./notify --status <span class="muted">· channels</span></div>
+      <table class="t">
+        <thead><tr><th>channel</th><th>state</th><th class="r">action</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>${esc(n.channel)}</td>
+            <td style="color:${n.channelOn ? "var(--green)" : "var(--dim)"}">${n.channelOn ? "● on" : "○ off"}</td>
+            <td class="r"><button class="btn ${n.channelOn ? "stop" : "go"}" data-channel>
+              ${n.channelOn ? "turn off" : "turn on"}</button></td>
+          </tr>
+          <tr><td>e-mail</td><td style="color:var(--dim)">○ off</td><td class="r muted">—</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px"><button class="btn" data-testnotify>send test alert ▸</button></div>
+    </div>
+    <div class="panel">
+      <div class="panel-t">./notify --thresholds <span class="muted">· limits</span></div>
+      <div style="margin-top:12px">
+        ${slider("cpu","CPU threshold",n.cpu)}
+        ${slider("ram","RAM threshold",n.ram)}
+        ${slider("disk","DISK threshold",n.disk)}
+        ${slider("band","recovery band",n.band,1,20)}
+      </div>
+      <div class="hint">▸ <b>Hysteresis:</b> crossing a threshold alerts once; declaring "recovered"
+      requires the value to fall <b>${n.band}% below</b> it. Without that band, RAM hovering around
+      85% would fire an alert every minute — and someone who mutes alerts misses the real outage.</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-t">recent alerts</div>
+    <table class="t">
+      <thead><tr><th>time</th><th>alert</th></tr></thead>
+      <tbody>${n.alarms.map(a => `<tr><td class="muted">${esc(a.t)}</td>
+        <td style="color:${sevColor(a.sev)}">${esc(a.m)}</td></tr>`).join("")}</tbody>
+    </table>
+  </div>`;
+}
+
+function pageControl() {
+  const opLabel = (op) => ({ Restart:"restart", Start:"start", Stop:"stop" })[op];
+  const opIcon  = (op) => ({ Restart:"↻", Start:"▶", Stop:"■" })[op];
+
+  const rows = (list, kind) => list.map(a => {
+    const up = kind === "service" ? a.state === "active" : a.up;
+    return `<tr>
+      <td>${esc(a.name)}</td>
+      <td>${up ? `<span style="color:var(--green)">● running</span>`
+               : `<span class="muted">○ stopped</span>`}</td>
+      <td class="muted hide-s">${esc(a.risk)}</td>
+      <td class="r"><div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
+        ${a.ops.filter(op => op === "Start" ? !up : op === "Stop" ? up : up)
+             .map(op => `<button class="btn ${op==="Stop"?"stop":"go"}"
+                data-act="${esc(a.id)}" data-op="${op}" data-kind="${kind}">
+                ${opIcon(op)} ${opLabel(op)}</button>`).join("")}
+      </div></td>
+    </tr>`;
+  }).join("");
+
+  const cntActions = S.containers.map(c => ({
+    id:c.id, name:c.name, up:c.up,
+    risk: c.id === "db-main" ? "medium" : "low",
+    ops: c.id === "db-main" ? ["Restart"] : ["Restart","Start","Stop"]
+  }));
+  const svcActions = S.services.filter(s => s.id !== "panel" && s.state !== "waiting").map(s => ({
+    id:s.id, name:s.name, state:s.state,
+    risk: (s.id === "reverse-proxy" || s.id === "app-alpha") ? "medium" : "low",
+    ops: ["Restart","Start","Stop"]
+  }));
+
+  return DEMOBAR + `
+  ${S.confirm ? confirmBox() : ""}
+  <div class="panel mb16">
+    <div class="panel-t">./control <span class="muted">· manage containers</span></div>
+    <div class="hint">▸ ⛔ <b>No free-form commands</b> — only predefined containers and allowed
+    operations (picked, never typed). Every action passes through confirmation. The panel itself is
+    not on this list.</div>
+    <table class="t">
+      <thead><tr><th>target</th><th>state</th><th class="hide-s">risk</th><th class="r">action</th></tr></thead>
+      <tbody>${rows(cntActions,"container")}</tbody>
+    </table>
+    <div class="hint">▸ <b>db-main cannot be stopped</b> (it holds the panel's own database) — restart only.</div>
+  </div>
+  <div class="panel">
+    <div class="panel-t">./control --systemd <span class="muted">· system units (narrow privileges)</span></div>
+    <div class="hint">▸ The panel calls <code>sudo systemctl</code>, but the sudo rule allows
+    <b>exactly these commands</b> — no wildcards, no shell. <b>panel.service is deliberately out of
+    scope:</b> a panel that stops itself cannot start itself again.</div>
+    <table class="t">
+      <thead><tr><th>unit</th><th>state</th><th class="hide-s">risk</th><th class="r">action</th></tr></thead>
+      <tbody>${rows(svcActions,"service")}</tbody>
+    </table>
+  </div>`;
+}
+
+function confirmBox() {
+  const c = S.confirm;
+  const high = c.op === "Stop" || c.risk === "medium";
+  const label = { Restart:"restart", Start:"start", Stop:"stop" }[c.op];
+  return `<div class="confirm ${high ? "high" : ""}">
+    <h4>⚠️ CONFIRM — ${esc(c.name)} · ${label.toUpperCase()}</h4>
+    <p><b>${esc(c.name)}</b> · operation: <b>${label}</b> (risk: ${esc(c.risk)}).<br>
+      ${c.warn ? `ℹ️ ${esc(c.warn)}<br>` : ""}
+      <span class="muted">The result is also pushed to the alert channel.</span></p>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn ${high ? "stop" : "warn"}" data-run>▸ ${label}</button>
+      <button class="btn" data-cancel>cancel</button>
+    </div>
+  </div>`;
+}
+
+function pageServiceDetail(id) {
+  const s = S.services.find(x => x.id === id);
+  if (!s) return pageServices();
+  return `<button class="back" data-go="services">&lt; services</button>
+  <div class="g-detail">
+    <div>
+      <div class="card mb16">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <span class="dot xl" style="color:${stateColor(s.state)}"></span>
+          <span style="font-size:15px;color:var(--bright)">${esc(s.name)}</span>
+          <span style="margin-left:auto;color:${stateColor(s.state)}">${s.state}</span>
+        </div>
+        <div class="muted">${esc(s.desc)}</div>
+      </div>
+      <div class="card">
+        <div class="card-t"><span>journalctl -u ${esc(s.name)} -n 20</span></div>
+        <div class="logbox" style="max-height:260px">
+          ${S.logs.slice(0, 8).map(l => `<div class="logline"><span class="t">${esc(l.t)}</span>
+            <span>${esc(l.m)}</span></div>`).join("")}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>SUMMARY</span></div>
+      <table class="t">
+        <tbody>
+          <tr><td class="muted">state</td><td style="color:${stateColor(s.state)}">${s.state}</td></tr>
+          <tr><td class="muted">port</td><td>${esc(s.port)}</td></tr>
+          <tr><td class="muted">uptime</td><td>${esc(s.since)}</td></tr>
+          <tr><td class="muted">memory</td><td>${esc(s.mem)}</td></tr>
+          <tr><td class="muted">on boot</td><td>enabled</td></tr>
+        </tbody>
+      </table>
+      <div class="hint">▸ Actions are deliberately collected on the <b>control</b> page: one place,
+      confirmed and logged.</div>
+    </div>
+  </div>`;
+}
+
+function pageContainerDetail(id) {
+  const c = S.containers.find(x => x.id === id);
+  if (!c) return pageDocker();
+  return `<button class="back" data-go="docker">&lt; docker</button>
+  <div class="g-detail">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <span class="dot xl" style="color:${c.up ? "var(--green)" : "var(--dim)"}"></span>
+        <span style="font-size:15px;color:var(--bright)">${esc(c.name)}</span>
+        <span style="margin-left:auto;color:${c.up ? "var(--green)" : "var(--dim)"}">${esc(c.status)}</span>
+      </div>
+      <div class="logbox" style="max-height:280px">
+        ${S.logs.slice(0, 7).map(l => `<div class="logline"><span class="t">${esc(l.t)}</span>
+          <span>${esc(l.m)}</span></div>`).join("")}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>SUMMARY</span></div>
+      <table class="t">
+        <tbody>
+          <tr><td class="muted">image</td><td style="word-break:break-all">${esc(c.image)}</td></tr>
+          <tr><td class="muted">ports</td><td>${esc(c.ports)}</td></tr>
+          <tr><td class="muted">memory</td><td>${esc(c.mem)}</td></tr>
+          <tr><td class="muted">restart</td><td>unless-stopped</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* ===========================================================================
+   4) ÇİZİM
+   =========================================================================== */
+function render() {
+  $("#nav").innerHTML = NAV.map(n => {
+    const badge =
+      n.id === "services" ? `${activeCount()}/${svcTotal()}` :
+      n.id === "docker"   ? `${S.containers.filter(c=>c.up).length}/${S.containers.length}` :
+      n.id === "security" ? String(banTotal()) :
+      n.id === "mesh"     ? `${onlineCount()}/${S.devices.length}` : "";
+    return `<button class="nav-i ${S.page===n.id && !S.detail ? "active":""}" data-go="${n.id}">
+      <span class="icon">${n.icon}</span>${n.label}<span class="badge">${badge}</span></button>`;
+  }).join("");
+
+  const nav = NAV.find(n => n.id === S.page) || NAV[0];
+  $("#pPath").textContent = "~/" + (S.detail ? nav.id + "/" + S.detail.id : nav.id);
+  $("#pCmd").textContent  = S.detail ? `./inspect ${S.detail.id}`
+    : S.page === "metrics" ? `./metrics --range ${S.metricRange}` : nav.cmd;
+
+  const bad = S.services.some(s => s.state === "inactive");
+  $("#footState").innerHTML = bad
+    ? `<span style="color:var(--yellow)">● unit needs attention</span>`
+    : `<span style="color:var(--green)">● all systems go</span>`;
+
+  let body;
+  if (S.detail && S.detail.tip === "service")        body = pageServiceDetail(S.detail.id);
+  else if (S.detail && S.detail.tip === "container") body = pageContainerDetail(S.detail.id);
+  else body = ({
+    overview:pageOverview, services:pageServices, docker:pageDocker, security:pageSecurity,
+    mesh:pageMesh, logs:pageLogs, history:pageHistory, metrics:pageMetrics,
+    backup:pageBackup, restore:pageRestore, notify:pageNotify, control:pageControl
+  }[S.page] || pageOverview)();
+
+  const t = S.toast
+    ? `<div class="${S.toast.kind === "ok" ? "ok-box" : "fail-box"}">${S.toast.kind === "ok" ? "✅ " : "✗ "}${esc(S.toast.msg)}</div>`
+    : "";
+  $("#page").innerHTML = t + body;
+}
+
+/* ===========================================================================
+   5) ETKİLEŞİM — tek delegasyon; her sayfa yeniden çizildiği için dinleyici birikmez
+   =========================================================================== */
+document.addEventListener("click", (ev) => {
+  const el = ev.target.closest("[data-go],[data-svc],[data-cnt],[data-unban],[data-logf],[data-stream],[data-range],[data-backup],[data-restore],[data-upload],[data-channel],[data-testnotify],[data-act],[data-run],[data-cancel]");
+  if (!el) return;
+  const d = el.dataset;
+
+  if (d.go)   { S.page = d.go; S.detail = null; S.confirm = null; $("#main").scrollTop = 0; return render(); }
+  if (d.svc)  { S.page = "services"; S.detail = { tip:"service", id:d.svc }; $("#main").scrollTop = 0; return render(); }
+  if (d.cnt)  { S.page = "docker";   S.detail = { tip:"container", id:d.cnt }; $("#main").scrollTop = 0; return render(); }
+
+  if (d.unban) {
+    S.bans = S.bans.filter(b => b.ip !== d.unban);
+    pushEvent("GUARD", "ok", `${d.unban} removed from the ban list (manual)`);
+    return toast("ok", `${d.unban} unbanned.`);
+  }
+
+  if (d.logf)        { S.logFilter = d.logf; return render(); }
+  if ("stream" in d) { S.streaming = !S.streaming; return render(); }
+  if (d.range)       { S.metricRange = d.range; return render(); }
+
+  if (d.backup) {
+    if (S.busy) return;
+    S.busy = true; render();
+    toast("ok", `${d.backup} backup started…`);
+    setTimeout(() => {
+      const b = S.backups.find(x => x.src === d.backup);
+      const mb = 60 + Math.floor(Math.random() * 400);
+      if (b) { b.last = `${nowClock().slice(0,5)} · ${mb} MB`; b.state = "ok"; }
+      S.busy = false;
+      pushEvent("BACKUP", "ok", `${d.backup} backup completed (${mb} MB)`);
+      toast("ok", `${d.backup} backup finished — ${mb} MB.`);
+    }, 1600);
+    return;
+  }
+
+  if (d.restore) {
+    S.confirm = { id:d.restore, name:d.restore, op:"Restart", risk:"medium",
+                  warn:"A restore OVERWRITES the current database.", kind:"restore" };
+    S.page = "restore"; return render();
+  }
+
+  if ("upload" in d)     return toast("ok", "File upload is disabled in the demo — the real panel accepts .bak/.dump.");
+  if ("channel" in d)    { S.notify.channelOn = !S.notify.channelOn;
+                           pushEvent("NOTIFY", S.notify.channelOn ? "ok" : "warn",
+                             `alert channel turned ${S.notify.channelOn ? "on" : "off"}`);
+                           return render(); }
+  if ("testnotify" in d) { pushEvent("NOTIFY","ok","test alert sent");
+                           return toast("ok", "Test alert sent (demo)."); }
+
+  if (d.act) {
+    const kind = d.kind, id = d.act, op = d.op;
+    const obj = kind === "service" ? S.services.find(s => s.id === id) : S.containers.find(c => c.id === id);
+    if (!obj) return;
+    const risk = (id === "db-main" || id === "reverse-proxy" || id === "app-alpha") ? "medium" : "low";
+    const warn = id === "reverse-proxy" ? "Stopping this unit takes every site offline from outside."
+               : id === "db-main"       ? "The panel's own database lives here — expect a short outage."
+               : id === "cloud"         ? "On a small box this container can squeeze the databases out of memory."
+               : "";
+    S.confirm = { id, name:obj.name, op, risk, warn, kind };
+    S.page = "control"; $("#main").scrollTop = 0; return render();
+  }
+
+  if ("cancel" in d) { S.confirm = null; return render(); }
+
+  if ("run" in d) {
+    const c = S.confirm; if (!c) return;
+    S.confirm = null;
+
+    if (c.kind === "restore") {
+      pushEvent("RESTORE","warn",`${c.name} restored (demo)`);
+      render(); return toast("ok", `${c.name} restored — 8.4 s (demo).`);
+    }
+    const past = { Stop:"stopped", Start:"started", Restart:"restarted" }[c.op];
+    if (c.kind === "service") {
+      const s = S.services.find(x => x.id === c.id);
+      if (s) s.state = c.op === "Stop" ? "inactive" : "active";
+      pushEvent("SYSTEMD", c.op === "Stop" ? "warn" : "ok", `${s ? s.name : c.id} ${past}`);
+    } else {
+      const k = S.containers.find(x => x.id === c.id);
+      if (k) {
+        k.up = c.op !== "Stop";
+        k.status = k.up ? "Up 2 seconds" : "Exited (0)";
+        k.mem = k.up ? (k.mem === "—" ? "120M" : k.mem) : "—";
+      }
+      pushEvent("DOCKER", c.op === "Stop" ? "warn" : "ok", `${k ? k.name : c.id} ${past}`);
+    }
+    render();
+    return toast("ok", `Done: ${c.name} · ${past}. (demo — no real server was touched)`);
+  }
+});
+
+/* eşik kaydırıcıları */
+document.addEventListener("input", (ev) => {
+  const key = ev.target.dataset.thresh;
+  if (!key) return;
+  S.notify[key] = Number(ev.target.value);
+  // Yeniden çizmiyoruz: odak kaybolur, sürükleme kesilir. Yalnız sayı güncellenir.
+  const out = ev.target.previousElementSibling.lastElementChild;
+  if (out) out.textContent = S.notify[key] + "%";
+});
+
+/* ===========================================================================
+   6) CANLI GÖRÜNTÜ — panel gerçekte anket + SSE ile güncelliyor; burada taklit
+   =========================================================================== */
+const LOG_SAMPLES = [
+  ["proxy","GET / 200 0.9ms"], ["proxy","GET /assets/app.css 200 0.4ms"],
+  ["app-alpha","request handled in 12ms"], ["metrics","sample written"],
+  ["sshd","Accepted publickey for admin from 100.x.x.11"],
+  ["guard","[sshd] Found 203.0.113.47"], ["cron","health check ok"]
+];
+let tick = 0;
+
+setInterval(() => { $("#clock").textContent = nowClock(); }, 1000);
+
+setInterval(() => {
+  tick++;
+  const step = (v, min, max) => Math.max(min, Math.min(max, v + (Math.random() * 6 - 3)));
+  S.metric.cpu = Math.round(step(S.metric.cpu, 6, 34));
+  S.metric.ram = Math.round(step(S.metric.ram, 58, 88));
+  S.metric.netDown = Math.max(0.1, +(S.metric.netDown + (Math.random() - .5)).toFixed(1));
+  S.metric.netUp   = Math.max(0.1, +(S.metric.netUp   + (Math.random() - .5) / 2).toFixed(1));
+  S.hist.cpu = [...S.hist.cpu.slice(1), S.metric.cpu];
+  S.hist.ram = [...S.hist.ram.slice(1), S.metric.ram];
+
+  if (S.streaming && tick % 2 === 0) {
+    const [u, m] = LOG_SAMPLES[Math.floor(Math.random() * LOG_SAMPLES.length)];
+    S.logs.unshift({ t:nowClock(), u, m });
+    S.logs = S.logs.slice(0, 60);
+  }
+  // Onay ekranı açıkken ya da eşik sürüklenirken yeniden çizmek kullanıcıyı böler.
+  if (!S.confirm && document.activeElement?.type !== "range") {
+    if (["overview","logs","metrics"].includes(S.page) && !S.detail) render();
+  }
+}, 2500);
+
+/* ===========================================================================
+   7) GİRİŞ EKRANI + ÖNİZLEME KANCASI
+   =========================================================================== */
+function closeLogin() { $("#login").style.display = "none"; }
+
+/* Site bu demoyu küçük önizleme olarak gömdüğünde çağırır: önizleme tıklanamaz,
+   giriş ekranında kilitli kalmasın. Tam ekranda ÇAĞRILMAZ → giriş akışı görünür. */
+window.__onizleme = function () {
+  closeLogin();
+  document.documentElement.dataset.preview = "1";
+};
+
+$("#lgo").addEventListener("click", () => {
+  const code = $("#lc").value.trim();
+  if (!/^\d{6}$/.test(code)) {
+    $("#lerr").textContent = "Enter the 6-digit code (any digits work in the demo).";
+    return;
+  }
+  closeLogin();
+  pushEvent("AUTH","ok","admin signed in (password + TOTP)");
+  render();
+});
+$("#lskip").addEventListener("click", closeLogin);
+$("#lc").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#lgo").click(); });
+
+render();
+$("#clock").textContent = nowClock();
+</script>
+</body>
+</html>
