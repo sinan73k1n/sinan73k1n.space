@@ -1,0 +1,1754 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nutrition Tracker — demo</title>
+<!--
+  ============================================================================
+  NUTRITION TRACKER — TEK DOSYA DEMO
+  ============================================================================
+  Bir PHP + SQLite beslenme/ölçüm takip uygulamasının gezilebilir taklidi.
+  Portfolyodaki demo alanına yapıştırılır, iframe içinde `sandbox="allow-scripts"`
+  ile çalışır.
+
+  ⛔ ANONİM: buradaki HİÇBİR veri gerçek değil. Profil, kilo, ölçüm, günlük
+     kaydı ve kütüphane içeriğinin tamamı örnek veridir. Gerçek uygulama tek
+     kullanıcılı ve şifreli; dışarıya açılmıyor. Kişisel hiçbir metin/rakam
+     buraya taşınmadı.
+
+  🌍 ARAYÜZ DİLİ İNGİLİZCE (karar: 2026-07-30): site TR/EN/RU üç dilli, demo tek
+     dilli. Kod yorumları Türkçe kalır — onlar ziyaretçiye değil bana.
+
+  Kısıtlar (bilinçli):
+   · Tek dosya, sıfır dış istek — font/CDN/görsel YOK (sandbox + CSP dostu).
+     Bu yüzden Quicksand/Inter/JetBrains Mono yerine sistem yazı tipi yığını.
+   · localStorage/cookie KULLANILMAZ: `allow-same-origin` verilmediği için
+     depolama erişimi hata atar. Tüm durum bellekte (`S` nesnesi).
+   · prefers-reduced-motion: reduce → arka plan süzülmesi ve geçişler kapanır.
+   · `window.__onizleme()`: site bu demoyu KÜÇÜK ÖNİZLEME olarak gömdüğünde
+     çağırır → giriş ekranı atlanır (önizleme tıklanamaz, panel görünmeli).
+
+  Demonun omurgası iki hesap makinesi:
+   1) PLAN  — Mifflin-St Jeor BMR → TDEE → açık → günlük hedef → makro hedefi.
+              Her adım rakamlarıyla birlikte yazılır ("trace"), sihir yok.
+   2) MEAL  — kütüphaneden seçilen ürün/yemekler tek formülde toplanır:
+              miktar × kcal/100 ÷ 100. Sonuç plan hedefine oranlanır.
+  ============================================================================
+-->
+<style>
+:root{
+  --paper:#FDF2F5;
+  --paper-dark:#F8E4EB;
+  --card:#FFFFFF;
+  --ink:#4A3540;
+  --ink-soft:#8E7480;
+  --rose:#D98BA8;
+  --rose-dark:#B8496D;
+  --ochre:#B57A2E;
+  --mint:#3E8468;
+  --line:#F0DDE4;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --round:ui-rounded,"Segoe UI Rounded","Hiragino Maru Gothic ProN",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(900px 520px at 12% -8%, #FDEBF1 0%, transparent 60%),
+    radial-gradient(760px 440px at 100% 102%, #E7F4EE 0%, transparent 62%),
+    #FFF8F4;
+  background-attachment:fixed;
+  color:var(--ink); font-family:var(--sans); font-size:14px;
+  min-height:100vh; padding:22px 16px 60px;
+}
+.wrap{max-width:940px;margin:0 auto;position:relative;z-index:1}
+button{font-family:inherit}
+
+/* arka planda usulca süzülen havuç/çiçek — uygulamanın kendi dili */
+.bg{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.bg span{position:absolute;font-size:20px;opacity:.26;animation:float 17s ease-in-out infinite}
+@keyframes float{0%{transform:translateY(16px) rotate(-8deg)}50%{transform:translateY(-16px) rotate(8deg)}100%{transform:translateY(16px) rotate(-8deg)}}
+
+/* ---------- başlık ---------- */
+.masthead{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  border-bottom:2px solid #F3C9D8;padding-bottom:14px;margin-bottom:16px;
+}
+.masthead .left{display:flex;align-items:center;gap:13px}
+.masthead .bunny{width:54px;height:54px;flex-shrink:0}
+.masthead h1{font-family:var(--round);font-size:27px;font-weight:700;margin:0;letter-spacing:-.01em}
+.masthead .sub{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-top:3px}
+.stamp{
+  font-family:var(--mono);font-size:11px;color:var(--rose-dark);background:var(--card);
+  border:1px solid var(--line);border-radius:20px;padding:6px 12px;white-space:nowrap;
+}
+
+/* ---------- demo uyarısı ---------- */
+.demobar{
+  display:flex;gap:10px;align-items:flex-start;
+  background:#FFF6E8;border:1px solid #F0D9AE;border-left:3px solid var(--ochre);
+  border-radius:12px;padding:10px 13px;margin-bottom:18px;font-size:12.5px;line-height:1.5;
+  color:#6B5528;
+}
+.demobar b{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ochre);flex-shrink:0;padding-top:1px}
+
+/* ---------- sekmeler ---------- */
+.tabs{display:flex;gap:4px;flex-wrap:wrap;position:relative;z-index:2}
+.tab{
+  font-family:var(--round);font-size:13.5px;font-weight:600;
+  background:var(--paper-dark);color:var(--ink-soft);
+  border:1px solid var(--line);border-bottom:none;border-radius:12px 12px 0 0;
+  padding:10px 15px 12px;cursor:pointer;user-select:none;
+  display:flex;align-items:center;gap:7px;transform:translateY(2px);
+  transition:transform .15s ease,background .15s ease,color .15s ease;
+}
+.tab:hover{color:var(--rose-dark);background:#FBDCE6}
+.tab.active{background:var(--card);color:var(--rose-dark);transform:translateY(0);box-shadow:0 -2.5px 0 var(--rose) inset}
+
+/* ---------- panel ---------- */
+.panel{
+  background:var(--card);border:1px solid var(--line);border-radius:0 18px 18px 18px;
+  padding:26px 24px 24px;position:relative;
+  box-shadow:0 14px 36px -22px rgba(160,110,130,.55);margin-bottom:26px;display:none;
+}
+.panel.active{display:block}
+.panel::before{
+  content:"";position:absolute;top:-1px;left:14px;right:14px;height:10px;
+  background-image:radial-gradient(circle at 8px 0px,#FFF8F4 5px,transparent 5.4px);
+  background-size:16px 10px;background-repeat:repeat-x;pointer-events:none;
+}
+h2.title{font-family:var(--round);font-size:18.5px;font-weight:700;margin:0 0 4px;color:var(--rose-dark)}
+h2.title::before{content:"🌸";font-size:13px;margin-right:7px;vertical-align:1px;filter:saturate(.9)}
+h3.sub-title{font-family:var(--round);font-size:14.5px;font-weight:700;margin:0 0 8px;color:var(--ink)}
+p.note{color:var(--ink-soft);font-size:13px;margin:0 0 18px;line-height:1.55}
+.hint{font-size:12px;color:var(--ink-soft);margin:0 0 10px;line-height:1.5}
+.divider{height:1px;background:var(--line);margin:22px 0}
+
+/* ---------- istatistik kutuları ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:11px;margin-bottom:18px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:11px 13px}
+.stat .l{font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em}
+.stat .v{font-family:var(--mono);font-size:21px;font-weight:700;color:var(--rose-dark);margin-top:3px;line-height:1.15}
+.stat .v small{font-size:11.5px;color:var(--ink-soft);font-weight:400;margin-left:3px}
+.stat .s{font-size:11px;color:var(--ink-soft);margin-top:3px}
+.stat.good .v{color:var(--mint)}
+.stat.warn .v{color:var(--ochre)}
+
+/* ---------- tablolar ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{
+  font-family:var(--round);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--ink-soft);text-align:left;padding:8px 10px;border-bottom:2px solid var(--rose);white-space:nowrap;
+}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.mono{font-family:var(--mono)}
+td.mono{white-space:nowrap}
+.right{text-align:right}
+.table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+tbody tr.pick{cursor:pointer;transition:background .12s ease}
+tbody tr.pick:hover{background:var(--paper)}
+tbody tr.sel{background:#FDECEF;box-shadow:inset 3px 0 0 var(--rose)}
+
+.tag{display:inline-block;font-size:10.5px;font-family:var(--mono);padding:2px 8px;border-radius:10px;background:var(--paper-dark);color:var(--ink-soft)}
+.tag.green{background:#DFF1E8;color:var(--mint)}
+.tag.rose{background:#FBE3EA;color:var(--rose-dark)}
+.tag.ochre{background:#FDEBD8;color:var(--ochre)}
+.pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+
+/* ---------- formlar ---------- */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:11px;margin-bottom:14px}
+.field label{display:block;font-size:11px;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em}
+.field input,.field select{
+  width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:11px;
+  background:#FFFBFC;color:var(--ink);font-family:var(--mono);font-size:13px;outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+.field select,.field.text input{font-family:var(--sans)}
+.field input:focus,.field select:focus{border-color:var(--rose);box-shadow:0 0 0 3.5px rgba(233,175,194,.28)}
+.field.wide{grid-column:1/-1}
+.actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+
+.btn{
+  font-family:var(--round);font-weight:700;font-size:13.5px;
+  background:linear-gradient(135deg,#C9557F,#AC3F66);color:#fff;border:none;border-radius:11px;
+  padding:10px 19px;cursor:pointer;box-shadow:0 8px 18px -9px rgba(172,63,102,.9);
+  transition:filter .15s ease,box-shadow .15s ease,transform .1s ease;
+}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;filter:grayscale(.35);cursor:not-allowed;box-shadow:none;transform:none}
+.btn.ghost{background:transparent;color:var(--rose-dark);border:1.5px solid var(--rose);padding:8px 14px;font-size:12.5px;box-shadow:none}
+.btn.ghost:hover{background:#FDECEF;filter:none}
+.btn.mini{padding:7px 13px;font-size:12.5px}
+.btn.danger{background:linear-gradient(135deg,#C24B46,#9E3630);box-shadow:0 8px 18px -9px rgba(158,54,48,.9)}
+
+.empty{text-align:center;padding:26px 10px;color:var(--ink-soft);font-size:13px;border:1.5px dashed #F1C8D6;border-radius:14px;background:var(--paper)}
+.empty::before{content:"🐰";display:block;font-size:24px;margin-bottom:8px;opacity:.75}
+
+/* ---------- düzenleme şeridi ---------- */
+.editbar{
+  display:none;align-items:center;gap:10px;flex-wrap:wrap;
+  background:#FDECEF;border:1px solid #F3C4CF;border-left:3px solid var(--rose);
+  border-radius:12px;padding:9px 12px;margin-bottom:13px;font-size:12.5px;color:var(--rose-dark);
+}
+.editbar.on{display:flex}
+.editbar .info{flex:1;min-width:170px}
+.editbar .info b{font-family:var(--mono)}
+
+/* ---------- segment ---------- */
+.seg{display:inline-flex;background:var(--paper-dark);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;margin-bottom:16px}
+.seg button{
+  font-family:var(--round);font-weight:600;font-size:13px;border:none;background:transparent;
+  color:var(--ink-soft);padding:7px 15px;border-radius:9px;cursor:pointer;transition:background .15s,color .15s;
+}
+.seg button.on{background:var(--card);color:var(--rose-dark);box-shadow:0 2px 6px -3px rgba(160,110,130,.7)}
+
+/* ---------- kütüphane kartları ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:11px}
+.card{
+  background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 13px;
+  cursor:pointer;text-align:left;font:inherit;color:inherit;transition:border-color .15s,transform .1s,background .15s;
+}
+.card:hover{border-color:var(--rose);background:#FFFBFC;transform:translateY(-1px)}
+.card .name{font-family:var(--round);font-weight:700;font-size:13.5px;margin-bottom:3px}
+.card .meta{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+.card .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:9px}
+.card .kcal{font-family:var(--mono);font-weight:700;font-size:14.5px;color:var(--rose-dark)}
+.search{margin-bottom:12px}
+.search input{
+  width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:11px;
+  background:#FFFBFC;font-family:var(--sans);font-size:13px;outline:none;color:var(--ink);
+}
+.search input:focus{border-color:var(--rose)}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:5px 11px;border-radius:20px;
+  background:var(--paper-dark);color:var(--ink-soft);border:1px solid transparent;cursor:pointer;
+}
+.chip.on{background:#FDECEF;color:var(--rose-dark);border-color:var(--rose)}
+.chip .n{font-family:var(--mono);font-size:10.5px;opacity:.75}
+
+/* ---------- hesap satırları ---------- */
+.calc-row{
+  display:flex;align-items:center;gap:11px;background:var(--paper);border:1px solid var(--line);
+  border-radius:13px;padding:10px 12px;margin-bottom:8px;
+}
+.calc-row .name{flex:1;min-width:0;font-weight:600;font-size:13.5px}
+.calc-row .name .small{display:block;font-family:var(--mono);font-size:11px;color:var(--ink-soft);font-weight:400;margin-top:2px}
+.calc-row .kcal{font-family:var(--mono);font-weight:700;font-size:14px;color:var(--rose-dark);white-space:nowrap}
+.calc-row .del{
+  border:none;background:transparent;color:var(--ink-soft);font-size:17px;line-height:1;
+  cursor:pointer;padding:3px 6px;border-radius:8px;
+}
+.calc-row .del:hover{background:#FBE3EA;color:var(--rose-dark)}
+
+.picker{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.picker-row{display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap}
+.unit-badge{font-family:var(--mono);font-size:12px;color:var(--ink-soft);background:var(--paper-dark);border-radius:9px;padding:9px 10px}
+
+.result{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--rose);border-radius:14px;padding:16px 16px 14px;margin-top:14px}
+.result h4{font-family:var(--round);font-size:14px;margin:0 0 8px;color:var(--rose-dark)}
+.result .big{font-family:var(--mono);font-size:34px;font-weight:700;color:var(--rose-dark);line-height:1}
+.result .big small{font-size:13px;color:var(--ink-soft);font-weight:400;margin-left:5px}
+
+/* makro çubuğu */
+.macrobar{display:flex;height:11px;border-radius:7px;overflow:hidden;background:var(--paper-dark);margin:12px 0 8px}
+.macrobar i{display:block;height:100%}
+.macrobar .p{background:#C9557F}
+.macrobar .c{background:#E2A93F}
+.macrobar .f{background:#5FA98A}
+.macrolegend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);font-family:var(--mono)}
+.macrolegend span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* hesap izi — formül satırları */
+.trace{
+  background:#FFFBFC;border:1px dashed #F1C8D6;border-radius:12px;padding:12px 14px;
+  font-family:var(--mono);font-size:12px;line-height:1.85;color:var(--ink-soft);overflow-x:auto;
+}
+.trace b{color:var(--rose-dark);font-weight:700}
+.trace .step{white-space:nowrap}
+.trace .eq{color:var(--ink);opacity:.5;margin:0 5px}
+
+.progress{height:9px;border-radius:6px;background:var(--paper-dark);overflow:hidden;margin:8px 0 5px}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,#D98BA8,#B8496D)}
+.progress.over i{background:linear-gradient(90deg,#E2A93F,#C24B46)}
+
+.chart{margin-top:16px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px}
+.chart svg{width:100%;height:auto;display:block}
+
+.legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink-soft);margin-top:8px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+
+.notebox{background:#EAF5EF;border:1px solid #C7E4D6;border-radius:12px;padding:10px 13px;font-size:12.5px;color:#2F6B52;margin-top:10px;line-height:1.5}
+.warnbox{background:#FFF6E8;border:1px solid #F0D9AE;border-radius:12px;padding:10px 13px;font-size:12.5px;color:#6B5528;margin-top:10px;line-height:1.5}
+
+/* ---------- ayrıntı penceresi ---------- */
+.veil{position:fixed;inset:0;background:rgba(74,53,64,.42);display:none;align-items:center;justify-content:center;padding:20px;z-index:80}
+.veil.on{display:flex}
+.dialog{background:var(--card);border-radius:18px;padding:22px;max-width:430px;width:100%;position:relative;box-shadow:0 30px 70px -30px rgba(90,50,70,.7);max-height:88vh;overflow:auto}
+.dialog .close{position:absolute;top:11px;right:13px;border:none;background:transparent;font-size:22px;color:var(--ink-soft);cursor:pointer;line-height:1}
+.dialog h3{font-family:var(--round);font-size:18px;margin:0 0 3px;color:var(--rose-dark)}
+
+/* ---------- giriş ekranı ---------- */
+.login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:22px;
+  background:radial-gradient(900px 500px at 15% -10%,#FDEBF1 0%,transparent 60%),
+             radial-gradient(700px 420px at 100% 105%,#E7F4EE 0%,transparent 62%),#FFF8F4}
+.login-box{width:min(390px,100%);background:var(--card);border:1px solid var(--line);border-radius:26px;padding:0 30px 30px;box-shadow:0 22px 50px -22px rgba(160,110,130,.4)}
+.login-box .bunny{width:128px;margin:-56px auto 4px;display:block}
+.login-box h1{font-family:var(--round);font-size:23px;text-align:center;margin:0 0 4px}
+.login-box .alt{text-align:center;color:var(--ink-soft);font-size:13px;margin:0 0 20px}
+.login-box .field{margin-bottom:13px}
+.login-err{color:#9C3A55;font-size:12.5px;min-height:17px;margin-top:4px}
+
+@media (max-width:640px){
+  .masthead h1{font-size:21px}
+  .panel{padding:22px 15px 20px}
+  .tab{padding:9px 11px 10px;font-size:12.5px}
+  .result .big{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){
+  .bg span{animation:none}
+  *{transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true">
+  <span style="left:5%;top:14%;animation-delay:-2s">🥕</span>
+  <span style="left:93%;top:22%;animation-delay:-7s">🌸</span>
+  <span style="left:8%;top:62%;animation-delay:-11s">🌿</span>
+  <span style="left:95%;top:70%;animation-delay:-4s">🥕</span>
+  <span style="left:3%;top:88%;animation-delay:-9s">🌸</span>
+  <span style="left:90%;top:45%;animation-delay:-14s">🌷</span>
+</div>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="left">
+      <svg class="bunny" viewBox="0 0 160 150" aria-hidden="true">
+        <g fill="#FFFFFF" stroke="#D98BA8" stroke-width="6">
+          <ellipse cx="60" cy="46" rx="14" ry="40" transform="rotate(-11 60 46)"/>
+          <ellipse cx="100" cy="46" rx="14" ry="40" transform="rotate(11 100 46)"/>
+          <circle cx="80" cy="104" r="38"/>
+        </g>
+        <ellipse fill="#F6D9E2" cx="60" cy="48" rx="6.5" ry="28" transform="rotate(-11 60 48)"/>
+        <ellipse fill="#F6D9E2" cx="100" cy="48" rx="6.5" ry="28" transform="rotate(11 100 48)"/>
+        <ellipse fill="#F3BDCE" cx="55" cy="112" rx="9" ry="6"/>
+        <ellipse fill="#F3BDCE" cx="105" cy="112" rx="9" ry="6"/>
+        <ellipse fill="#4A3540" cx="67" cy="99" rx="4.6" ry="5.4"/>
+        <ellipse fill="#4A3540" cx="93" cy="99" rx="4.6" ry="5.4"/>
+        <path d="M74 112 h12 l-6 6 z" fill="#E9AFC2"/>
+        <path d="M80 118 v5 M80 123 q-7 6 -13 0 M80 123 q7 6 13 0" stroke="#D98BA8" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <h1>Nutrition Tracker</h1>
+        <div class="sub" id="profile-line">—</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="stamp" id="today-stamp">—</span>
+      <span class="stamp">demo account</span>
+    </div>
+  </div>
+
+  <div class="demobar">
+    <b>DEMO</b>
+    <span>Sample data only — the profile, weights, measurements and food library below are made up
+    for this demo. Everything works: add, edit and delete entries and watch the numbers move.
+    Nothing is stored anywhere; a page reload brings the sample set back.</span>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="calc">🧮 Meal calculator</div>
+    <div class="tab" data-tab="library">📚 Food library</div>
+    <div class="tab" data-tab="plan">🎯 Plan</div>
+    <div class="tab" data-tab="daily">📔 Daily log</div>
+    <div class="tab" data-tab="measure">📐 Measurements</div>
+  </div>
+
+  <!-- ==================== MEAL CALCULATOR ==================== -->
+  <div class="panel active" data-panel="calc">
+    <h2 class="title">Meal calculator</h2>
+    <p class="note">
+      Pick items from the library, say how much of each went into the plate, and the total comes out —
+      calories and macros. One formula does all of it:
+      <b class="mono">amount × kcal per 100 ÷ 100</b>.
+      Save the result back as a dish and you never calculate that plate again.
+    </p>
+
+    <div id="calc-rows"></div>
+
+    <div class="actions" style="margin:12px 0 14px">
+      <button class="btn ghost" data-add="product">🥫 Add product</button>
+      <button class="btn ghost" data-add="dish">🍲 Add dish</button>
+      <button class="btn ghost" id="calc-clear">Empty the list</button>
+    </div>
+
+    <div class="picker" id="picker" hidden>
+      <div class="form-grid" style="margin-bottom:10px">
+        <div class="field wide">
+          <label>Category</label>
+          <select id="pick-cat"></select>
+        </div>
+        <div class="field wide">
+          <label id="pick-label">Product</label>
+          <select id="pick-item"></select>
+        </div>
+      </div>
+      <div class="picker-row">
+        <div class="field" id="pick-measure-wrap" style="flex:0 1 150px" hidden>
+          <label>Measure</label>
+          <select id="pick-measure">
+            <option value="portion">portion</option>
+            <option value="unit">gram / ml</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1 1 130px">
+          <label>How much?</label>
+          <input type="text" id="pick-amount" inputmode="decimal" placeholder="100">
+        </div>
+        <span class="unit-badge" id="pick-unit">g</span>
+        <button class="btn mini" id="pick-ok">Add to list</button>
+        <button class="btn mini ghost" id="pick-cancel">Cancel</button>
+      </div>
+    </div>
+
+    <div id="calc-result"></div>
+  </div>
+
+  <!-- ==================== FOOD LIBRARY ==================== -->
+  <div class="panel" data-panel="library">
+    <h2 class="title">Food library</h2>
+    <p class="note">
+      Two kinds of entry, one idea: calorie density. A <b>product</b> stores calories per 100 g/ml
+      straight off the label. A <b>dish</b> stores what a whole plate weighs and what it costs —
+      the app divides it down. The calculator treats both the same way.
+    </p>
+
+    <div class="seg" id="lib-seg">
+      <button class="on" data-kind="product">🥫 Products</button>
+      <button data-kind="dish">🍲 Dishes</button>
+    </div>
+
+    <div class="editbar" id="lib-editbar">
+      <div class="info">Editing: <b id="lib-edit-name"></b></div>
+      <button class="btn mini danger" id="lib-delete">Delete</button>
+      <button class="btn mini ghost" id="lib-cancel">Cancel</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="field wide text"><label id="lf-name-label">Product name</label><input type="text" id="lf-name" maxlength="60" placeholder="Greek yogurt 2%"></div>
+      <div class="field"><label>Unit</label><select id="lf-unit"><option value="g">gram (solid)</option><option value="ml">ml (liquid)</option></select></div>
+      <div class="field" id="lf-kcal100-wrap"><label>kcal / 100</label><input type="text" id="lf-kcal100" inputmode="decimal" placeholder="73"></div>
+      <div class="field" id="lf-total-wrap" hidden><label>Total amount</label><input type="text" id="lf-total" inputmode="decimal" placeholder="450"></div>
+      <div class="field" id="lf-totalkcal-wrap" hidden><label>Total kcal</label><input type="text" id="lf-totalkcal" inputmode="decimal" placeholder="620"></div>
+      <div class="field"><label id="lf-p-label">Protein / 100</label><input type="text" id="lf-p" inputmode="decimal" placeholder="10"></div>
+      <div class="field"><label id="lf-c-label">Carbs / 100</label><input type="text" id="lf-c" inputmode="decimal" placeholder="4"></div>
+      <div class="field"><label id="lf-f-label">Fat / 100</label><input type="text" id="lf-f" inputmode="decimal" placeholder="1.9"></div>
+      <div class="field"><label>Category</label><select id="lf-cat"></select></div>
+      <div class="field wide text"><label>Note (optional)</label><input type="text" id="lf-note" maxlength="120" placeholder="the one we buy for breakfast"></div>
+    </div>
+    <p class="hint" id="lf-hint">Copy the “per 100 g / 100 ml” numbers from the label. Macros are optional — leave them empty and only calories are tracked.</p>
+    <div class="actions"><button class="btn" id="lf-save">Add</button><span class="mono" id="lf-status" style="font-size:12px;color:var(--ink-soft)"></span></div>
+
+    <div class="divider"></div>
+
+    <div class="pill-row" id="lib-filters"></div>
+    <div class="search"><input type="search" id="lib-search" placeholder="🔍 Search by name…"></div>
+    <div id="lib-list"></div>
+  </div>
+
+  <!-- ==================== PLAN ==================== -->
+  <div class="panel" data-panel="plan">
+    <h2 class="title">Daily budget</h2>
+    <p class="note">
+      Everything else on this page hangs off these four numbers. Change any input and watch the whole
+      chain recalculate — the steps below are written out with the actual figures, so nothing here is a
+      black box.
+    </p>
+
+    <div class="form-grid">
+      <div class="field"><label>Sex</label><select id="p-sex"><option value="f">female</option><option value="m">male</option></select></div>
+      <div class="field"><label>Age</label><input type="text" id="p-age" inputmode="numeric" value="34"></div>
+      <div class="field"><label>Height (cm)</label><input type="text" id="p-height" inputmode="decimal" value="168"></div>
+      <div class="field"><label>Weight (kg)</label><input type="text" id="p-weight" inputmode="decimal" value="72.4"></div>
+      <div class="field"><label>Goal weight (kg)</label><input type="text" id="p-goal" inputmode="decimal" value="66"></div>
+      <div class="field"><label>Activity</label><select id="p-act">
+        <option value="1.2">sedentary (desk)</option>
+        <option value="1.375">light (walks)</option>
+        <option value="1.55" selected>moderate (3–5 days)</option>
+        <option value="1.725">active (6–7 days)</option>
+      </select></div>
+      <div class="field"><label>Loss per week</label><select id="p-rate">
+        <option value="0.25">0.25 kg — slow</option>
+        <option value="0.5" selected>0.5 kg — steady</option>
+        <option value="0.75">0.75 kg — fast</option>
+      </select></div>
+    </div>
+
+    <div class="stats" id="p-stats"></div>
+    <div id="p-guard"></div>
+
+    <div class="divider"></div>
+    <h3 class="sub-title">How the number was reached</h3>
+    <p class="hint">Mifflin-St Jeor equation → activity factor → energy deficit. Every line shows the arithmetic with your inputs substituted in.</p>
+    <div class="trace" id="p-trace"></div>
+
+    <div class="divider"></div>
+    <h3 class="sub-title">Macro targets</h3>
+    <p class="hint">Protein and fat are set per kilogram of goal weight; carbohydrate takes whatever calories are left. 1 g protein = 4 kcal, 1 g carbs = 4 kcal, 1 g fat = 9 kcal.</p>
+    <div class="table-scroll"><table id="p-macro"></table></div>
+  </div>
+
+  <!-- ==================== DAILY LOG ==================== -->
+  <div class="panel" data-panel="daily">
+    <h2 class="title" id="d-heading">Add a daily entry</h2>
+    <p class="note">
+      You do not have to fill this in every day. Even a few marks a week are enough to see the trend —
+      the chart below only needs two weigh-ins to start drawing.
+    </p>
+
+    <div class="editbar" id="d-editbar">
+      <div class="info">Editing the entry for <b id="d-edit-date"></b> — change it and press <b>Update</b>.</div>
+      <button class="btn mini danger" id="d-delete">Delete this entry</button>
+      <button class="btn mini ghost" id="d-cancel">Cancel</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="field"><label>Date</label><input type="date" id="d-date"></div>
+      <div class="field"><label>Weight (kg)</label><input type="text" id="d-weight" inputmode="decimal" placeholder="72.4"></div>
+      <div class="field"><label>Breakfast</label><select id="d-breakfast"><option value="yes">had it</option><option value="no">skipped</option></select></div>
+      <div class="field"><label>Dinner</label><select id="d-dinner"><option value="yes">had it</option><option value="no">skipped</option></select></div>
+      <div class="field"><label>Extra</label><select id="d-extra">
+        <option value="none">none</option><option value="chocolate">chocolate</option><option value="chips">chips</option>
+        <option value="cocktail">cocktail</option><option value="pizza">pizza</option><option value="pastry">pastry</option>
+        <option value="other">other…</option>
+      </select></div>
+      <div class="field text" id="d-extra-name-wrap" hidden><label>What was it?</label><input type="text" id="d-extra-name" maxlength="40" placeholder="e.g. ice cream"></div>
+      <div class="field"><label>Extra kcal</label><input type="text" id="d-extra-kcal" inputmode="numeric" placeholder="kcal"></div>
+      <div class="field"><label>Workout</label><select id="d-workout"><option value="no">no</option><option value="yes">yes</option></select></div>
+      <div class="field"><label>Walk</label><select id="d-walk"><option value="1h">1 hour (standard)</option><option value="extra">extra walk</option><option value="none">none</option></select></div>
+      <div class="field wide text"><label>Note</label><input type="text" id="d-note" maxlength="120" placeholder="free text…"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="d-save">Save</button>
+      <span class="mono" id="d-status" style="font-size:12px;color:var(--ink-soft)"></span>
+    </div>
+
+    <div class="divider"></div>
+    <h3 class="sub-title">Weight trend</h3>
+    <div class="chart" id="d-chart"></div>
+
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <h3 class="sub-title" style="margin:0">Past entries</h3>
+      <button class="btn ghost" id="d-clear">Clear all</button>
+    </div>
+    <p class="hint">Click a row: its values move up into the form, where you can edit or delete that entry.</p>
+    <div id="d-table"></div>
+  </div>
+
+  <!-- ==================== MEASUREMENTS ==================== -->
+  <div class="panel" data-panel="measure">
+    <h2 class="title">Body measurements</h2>
+    <p class="note">
+      Every figure in centimetres, left and right kept apart. Once every three or four weeks is plenty —
+      measured more often, the tape tells you more about the tape than about you. The small badges compare
+      each row with the first measurement in the table.
+    </p>
+
+    <div class="editbar" id="m-editbar">
+      <div class="info">Editing the measurement from <b id="m-edit-date"></b>.</div>
+      <button class="btn mini danger" id="m-delete">Delete</button>
+      <button class="btn mini ghost" id="m-cancel">Cancel</button>
+    </div>
+
+    <div class="form-grid" id="m-form"></div>
+    <div class="actions">
+      <button class="btn" id="m-save">Save</button>
+      <span class="mono" id="m-status" style="font-size:12px;color:var(--ink-soft)"></span>
+    </div>
+
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <h3 class="sub-title" style="margin:0">Measurement history</h3>
+      <button class="btn ghost" id="m-clear">Clear all</button>
+    </div>
+    <p class="hint">Click a row to load it into the form above.</p>
+    <div id="m-table"></div>
+    <div class="legend">
+      <span><span class="dot" style="background:#3E8468"></span>waist / hips down — the deficit is working</span>
+      <span><span class="dot" style="background:#B57A2E"></span>arm / thigh up — likely muscle, not a problem on its own</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ayrıntı penceresi -->
+<div class="veil" id="veil">
+  <div class="dialog" role="dialog" aria-modal="true">
+    <button class="close" id="veil-close" aria-label="Close">×</button>
+    <div id="veil-body"></div>
+  </div>
+</div>
+
+<!-- ===== GİRİŞ — gerçek uygulamanın akışı: telefon + şifre ===== -->
+<div class="login" id="login">
+  <form class="login-box" id="login-form" autocomplete="off">
+    <svg class="bunny" viewBox="0 0 160 150" aria-hidden="true">
+      <g fill="#FFFFFF" stroke="#E9AFC2" stroke-width="3">
+        <ellipse cx="60" cy="46" rx="14" ry="40" transform="rotate(-11 60 46)"/>
+        <ellipse cx="100" cy="46" rx="14" ry="40" transform="rotate(11 100 46)"/>
+        <circle cx="80" cy="104" r="38"/>
+      </g>
+      <ellipse fill="#F6D9E2" cx="60" cy="48" rx="6.5" ry="28" transform="rotate(-11 60 48)"/>
+      <ellipse fill="#F6D9E2" cx="100" cy="48" rx="6.5" ry="28" transform="rotate(11 100 48)"/>
+      <ellipse fill="#F3BDCE" cx="55" cy="112" rx="9" ry="6"/>
+      <ellipse fill="#F3BDCE" cx="105" cy="112" rx="9" ry="6"/>
+      <ellipse fill="#4A3540" cx="67" cy="99" rx="4.6" ry="5.4" id="eye-l"/>
+      <ellipse fill="#4A3540" cx="93" cy="99" rx="4.6" ry="5.4" id="eye-r"/>
+      <path d="M74 112 h12 l-6 6 z" fill="#E9AFC2"/>
+      <path d="M80 118 v5 M80 123 q-7 6 -13 0 M80 123 q7 6 13 0" stroke="#D98BA8" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    </svg>
+    <h1>Nutrition Tracker</h1>
+    <p class="alt">Welcome back 🌷 Sign in to continue.</p>
+    <div class="field"><label for="l-phone">Phone number</label><input id="l-phone" type="tel" inputmode="numeric" value="0500 000 00 00"></div>
+    <div class="field"><label for="l-pass">Password</label><input id="l-pass" type="password" value="demo1234"></div>
+    <div class="login-err" id="l-err"></div>
+    <div style="display:flex;gap:9px;margin-top:6px">
+      <button class="btn" id="l-go" type="submit" style="flex:1">Sign in</button>
+      <button class="btn ghost" id="l-skip" type="button">Skip</button>
+    </div>
+    <p class="hint" style="margin:16px 0 0;text-align:center">
+      Demo: the fields are pre-filled and any value gets you in. The real app stores the password as a
+      <span class="mono">password_hash</span>, rate-limits sign-ins per IP and carries a CSRF token
+      on every write.
+    </p>
+  </form>
+</div>
+
+<script>
+"use strict";
+
+/* ===========================================================================
+   0) YARDIMCILAR
+   =========================================================================== */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+/** Serbest metin innerHTML'e giriyor — kaçırmadan basma. */
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+/** Sayıyı okunur bas: tam sayıysa ondalık gösterme, değilse 1 hane. */
+function say(n, d) {
+  if (!isFinite(n)) return "—";
+  const dec = d === undefined ? 1 : d;
+  const r = Math.round(n * 10 ** dec) / 10 ** dec;
+  return Number.isInteger(r) ? String(r) : r.toFixed(dec);
+}
+/** Virgüllü giriş de kabul edilir — klavyeye göre değişiyor. */
+function num(v) {
+  const n = parseFloat(String(v ?? "").trim().replace(",", "."));
+  return isFinite(n) ? n : NaN;
+}
+/** Bugün — YEREL saatle. toISOString() UTC verir; gece girilen kayıt bir önceki
+ *  güne düşer. Gerçek uygulamada bu hata yaşandı, burada tekrarlanmasın. */
+function todayISO(offsetDays) {
+  const d = new Date();
+  if (offsetDays) d.setDate(d.getDate() + offsetDays);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+let uid = 1000;
+const nextId = () => ++uid;
+
+/* ===========================================================================
+   1) ÖRNEK VERİ — tamamı kurgu
+   =========================================================================== */
+const CATS = {
+  product: [
+    { id: 1, emoji: "🍗", name: "Protein" },
+    { id: 2, emoji: "🥛", name: "Dairy" },
+    { id: 3, emoji: "🍞", name: "Grains" },
+    { id: 4, emoji: "🥜", name: "Nuts & seeds" },
+    { id: 5, emoji: "🍎", name: "Fruit & veg" },
+    { id: 6, emoji: "🍫", name: "Sweets" },
+    { id: 7, emoji: "🥤", name: "Drinks" },
+    { id: 8, emoji: "🫒", name: "Oils" }
+  ],
+  dish: [
+    { id: 11, emoji: "🍳", name: "Breakfast" },
+    { id: 12, emoji: "🍲", name: "Soups" },
+    { id: 13, emoji: "🍛", name: "Mains" },
+    { id: 14, emoji: "🍰", name: "Desserts" }
+  ]
+};
+
+/* Ürün: 100 birimdeki değerler. Yemek: bir porsiyonun TOPLAMI (total/totalKcal)
+   girilir, kcal100 ondan türetilir — hesap makinesi ikisini tek formülle toplar. */
+const SEED_ITEMS = [
+  // --- products: [name, unit, kcal100, p, c, f, catId, note] ---
+  ["Chicken breast, raw",      "g",  165, 31.0,  0.0,  3.6, 1, ""],
+  ["Egg, boiled",              "g",  155, 13.0,  1.1, 11.0, 1, "one medium egg ≈ 55 g"],
+  ["Whey protein powder",      "g",  400, 80.0,  7.0,  5.0, 1, "one scoop ≈ 30 g"],
+  ["Greek yogurt 2%",          "g",   73, 10.0,  4.0,  1.9, 2, ""],
+  ["White cheese",             "g",  264, 14.0,  4.0, 21.0, 2, ""],
+  ["Whole milk",               "ml",  61,  3.2,  4.8,  3.3, 2, ""],
+  ["Bulgur, cooked",           "g",   83,  3.1, 18.6,  0.2, 3, "dry weight roughly triples"],
+  ["Whole wheat bread",        "g",  247, 13.0, 41.0,  3.4, 3, "one slice ≈ 32 g"],
+  ["Rolled oats",              "g",  389, 17.0, 66.0,  7.0, 3, ""],
+  ["Almonds",                  "g",  579, 21.0, 22.0, 50.0, 4, ""],
+  ["Walnuts",                  "g",  654, 15.0, 14.0, 65.0, 4, ""],
+  ["Blueberries",              "g",   57,  0.7, 14.0,  0.3, 5, ""],
+  ["Banana",                   "g",   89,  1.1, 23.0,  0.3, 5, "one medium ≈ 118 g"],
+  ["Tomato",                   "g",   18,  0.9,  3.9,  0.2, 5, ""],
+  ["Dark chocolate 70%",       "g",  598,  7.8, 46.0, 43.0, 6, "one square ≈ 10 g"],
+  ["Potato chips",             "g",  536,  7.0, 53.0, 35.0, 6, "small bag ≈ 40 g"],
+  ["Cocoa hazelnut spread",    "g",  539,  6.0, 57.0, 31.0, 6, ""],
+  ["Orange juice",             "ml",  45,  0.7, 10.4,  0.2, 7, ""],
+  ["Cola",                     "ml",  42,  0.0, 10.6,  0.0, 7, ""],
+  ["Caffè latte",              "ml",  55,  3.0,  5.0,  2.0, 7, ""],
+  ["Olive oil",                "ml", 884,  0.0,  0.0,100.0, 8, "one tablespoon ≈ 13 ml"]
+];
+
+/* Yemekler: [name, unit, totalAmount, totalKcal, pTotal, cTotal, fTotal, catId, note] */
+const SEED_DISHES = [
+  ["Red lentil soup",        "g", 450, 268,  13,  40,   6, 12, "one pot makes four bowls"],
+  ["Chicken & bulgur plate", "g", 520, 615,  52,  62,  16, 13, ""],
+  ["Breakfast plate",        "g", 340, 505,  27,  32,  29, 11, "eggs, cheese, tomato, one slice of bread"],
+  ["Tuna croissant",         "g", 145, 430,  19,  38,  23, 11, ""],
+  ["Margherita pizza, half", "g", 260, 640,  27,  76,  24, 13, ""],
+  ["Rice pudding",           "g", 180, 260,   6,  44,   6, 14, ""]
+];
+
+const S = {
+  items: [],
+  daily: [],
+  measure: [],
+  calcRows: [],
+  libKind: "product",
+  libFilter: "all",
+  libSearch: "",
+  libEditId: null,
+  dailyEditDate: "",
+  measureEditDate: "",
+  plan: null
+};
+
+/* --- kütüphaneyi kur --- */
+SEED_ITEMS.forEach(r => S.items.push({
+  id: nextId(), type: "product", name: r[0], unit: r[1],
+  kcal100: r[2], p100: r[3], c100: r[4], f100: r[5],
+  catId: r[6], note: r[7], total: 0, totalKcal: 0
+}));
+SEED_DISHES.forEach(r => {
+  const per = x => (r[2] > 0 ? (x / r[2]) * 100 : 0);
+  S.items.push({
+    id: nextId(), type: "dish", name: r[0], unit: r[1],
+    kcal100: per(r[3]), p100: per(r[4]), c100: per(r[5]), f100: per(r[6]),
+    catId: r[7], note: r[8], total: r[2], totalKcal: r[3]
+  });
+});
+
+/* --- günlük kayıtlar: 12 gün, kilo usulca düşüyor --- */
+[
+  [-26, 72.4, "yes", "yes", "none",      0,   "no",  "1h",    ""],
+  [-24, 72.2, "yes", "yes", "chips",   190,   "yes", "1h",    "long day at the desk"],
+  [-21, 72.0, "yes", "yes", "none",      0,   "no",  "extra", ""],
+  [-19, 71.8, "yes", "no",  "none",      0,   "yes", "1h",    "late meeting, skipped dinner"],
+  [-16, 71.9, "yes", "yes", "pizza",   640,   "no",  "1h",    "friday"],
+  [-14, 71.5, "yes", "yes", "none",      0,   "yes", "extra", ""],
+  [-11, 71.2, "yes", "yes", "chocolate", 90,  "no",  "1h",    ""],
+  [-9,  71.1, "yes", "yes", "none",      0,   "yes", "1h",    ""],
+  [-6,  70.8, "yes", "yes", "pastry",  430,   "no",  "extra", "weekend breakfast"],
+  [-4,  70.6, "yes", "yes", "none",      0,   "yes", "1h",    ""],
+  [-2,  70.3, "yes", "yes", "none",      0,   "no",  "1h",    ""],
+  [0,   70.1, "yes", "yes", "none",      0,   "yes", "1h",    "feeling lighter"]
+].forEach(r => S.daily.push({
+  date: todayISO(r[0]), weight: r[1], breakfast: r[2], dinner: r[3],
+  extra: r[4], extraName: "", extraKcal: r[5], workout: r[6], walk: r[7], note: r[8]
+}));
+
+/* --- ölçüm alanları: klinik/nötr adlar, sol-sağ ayrı --- */
+const M_FIELDS = [
+  ["weight",   "Weight (kg)"],
+  ["chest",    "Chest"],
+  ["waist",    "Waist"],
+  ["hips",     "Hips"],
+  ["shoulder", "Shoulders"],
+  ["thighL",   "Thigh L"],  ["thighR", "Thigh R"],
+  ["calfL",    "Calf L"],   ["calfR",  "Calf R"],
+  ["armL",     "Arm L"],    ["armR",   "Arm R"]
+];
+[
+  [-26, 72.4, 96.0, 82.5, 104.0, 108.0, 58.4, 58.6, 36.8, 36.9, 28.6, 28.8],
+  [-12, 71.5, 95.2, 80.4, 102.6, 108.2, 58.0, 58.1, 36.6, 36.8, 28.8, 29.0],
+  [0,   70.1, 94.4, 78.2, 101.1, 108.5, 57.6, 57.7, 36.5, 36.6, 29.1, 29.2]
+].forEach(r => {
+  const e = { date: todayISO(r[0]) };
+  M_FIELDS.forEach((f, i) => { e[f[0]] = r[i + 1]; });
+  S.measure.push(e);
+});
+
+/* ===========================================================================
+   2) SEKMELER
+   =========================================================================== */
+$$(".tab").forEach(tab => tab.addEventListener("click", () => {
+  $$(".tab").forEach(t => t.classList.remove("active"));
+  $$(".panel").forEach(p => p.classList.remove("active"));
+  tab.classList.add("active");
+  $('.panel[data-panel="' + tab.dataset.tab + '"]').classList.add("active");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}));
+
+/* ===========================================================================
+   3) PLAN — BMR → TDEE → hedef → makro
+   ---------------------------------------------------------------------------
+   Demonun "hesap" tarafındaki ilk yarısı. Her ara değer ekrana yazılıyor:
+   ziyaretçi rakamın nereden geldiğini kaynağa bakmadan görebilsin.
+   =========================================================================== */
+const P_INPUTS = ["p-sex", "p-age", "p-height", "p-weight", "p-goal", "p-act", "p-rate"];
+
+function computePlan() {
+  const sex    = $("#p-sex").value;
+  const age    = num($("#p-age").value);
+  const height = num($("#p-height").value);
+  const weight = num($("#p-weight").value);
+  const goal   = num($("#p-goal").value);
+  const act    = num($("#p-act").value);
+  const rate   = num($("#p-rate").value);
+
+  if ([age, height, weight, goal].some(v => !isFinite(v) || v <= 0)) return null;
+
+  const sexOffset = sex === "m" ? 5 : -161;
+  const bmr  = 10 * weight + 6.25 * height - 5 * age + sexOffset;
+  const tdee = bmr * act;
+
+  // 1 kg yağ dokusu ≈ 7700 kcal → haftalık hedef / 7 = günlük açık.
+  const deficit = (rate * 7700) / 7;
+  const rawTarget = tdee - deficit;
+
+  // Güvenlik tabanı: hedef ne BMR'ın altına ne de mutlak alt sınırın altına insin.
+  const floor = Math.max(bmr, sex === "m" ? 1500 : 1200);
+  const clamped = rawTarget < floor;
+  const target = clamped ? floor : rawTarget;
+  const realDeficit = tdee - target;
+
+  const toLose = Math.max(weight - goal, 0);
+  const weeks = realDeficit > 0 ? (toLose * 7700) / (realDeficit * 7) : Infinity;
+
+  // Makro: protein ve yağ hedef kiloya göre sabit, karbonhidrat artan kalori.
+  const proteinG = 1.8 * goal;
+  const fatG     = 0.8 * goal;
+  const carbKcal = target - (proteinG * 4 + fatG * 9);
+  const carbG    = Math.max(carbKcal / 4, 0);
+
+  return { sex, age, height, weight, goal, act, rate, sexOffset, bmr, tdee,
+           deficit, rawTarget, floor, clamped, target, realDeficit, toLose, weeks,
+           proteinG, fatG, carbG };
+}
+
+function renderPlan() {
+  const pl = computePlan();
+  S.plan = pl;
+  if (!pl) {
+    $("#p-stats").innerHTML = "";
+    $("#p-trace").innerHTML = "Fill in age, height and weight to see the calculation.";
+    $("#p-macro").innerHTML = "";
+    $("#p-guard").innerHTML = "";
+    return;
+  }
+
+  $("#p-stats").innerHTML = `
+    <div class="stat"><div class="l">BMR</div><div class="v">${say(pl.bmr, 0)}<small>kcal</small></div><div class="s">at complete rest</div></div>
+    <div class="stat"><div class="l">Maintenance (TDEE)</div><div class="v">${say(pl.tdee, 0)}<small>kcal</small></div><div class="s">weight holds steady</div></div>
+    <div class="stat good"><div class="l">Daily target</div><div class="v">${say(pl.target, 0)}<small>kcal</small></div><div class="s">−${say(pl.realDeficit, 0)} kcal deficit</div></div>
+    <div class="stat"><div class="l">Time to goal</div><div class="v">${isFinite(pl.weeks) ? "~" + say(pl.weeks, 0) : "—"}<small>weeks</small></div><div class="s">${say(pl.toLose)} kg to go at ${say(pl.rate)} kg/week</div></div>`;
+
+  $("#p-guard").innerHTML = pl.clamped
+    ? `<div class="warnbox"><b>Floor applied.</b> ${say(pl.rate)} kg per week would put the target at
+       ${say(pl.rawTarget, 0)} kcal, below the ${say(pl.floor, 0)} kcal floor. The target was raised back
+       to the floor and the timeline recalculated from the deficit that is actually left
+       (${say(pl.realDeficit, 0)} kcal/day). Pick a slower rate to get the schedule you asked for.</div>`
+    : `<div class="notebox">The requested rate fits above the safety floor of ${say(pl.floor, 0)} kcal,
+       so the target is used as calculated.</div>`;
+
+  const sexWord = pl.sex === "m" ? "male +5" : "female −161";
+  $("#p-trace").innerHTML = [
+    `<div class="step"><b>BMR</b> = 10×${say(pl.weight)} + 6.25×${say(pl.height)} − 5×${say(pl.age, 0)} ${pl.sexOffset < 0 ? "−" : "+"} ${Math.abs(pl.sexOffset)} <span class="eq">→</span> <b>${say(pl.bmr, 0)} kcal</b> <span style="opacity:.7">(${sexWord})</span></div>`,
+    `<div class="step"><b>TDEE</b> = BMR ${say(pl.bmr, 0)} × activity ${pl.act} <span class="eq">→</span> <b>${say(pl.tdee, 0)} kcal</b></div>`,
+    `<div class="step"><b>Deficit</b> = ${say(pl.rate)} kg/week × 7700 kcal/kg ÷ 7 days <span class="eq">→</span> <b>${say(pl.deficit, 0)} kcal/day</b></div>`,
+    `<div class="step"><b>Target</b> = ${say(pl.tdee, 0)} − ${say(pl.deficit, 0)} <span class="eq">→</span> <b>${say(pl.rawTarget, 0)} kcal</b>${pl.clamped ? ` <span style="color:#B57A2E">→ raised to floor ${say(pl.floor, 0)}</span>` : ""}</div>`,
+    `<div class="step"><b>Duration</b> = ${say(pl.toLose)} kg × 7700 ÷ (${say(pl.realDeficit, 0)} × 7) <span class="eq">→</span> <b>${isFinite(pl.weeks) ? say(pl.weeks, 1) + " weeks" : "no deficit"}</b></div>`
+  ].join("");
+
+  const row = (name, grams, kcalPerG, colour) => {
+    const kcal = grams * kcalPerG;
+    const pct = pl.target > 0 ? (kcal / pl.target) * 100 : 0;
+    return `<tr><td><span class="dot" style="background:${colour};margin-right:7px"></span>${name}</td>
+      <td class="mono right">${say(grams, 0)} g</td>
+      <td class="mono right">${say(kcal, 0)} kcal</td>
+      <td class="mono right">${say(pct, 0)}%</td>
+      <td class="hint" style="padding-top:9px">${
+        name === "Protein" ? "1.8 g per kg of goal weight — keeps muscle while losing" :
+        name === "Fat"     ? "0.8 g per kg of goal weight — hormonal floor" :
+                             "whatever calories are left after protein and fat"}</td></tr>`;
+  };
+  $("#p-macro").innerHTML =
+    `<thead><tr><th>Macro</th><th class="right">Per day</th><th class="right">Calories</th><th class="right">Share</th><th>Why this number</th></tr></thead><tbody>` +
+    row("Protein", pl.proteinG, 4, "#C9557F") +
+    row("Fat",     pl.fatG,     9, "#5FA98A") +
+    row("Carbs",   pl.carbG,    4, "#E2A93F") +
+    `</tbody>`;
+
+  $("#profile-line").textContent =
+    `${say(pl.height, 0)} cm · ${say(pl.weight)} kg → goal ${say(pl.goal)} kg · ${say(pl.target, 0)} kcal/day`;
+
+  // Hesap makinesi sonucu hedefe oranlıyor — plan değişince o da tazelensin.
+  if (S.calcRows.length) renderCalcResult();
+}
+
+P_INPUTS.forEach(id => {
+  const el = $("#" + id);
+  el.addEventListener("input", renderPlan);
+  el.addEventListener("change", renderPlan);
+});
+
+/* ===========================================================================
+   4) KÜTÜPHANE
+   =========================================================================== */
+const catName = (kind, id) => {
+  const c = CATS[kind].find(x => x.id === id);
+  return c ? c.emoji + " " + c.name : "Uncategorised";
+};
+const itemsOf = kind => S.items.filter(i => i.type === kind);
+const itemById = id => S.items.find(i => i.id === id);
+
+function libFormMode() {
+  const dish = S.libKind === "dish";
+  $("#lf-name-label").textContent = dish ? "Dish name" : "Product name";
+  $("#lf-name").placeholder = dish ? "Lentil soup" : "Greek yogurt 2%";
+  $("#lf-kcal100-wrap").hidden = dish;
+  $("#lf-total-wrap").hidden = !dish;
+  $("#lf-totalkcal-wrap").hidden = !dish;
+  $("#lf-p-label").textContent = dish ? "Protein, total" : "Protein / 100";
+  $("#lf-c-label").textContent = dish ? "Carbs, total"   : "Carbs / 100";
+  $("#lf-f-label").textContent = dish ? "Fat, total"     : "Fat / 100";
+  $("#lf-hint").textContent = dish
+    ? "Write what the whole plate weighs and what it costs in calories; the app divides it down to a per-100 density. Macros are optional."
+    : "Copy the “per 100 g / 100 ml” numbers from the label. Macros are optional — leave them empty and only calories are tracked.";
+  $("#lf-cat").innerHTML = '<option value="">— none —</option>' +
+    CATS[S.libKind].map(c => `<option value="${c.id}">${esc(c.emoji + " " + c.name)}</option>`).join("");
+}
+
+function libClearForm() {
+  S.libEditId = null;
+  ["lf-name","lf-kcal100","lf-total","lf-totalkcal","lf-p","lf-c","lf-f","lf-note"].forEach(id => { $("#" + id).value = ""; });
+  $("#lf-unit").value = "g";
+  $("#lf-cat").value = "";
+  $("#lib-editbar").classList.remove("on");
+  $("#lf-save").textContent = "Add";
+}
+
+function libEdit(id) {
+  const it = itemById(id);
+  if (!it) return;
+  S.libKind = it.type;
+  $$("#lib-seg button").forEach(b => b.classList.toggle("on", b.dataset.kind === it.type));
+  libFormMode();
+  S.libEditId = id;
+  $("#lf-name").value = it.name;
+  $("#lf-unit").value = it.unit;
+  $("#lf-cat").value  = it.catId || "";
+  $("#lf-note").value = it.note || "";
+  if (it.type === "dish") {
+    $("#lf-total").value     = say(it.total, 0);
+    $("#lf-totalkcal").value = say(it.totalKcal, 0);
+    $("#lf-p").value = say(it.p100 * it.total / 100);
+    $("#lf-c").value = say(it.c100 * it.total / 100);
+    $("#lf-f").value = say(it.f100 * it.total / 100);
+  } else {
+    $("#lf-kcal100").value = say(it.kcal100);
+    $("#lf-p").value = say(it.p100);
+    $("#lf-c").value = say(it.c100);
+    $("#lf-f").value = say(it.f100);
+  }
+  $("#lib-edit-name").textContent = it.name;
+  $("#lib-editbar").classList.add("on");
+  $("#lf-save").textContent = "Update";
+  renderLibrary();
+  $("#lib-editbar").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function libSave() {
+  const dish = S.libKind === "dish";
+  const name = $("#lf-name").value.trim();
+  const status = $("#lf-status");
+  if (!name) { $("#lf-name").focus(); status.textContent = "a name is required"; return; }
+
+  const unit = $("#lf-unit").value;
+  const p = num($("#lf-p").value) || 0;
+  const c = num($("#lf-c").value) || 0;
+  const f = num($("#lf-f").value) || 0;
+
+  let kcal100, total = 0, totalKcal = 0, p100 = p, c100 = c, f100 = f;
+  if (dish) {
+    total     = num($("#lf-total").value);
+    totalKcal = num($("#lf-totalkcal").value);
+    if (!isFinite(total) || total <= 0)     { $("#lf-total").focus(); status.textContent = "total amount is required"; return; }
+    if (!isFinite(totalKcal) || totalKcal < 0) { $("#lf-totalkcal").focus(); status.textContent = "total calories are required"; return; }
+    kcal100 = (totalKcal / total) * 100;
+    p100 = (p / total) * 100; c100 = (c / total) * 100; f100 = (f / total) * 100;
+  } else {
+    kcal100 = num($("#lf-kcal100").value);
+    if (!isFinite(kcal100) || kcal100 < 0) { $("#lf-kcal100").focus(); status.textContent = "calories per 100 are required"; return; }
+    if (kcal100 > 1000) { status.textContent = "over 1000 kcal per 100 — check the label"; return; }
+  }
+
+  const payload = {
+    type: S.libKind, name, unit, kcal100, p100, c100, f100,
+    catId: Number($("#lf-cat").value) || 0,
+    note: $("#lf-note").value.trim(), total, totalKcal
+  };
+
+  if (S.libEditId) {
+    Object.assign(itemById(S.libEditId), payload);
+    status.textContent = "updated ✓";
+  } else {
+    S.items.push(Object.assign({ id: nextId() }, payload));
+    status.textContent = "added ✓";
+  }
+  libClearForm();
+  renderLibrary();
+  setTimeout(() => { status.textContent = ""; }, 2200);
+}
+
+function renderLibFilters() {
+  const list = itemsOf(S.libKind);
+  const count = id => list.filter(i => (id === "none" ? !i.catId : i.catId === id)).length;
+  let html = `<span class="chip${S.libFilter === "all" ? " on" : ""}" data-f="all">All <span class="n">${list.length}</span></span>`;
+  CATS[S.libKind].forEach(c => {
+    const n = count(c.id);
+    if (!n) return;
+    html += `<span class="chip${S.libFilter === c.id ? " on" : ""}" data-f="${c.id}">${esc(c.emoji + " " + c.name)} <span class="n">${n}</span></span>`;
+  });
+  const none = count("none");
+  if (none) html += `<span class="chip${S.libFilter === "none" ? " on" : ""}" data-f="none">Uncategorised <span class="n">${none}</span></span>`;
+  const el = $("#lib-filters");
+  el.innerHTML = html;
+  $$(".chip", el).forEach(ch => ch.addEventListener("click", () => {
+    const v = ch.dataset.f;
+    S.libFilter = (v === "all" || v === "none") ? v : Number(v);
+    renderLibrary();
+  }));
+}
+
+function renderLibrary() {
+  renderLibFilters();
+  const q = S.libSearch.trim().toLowerCase();
+  let list = itemsOf(S.libKind);
+  if (S.libFilter !== "all") list = list.filter(i => S.libFilter === "none" ? !i.catId : i.catId === S.libFilter);
+  if (q) list = list.filter(i => i.name.toLowerCase().includes(q));
+  list = list.slice().sort((a, b) => a.name.localeCompare(b.name, "en"));
+
+  const el = $("#lib-list");
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">Nothing matches that filter.<br>Clear the search or add a new entry above.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="cards">' + list.map(i => `
+    <button class="card" data-id="${i.id}">
+      <div class="name">${esc(i.name)}</div>
+      <div class="meta">${i.type === "dish"
+        ? "1 portion · " + say(i.total, 0) + " " + i.unit + " · " + say(i.totalKcal, 0) + " kcal"
+        : "P " + say(i.p100) + " · C " + say(i.c100) + " · F " + say(i.f100) + " g"}</div>
+      <div class="foot">
+        <span class="kcal">${say(i.kcal100, 0)}<span style="font-size:10px;color:var(--ink-soft);font-weight:400"> /100${i.unit}</span></span>
+        <span class="tag">${esc(catName(i.type, i.catId))}</span>
+      </div>
+    </button>`).join("") + "</div>";
+
+  $$(".card", el).forEach(c => c.addEventListener("click", () => openItem(Number(c.dataset.id))));
+}
+
+$$("#lib-seg button").forEach(b => b.addEventListener("click", () => {
+  $$("#lib-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  S.libKind = b.dataset.kind;
+  S.libFilter = "all";
+  libClearForm();
+  libFormMode();
+  renderLibrary();
+}));
+$("#lib-search").addEventListener("input", e => { S.libSearch = e.target.value; renderLibrary(); });
+$("#lf-save").addEventListener("click", libSave);
+$("#lib-cancel").addEventListener("click", () => { libClearForm(); renderLibrary(); });
+$("#lib-delete").addEventListener("click", () => {
+  if (!S.libEditId) return;
+  S.items = S.items.filter(i => i.id !== S.libEditId);
+  S.calcRows = S.calcRows.filter(r => r.itemId !== S.libEditId);
+  libClearForm();
+  renderLibrary();
+  renderCalcRows();
+  renderCalcResult();
+});
+
+/* --- ayrıntı penceresi: örnek miktarlar tablosu + hesaba ekle --- */
+function openItem(id) {
+  const it = itemById(id);
+  if (!it) return;
+  const amounts = it.type === "dish"
+    ? [it.total * 0.5, it.total, it.total * 1.5]
+    : [30, 50, 100];
+
+  $("#veil-body").innerHTML = `
+    <h3>${esc(it.name)}</h3>
+    <div class="mono" style="font-size:11.5px;color:var(--ink-soft);margin-bottom:12px">
+      ${esc(catName(it.type, it.catId))} · ${it.type === "dish" ? "dish" : "product"} · ${it.unit}
+    </div>
+    ${it.note ? `<div class="notebox" style="margin:0 0 12px">${esc(it.note)}</div>` : ""}
+    <div class="table-scroll" style="margin-bottom:12px"><table>
+      <thead><tr><th>Amount</th><th class="right">Calories</th><th class="right">P / C / F</th></tr></thead>
+      <tbody>${amounts.map(a => `<tr>
+        <td class="mono">${say(a, 0)} ${it.unit}</td>
+        <td class="mono right" style="color:var(--rose-dark);font-weight:700">${say(a * it.kcal100 / 100, 0)} kcal</td>
+        <td class="mono right">${say(a * it.p100 / 100, 0)} / ${say(a * it.c100 / 100, 0)} / ${say(a * it.f100 / 100, 0)} g</td>
+      </tr>`).join("")}</tbody>
+    </table></div>
+    <div class="trace" style="margin-bottom:14px">
+      <div class="step">100 ${it.unit} <span class="eq">→</span> <b>${say(it.kcal100)} kcal</b>
+      · P ${say(it.p100)} g · C ${say(it.c100)} g · F ${say(it.f100)} g</div>
+      ${it.type === "dish" ? `<div class="step">derived from ${say(it.totalKcal, 0)} kcal ÷ ${say(it.total, 0)} ${it.unit} × 100</div>` : ""}
+    </div>
+    <div class="actions">
+      <button class="btn mini" id="veil-add">🧮 Add to calculator</button>
+      <button class="btn mini ghost" id="veil-edit">Edit</button>
+    </div>`;
+  $("#veil").classList.add("on");
+  $("#veil-add").addEventListener("click", () => {
+    addCalcRow(it.id, it.type === "dish" ? it.total : 100, it.type === "dish" ? 1 : null);
+    closeVeil();
+    $('.tab[data-tab="calc"]').click();
+  });
+  $("#veil-edit").addEventListener("click", () => { closeVeil(); libEdit(it.id); });
+}
+function closeVeil() { $("#veil").classList.remove("on"); }
+$("#veil-close").addEventListener("click", closeVeil);
+$("#veil").addEventListener("click", e => { if (e.target === $("#veil")) closeVeil(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeVeil(); });
+
+/* ===========================================================================
+   5) HESAP MAKİNESİ — demonun kalbi
+   ---------------------------------------------------------------------------
+   Her satır gram/ml'ye çevrilip saklanıyor; toplam tek formülle yürüyor.
+   Katı ve sıvı ayrı gruplanır: 200 g yemek ile 500 ml içecek toplanabilir
+   miktarlar değil (kaloriler toplanır, miktarlar toplanmaz).
+   =========================================================================== */
+let pickerKind = null;
+
+function addCalcRow(itemId, amount, portions) {
+  S.calcRows.push({ itemId, amount, portions: portions || null });
+  renderCalcRows();
+  renderCalcResult();
+}
+
+function rowKcal(r) {
+  const it = itemById(r.itemId);
+  return it ? (r.amount * it.kcal100) / 100 : 0;
+}
+
+function renderCalcRows() {
+  const el = $("#calc-rows");
+  if (!S.calcRows.length) {
+    el.innerHTML = '<div class="empty">The list is empty.<br>Add a product or a dish with the buttons below.</div>';
+    return;
+  }
+  el.innerHTML = S.calcRows.map((r, i) => {
+    const it = itemById(r.itemId);
+    if (!it) return "";
+    const detail = r.portions
+      ? `${say(r.portions)} portion · ${say(r.amount, 0)} ${it.unit} · ${say(it.kcal100, 0)} kcal/100${it.unit}`
+      : `${say(r.amount, 0)} ${it.unit} × ${say(it.kcal100, 0)} kcal/100${it.unit} ÷ 100`;
+    return `<div class="calc-row">
+      <span class="name">${esc(it.name)}<span class="small">${detail}</span></span>
+      <span class="kcal">${say(rowKcal(r), 0)} kcal</span>
+      <button class="del" data-i="${i}" aria-label="Remove row">×</button>
+    </div>`;
+  }).join("");
+
+  $$(".del", el).forEach(b => b.addEventListener("click", () => {
+    S.calcRows.splice(Number(b.dataset.i), 1);
+    renderCalcRows();
+    renderCalcResult();
+  }));
+}
+
+function renderCalcResult() {
+  const el = $("#calc-result");
+  if (!S.calcRows.length) { el.innerHTML = ""; return; }
+
+  const groups = {};
+  let kcal = 0, P = 0, C = 0, F = 0;
+  S.calcRows.forEach(r => {
+    const it = itemById(r.itemId);
+    if (!it) return;
+    const k = (r.amount * it.kcal100) / 100;
+    kcal += k;
+    P += (r.amount * it.p100) / 100;
+    C += (r.amount * it.c100) / 100;
+    F += (r.amount * it.f100) / 100;
+    if (!groups[it.unit]) groups[it.unit] = { amount: 0, kcal: 0 };
+    groups[it.unit].amount += r.amount;
+    groups[it.unit].kcal += k;
+  });
+
+  const macroKcal = P * 4 + C * 4 + F * 9;
+  const pct = x => (macroKcal > 0 ? (x / macroKcal) * 100 : 0);
+  const target = S.plan ? S.plan.target : 0;
+  const share = target > 0 ? (kcal / target) * 100 : 0;
+
+  const unitName = { g: "solid (gram)", ml: "liquid (ml)" };
+
+  el.innerHTML = `
+  <div class="result">
+    <h4>🦉 Total</h4>
+    <div class="big">${say(kcal, 0)}<small>kcal</small></div>
+
+    <div class="macrobar" aria-hidden="true">
+      <i class="p" style="width:${pct(P * 4)}%"></i>
+      <i class="c" style="width:${pct(C * 4)}%"></i>
+      <i class="f" style="width:${pct(F * 9)}%"></i>
+    </div>
+    <div class="macrolegend">
+      <span><span class="dot" style="background:#C9557F"></span>protein ${say(P, 0)} g · ${say(pct(P * 4), 0)}%</span>
+      <span><span class="dot" style="background:#E2A93F"></span>carbs ${say(C, 0)} g · ${say(pct(C * 4), 0)}%</span>
+      <span><span class="dot" style="background:#5FA98A"></span>fat ${say(F, 0)} g · ${say(pct(F * 9), 0)}%</span>
+    </div>
+
+    ${target > 0 ? `
+    <div style="margin-top:14px">
+      <div class="hint" style="margin-bottom:2px">${say(share, 0)}% of the ${say(target, 0)} kcal daily budget from the Plan tab
+        — ${kcal <= target ? say(target - kcal, 0) + " kcal left for the rest of the day" : say(kcal - target, 0) + " kcal over budget"}</div>
+      <div class="progress${share > 100 ? " over" : ""}"><i style="width:${Math.min(share, 100)}%"></i></div>
+    </div>` : ""}
+
+    <div class="divider" style="margin:16px 0 12px"></div>
+    <div class="trace">
+      ${S.calcRows.map(r => {
+        const it = itemById(r.itemId);
+        if (!it) return "";
+        return `<div class="step">${esc(it.name)} <span class="eq">·</span> ${say(r.amount, 0)} ${it.unit} × ${say(it.kcal100, 0)} ÷ 100 <span class="eq">=</span> <b>${say(rowKcal(r), 0)} kcal</b></div>`;
+      }).join("")}
+      <div class="step" style="border-top:1px solid #F1C8D6;margin-top:6px;padding-top:6px">
+        sum <span class="eq">=</span> <b>${say(kcal, 0)} kcal</b>
+        <span class="eq">·</span> macros ${say(P, 0)}P / ${say(C, 0)}C / ${say(F, 0)}F
+        <span class="eq">→</span> ${say(P, 0)}×4 + ${say(C, 0)}×4 + ${say(F, 0)}×9 = <b>${say(macroKcal, 0)} kcal</b>
+      </div>
+    </div>
+    <p class="hint" style="margin:8px 0 0">The macro sum and the calorie sum differ by a few percent — label
+    rounding and fibre, not a bug. The calorie figure is the one that gets logged.</p>
+  </div>
+
+  ${Object.entries(groups).map(([unit, g]) => `
+  <div class="result" data-unit="${unit}" data-amount="${g.amount}" data-kcal="${g.kcal}">
+    <h4>${unitName[unit]}</h4>
+    <div class="big">${say(g.kcal, 0)}<small>kcal · ${say(g.amount, 0)} ${unit} in total</small></div>
+    <div class="picker-row" style="margin-top:12px">
+      <div class="field" style="flex:1 1 150px"><label>How much of it did you actually have?</label>
+        <input type="text" data-role="portion" inputmode="decimal" placeholder="${say(g.amount / 2, 0)}"></div>
+      <span class="unit-badge">${unit}</span>
+      <span class="mono" data-role="portion-out" style="font-weight:700;color:var(--rose-dark);padding:9px 0">— kcal</span>
+    </div>
+    <div class="picker-row" style="margin-top:10px">
+      <div class="field text" style="flex:1 1 170px"><label>Save this as a dish</label>
+        <input type="text" data-role="dish-name" maxlength="60" placeholder="name of the plate"></div>
+      <button class="btn mini" data-role="save-dish">🍲 Save</button>
+    </div>
+  </div>`).join("")}
+
+  <div class="result">
+    <h4>📔 Send it to the daily log</h4>
+    <div class="picker-row">
+      <div class="field" style="flex:0 1 180px"><label>Date</label>
+        <input type="date" id="calc-log-date" value="${todayISO()}"></div>
+      <button class="btn mini" id="calc-log-go">Add ${say(kcal, 0)} kcal as an extra</button>
+    </div>
+    <p class="hint" style="margin:8px 0 0">It adds to that day's extra calories instead of overwriting them —
+    the same guard the real app uses, so pressing twice never doubles a meal by accident.</p>
+    <div id="calc-log-out"></div>
+  </div>`;
+
+  // "ne kadarını yedin" → oran hesabı
+  $$('[data-role="portion"]', el).forEach(inp => {
+    const box = inp.closest(".result");
+    const out = $('[data-role="portion-out"]', box);
+    inp.addEventListener("input", () => {
+      const m = num(inp.value);
+      const total = parseFloat(box.dataset.amount);
+      if (!isFinite(m) || m <= 0 || total <= 0) { out.textContent = "— kcal"; return; }
+      out.textContent = say((m / total) * parseFloat(box.dataset.kcal), 0) + " kcal";
+    });
+  });
+
+  // hesabın sonucu doğrudan kütüphaneye yemek olarak dönebiliyor — halka kapanır
+  $$('[data-role="save-dish"]', el).forEach(btn => btn.addEventListener("click", () => {
+    const box = btn.closest(".result");
+    const inp = $('[data-role="dish-name"]', box);
+    const name = inp.value.trim();
+    if (!name) { inp.focus(); return; }
+    const amount = parseFloat(box.dataset.amount);
+    const kc = parseFloat(box.dataset.kcal);
+    const unit = box.dataset.unit;
+    const rows = S.calcRows.filter(r => (itemById(r.itemId) || {}).unit === unit);
+    const sum = key => rows.reduce((t, r) => t + (r.amount * itemById(r.itemId)[key]) / 100, 0);
+    S.items.push({
+      id: nextId(), type: "dish", name, unit,
+      kcal100: (kc / amount) * 100,
+      p100: (sum("p100") / amount) * 100,
+      c100: (sum("c100") / amount) * 100,
+      f100: (sum("f100") / amount) * 100,
+      catId: 0, note: "saved from the calculator",
+      total: amount, totalKcal: kc
+    });
+    btn.textContent = "✓ saved to Dishes";
+    btn.classList.add("ghost");
+    btn.disabled = true;
+    renderLibrary();
+  }));
+
+  // günlüğe yaz
+  $("#calc-log-go").addEventListener("click", e => {
+    const btn = e.currentTarget;
+    const date = $("#calc-log-date").value;
+    if (!date) return;
+    let entry = S.daily.find(d => d.date === date);
+    let created = false;
+    if (!entry) {
+      entry = { date, weight: "", breakfast: "yes", dinner: "yes", extra: "other",
+                extraName: "", extraKcal: 0, workout: "no", walk: "1h", note: "" };
+      S.daily.push(entry);
+      created = true;
+    }
+    entry.extraKcal = (Number(entry.extraKcal) || 0) + Math.round(kcal);
+    if (entry.extra === "none") entry.extra = "other";
+    entry.extraName = S.calcRows.map(r => (itemById(r.itemId) || {}).name).filter(Boolean).join(", ").slice(0, 40);
+    btn.disabled = true;
+    btn.textContent = "✓ added";
+    $("#calc-log-out").innerHTML =
+      `<div class="notebox">Extra calories for ${esc(fmtDate(date))} are now
+       <b>${say(entry.extraKcal, 0)} kcal</b>${created ? " <i>(a new entry was created for that day)</i>" : ""} —
+       edit it any time from the <b>Daily log</b> tab.</div>`;
+    renderDaily();
+  });
+}
+
+/* --- seçici --- */
+function pickerCats() {
+  const list = itemsOf(pickerKind);
+  const count = id => list.filter(i => (id === "none" ? !i.catId : i.catId === id)).length;
+  let html = `<option value="">All (${list.length})</option>`;
+  CATS[pickerKind].forEach(c => {
+    const n = count(c.id);
+    if (n) html += `<option value="${c.id}">${esc(c.emoji + " " + c.name)} (${n})</option>`;
+  });
+  if (count("none")) html += `<option value="none">Uncategorised (${count("none")})</option>`;
+  $("#pick-cat").innerHTML = html;
+}
+
+function pickerOption(i) {
+  return `<option value="${i.id}">${esc(i.name)} — ${i.type === "dish"
+    ? say(i.totalKcal, 0) + " kcal · 1 portion " + say(i.total, 0) + " " + i.unit
+    : say(i.kcal100, 0) + " kcal/100" + i.unit}</option>`;
+}
+
+function pickerItems() {
+  const f = $("#pick-cat").value;
+  let list = itemsOf(pickerKind);
+  if (f === "none") list = list.filter(i => !i.catId);
+  else if (f !== "") list = list.filter(i => i.catId === Number(f));
+  list = list.slice().sort((a, b) => a.name.localeCompare(b.name, "en"));
+
+  // "All" seçiliyken kategori başlıkları — düz liste uzayınca göz kayboluyor.
+  if (f === "") {
+    let html = "";
+    CATS[pickerKind].forEach(c => {
+      const inside = list.filter(i => i.catId === c.id);
+      if (!inside.length) return;
+      html += `<optgroup label="${esc(c.emoji + " " + c.name)}">${inside.map(pickerOption).join("")}</optgroup>`;
+    });
+    const rest = list.filter(i => !i.catId);
+    if (rest.length) html += `<optgroup label="Uncategorised">${rest.map(pickerOption).join("")}</optgroup>`;
+    $("#pick-item").innerHTML = html;
+  } else {
+    $("#pick-item").innerHTML = list.map(pickerOption).join("");
+  }
+  pickerUnit();
+}
+
+function pickerUnit() {
+  const it = itemById(Number($("#pick-item").value));
+  const portionMode = !$("#pick-measure-wrap").hidden && $("#pick-measure").value === "portion";
+  $("#pick-unit").textContent = portionMode ? "portion" : (it ? it.unit : "");
+  $("#pick-amount").placeholder = portionMode ? "1" : "100";
+}
+
+function pickerOpen(kind) {
+  pickerKind = kind;
+  $("#pick-label").textContent = kind === "dish" ? "Dish" : "Product";
+  $("#pick-amount").value = "";
+  $("#picker").hidden = false;
+  pickerCats();
+  pickerItems();
+  $("#pick-measure-wrap").hidden = kind !== "dish";
+  $("#pick-measure").value = "portion";
+  pickerUnit();
+  $("#pick-amount").focus();
+}
+
+$$("[data-add]").forEach(b => b.addEventListener("click", () => pickerOpen(b.dataset.add)));
+$("#pick-cat").addEventListener("change", pickerItems);
+$("#pick-item").addEventListener("change", pickerUnit);
+$("#pick-measure").addEventListener("change", pickerUnit);
+$("#pick-cancel").addEventListener("click", () => { $("#picker").hidden = true; });
+$("#pick-amount").addEventListener("keydown", e => { if (e.key === "Enter") $("#pick-ok").click(); });
+
+$("#pick-ok").addEventListener("click", () => {
+  const it = itemById(Number($("#pick-item").value));
+  if (!it) return;
+  const portionMode = !$("#pick-measure-wrap").hidden && $("#pick-measure").value === "portion";
+  const raw = $("#pick-amount").value.trim();
+  // Porsiyon kipinde boş bırakmak "1 porsiyon" demek — en sık durum bu.
+  const typed = raw === "" && portionMode ? 1 : num(raw);
+  if (!isFinite(typed) || typed <= 0) { $("#pick-amount").focus(); return; }
+  if (portionMode && !(it.total > 0)) { $("#pick-amount").focus(); return; }
+
+  addCalcRow(it.id, portionMode ? typed * it.total : typed, portionMode ? typed : null);
+  // Seçici açık kalıyor: arka arkaya birkaç malzeme eklemek olağan.
+  $("#pick-amount").value = "";
+  $("#pick-amount").focus();
+});
+
+$("#calc-clear").addEventListener("click", () => {
+  S.calcRows = [];
+  $("#picker").hidden = true;
+  renderCalcRows();
+  renderCalcResult();
+});
+
+/* ===========================================================================
+   6) GÜNLÜK KAYIT
+   =========================================================================== */
+const EXTRA_LABEL = { none:"none", chocolate:"chocolate", chips:"chips", cocktail:"cocktail",
+                      pizza:"pizza", pastry:"pastry", other:"other" };
+const EXTRA_TAG   = { none:"green", chocolate:"ochre", chips:"ochre", cocktail:"rose",
+                      pizza:"rose", pastry:"ochre", other:"ochre" };
+const extraName = d => d.extra === "other" ? (d.extraName || "other") : EXTRA_LABEL[d.extra] || d.extra;
+
+$("#d-extra").addEventListener("change", () => {
+  $("#d-extra-name-wrap").hidden = $("#d-extra").value !== "other";
+});
+
+function dMode() {
+  const on = S.dailyEditDate !== "";
+  $("#d-editbar").classList.toggle("on", on);
+  $("#d-edit-date").textContent = on ? fmtDate(S.dailyEditDate) : "";
+  $("#d-heading").textContent = on ? "Edit entry" : "Add a daily entry";
+  $("#d-save").textContent = on ? "Update" : "Save";
+}
+function dClear() {
+  S.dailyEditDate = "";
+  $("#d-date").value = todayISO();
+  ["d-weight","d-extra-name","d-extra-kcal","d-note"].forEach(id => { $("#" + id).value = ""; });
+  $("#d-breakfast").value = "yes";
+  $("#d-dinner").value = "yes";
+  $("#d-extra").value = "none";
+  $("#d-workout").value = "no";
+  $("#d-walk").value = "1h";
+  $("#d-extra-name-wrap").hidden = true;
+  dMode();
+}
+function dEdit(date) {
+  const d = S.daily.find(x => x.date === date);
+  if (!d) return;
+  S.dailyEditDate = date;
+  $("#d-date").value = d.date;
+  $("#d-weight").value = d.weight || "";
+  $("#d-breakfast").value = d.breakfast;
+  $("#d-dinner").value = d.dinner;
+  $("#d-extra").value = d.extra;
+  $("#d-extra-name").value = d.extraName || "";
+  $("#d-extra-kcal").value = d.extraKcal || "";
+  $("#d-workout").value = d.workout;
+  $("#d-walk").value = d.walk;
+  $("#d-note").value = d.note || "";
+  $("#d-extra-name-wrap").hidden = d.extra !== "other";
+  dMode();
+  renderDaily();
+  $("#d-editbar").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function weightChart(rows) {
+  const pts = rows.filter(r => isFinite(num(r.weight)));
+  if (pts.length < 2) {
+    return '<div class="empty">Two weigh-ins and the trend line appears here.</div>';
+  }
+  const goal = S.plan ? S.plan.goal : 66;
+  const W = 680, H = 190, padL = 40, padR = 18, padT = 16, padB = 28;
+  const ws = pts.map(p => num(p.weight));
+  const min = Math.min(...ws, goal) - 0.6;
+  const max = Math.max(...ws) + 0.6;
+  const x = i => padL + (i / (pts.length - 1)) * (W - padL - padR);
+  const y = w => padT + (1 - (w - min) / (max - min)) * (H - padT - padB);
+  const gy = y(goal);
+  const line = pts.map((p, i) => x(i) + "," + y(num(p.weight))).join(" ");
+  const area = `M ${x(0)},${H - padB} L ` + line.replace(/ /g, " L ") + ` L ${x(pts.length - 1)},${H - padB} Z`;
+  const dots = pts.map((p, i) =>
+    `<circle cx="${x(i)}" cy="${y(num(p.weight))}" r="3.6" fill="#D98BA8" stroke="#fff" stroke-width="1.4"><title>${esc(fmtDate(p.date))} · ${say(num(p.weight))} kg</title></circle>`).join("");
+  const labels = pts.map((p, i) =>
+    (pts.length <= 6 || i === 0 || i === pts.length - 1 || i % Math.ceil(pts.length / 6) === 0)
+      ? `<text x="${x(i)}" y="${H - 8}" font-size="10" fill="#8E7480" text-anchor="middle" font-family="${"ui-monospace,monospace"}">${esc(fmtDate(p.date))}</text>` : "").join("");
+  const first = ws[0], last = ws[ws.length - 1];
+  const diff = last - first;
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight trend">
+    <defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D98BA8" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="#D98BA8" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#fade)"/>
+    <line x1="${padL}" y1="${gy}" x2="${W - padR}" y2="${gy}" stroke="#3E8468" stroke-width="1.4" stroke-dasharray="5,4"/>
+    <text x="${W - padR}" y="${gy - 6}" font-size="10.5" fill="#3E8468" text-anchor="end" font-family="ui-monospace,monospace">goal ${say(goal)} kg 🌿</text>
+    <polyline points="${line}" fill="none" stroke="#D98BA8" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}${labels}
+    <text x="${padL}" y="${padT + 2}" font-size="11" fill="${diff <= 0 ? "#3E8468" : "#B57A2E"}" font-family="ui-monospace,monospace">${diff <= 0 ? "▼" : "▲"} ${say(Math.abs(diff))} kg over ${pts.length} weigh-ins</text>
+  </svg>`;
+}
+
+function renderDaily() {
+  const rows = S.daily.slice().sort((a, b) => a.date.localeCompare(b.date));
+  $("#d-chart").innerHTML = weightChart(rows);
+
+  const el = $("#d-table");
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty">No entries yet. Add the first day above.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="table-scroll"><table><thead><tr>' +
+    "<th>Date</th><th>Weight</th><th>Breakfast</th><th>Dinner</th><th>Extra</th><th>Extra kcal</th><th>Workout</th><th>Walk</th><th>Note</th>" +
+    "</tr></thead><tbody>" +
+    rows.slice().reverse().map(d => {
+      const extra = d.extra !== "none"
+        ? `<span class="tag ${EXTRA_TAG[d.extra] || ""}">${esc(extraName(d))}</span>`
+        : '<span class="tag green">none</span>';
+      return `<tr class="pick${d.date === S.dailyEditDate ? " sel" : ""}" data-date="${esc(d.date)}">
+        <td class="mono">${esc(fmtDate(d.date))}</td>
+        <td class="mono">${d.weight ? say(num(d.weight)) + " kg" : "—"}</td>
+        <td>${d.breakfast === "yes" ? "had it" : "skipped"}</td>
+        <td>${d.dinner === "yes" ? "had it" : "skipped"}</td>
+        <td>${extra}</td>
+        <td class="mono">${Number(d.extraKcal) > 0 ? `<span class="tag rose">+${say(Number(d.extraKcal), 0)}</span>` : "—"}</td>
+        <td>${d.workout === "yes" ? '<span class="tag green">yes</span>' : "—"}</td>
+        <td>${d.walk === "1h" ? "1 h" : d.walk === "extra" ? '<span class="tag green">extra</span>' : "—"}</td>
+        <td>${esc(d.note) || "—"}</td>
+      </tr>`;
+    }).join("") + "</tbody></table></div>";
+
+  $$("tr.pick", el).forEach(tr => tr.addEventListener("click", () => dEdit(tr.dataset.date)));
+}
+
+$("#d-save").addEventListener("click", () => {
+  const entry = {
+    date: $("#d-date").value || todayISO(),
+    weight: $("#d-weight").value.trim(),
+    breakfast: $("#d-breakfast").value,
+    dinner: $("#d-dinner").value,
+    extra: $("#d-extra").value,
+    extraName: $("#d-extra-name").value.trim(),
+    extraKcal: num($("#d-extra-kcal").value) || 0,
+    workout: $("#d-workout").value,
+    walk: $("#d-walk").value,
+    note: $("#d-note").value.trim()
+  };
+  // Düzenlerken tarih değişmiş olabilir: hem eski hem yeni tarihi at, yoksa
+  // eski satır öksüz kalır.
+  S.daily = S.daily.filter(d => d.date !== entry.date && d.date !== S.dailyEditDate);
+  S.daily.push(entry);
+  const was = S.dailyEditDate;
+  dClear();
+  renderDaily();
+  const st = $("#d-status");
+  st.textContent = was ? "updated ✓" : "saved ✓";
+  setTimeout(() => { st.textContent = ""; }, 2200);
+});
+$("#d-cancel").addEventListener("click", () => { dClear(); renderDaily(); });
+$("#d-delete").addEventListener("click", () => {
+  if (!S.dailyEditDate) return;
+  S.daily = S.daily.filter(d => d.date !== S.dailyEditDate);
+  dClear();
+  renderDaily();
+  const st = $("#d-status");
+  st.textContent = "deleted ✓";
+  setTimeout(() => { st.textContent = ""; }, 2200);
+});
+$("#d-clear").addEventListener("click", () => {
+  S.daily = [];
+  dClear();
+  renderDaily();
+});
+
+/* ===========================================================================
+   7) ÖLÇÜMLER
+   =========================================================================== */
+$("#m-form").innerHTML =
+  '<div class="field"><label>Date</label><input type="date" id="m-date"></div>' +
+  M_FIELDS.map(f => `<div class="field"><label>${esc(f[1])}</label>
+    <input type="text" id="m-${f[0]}" inputmode="decimal" placeholder="${f[0] === "weight" ? "70.1" : "cm"}"></div>`).join("");
+
+function mMode() {
+  const on = S.measureEditDate !== "";
+  $("#m-editbar").classList.toggle("on", on);
+  $("#m-edit-date").textContent = on ? fmtDate(S.measureEditDate) : "";
+  $("#m-save").textContent = on ? "Update" : "Save";
+}
+function mClear() {
+  S.measureEditDate = "";
+  $("#m-date").value = todayISO();
+  M_FIELDS.forEach(f => { $("#m-" + f[0]).value = ""; });
+  mMode();
+}
+function mEdit(date) {
+  const d = S.measure.find(x => x.date === date);
+  if (!d) return;
+  S.measureEditDate = date;
+  $("#m-date").value = d.date;
+  M_FIELDS.forEach(f => { $("#m-" + f[0]).value = d[f[0]] ?? ""; });
+  mMode();
+  renderMeasure();
+  $("#m-editbar").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function renderMeasure() {
+  const rows = S.measure.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const el = $("#m-table");
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty">No measurements yet. Enter the first set above.</div>';
+    return;
+  }
+  const base = rows[0];
+  el.innerHTML = '<div class="table-scroll"><table><thead><tr><th>Date</th>' +
+    M_FIELDS.map(f => `<th>${esc(f[1])}</th>`).join("") + "</tr></thead><tbody>" +
+    rows.slice().reverse().map(d => {
+      const cells = M_FIELDS.map(f => {
+        const v = num(d[f[0]]);
+        if (!isFinite(v)) return '<td class="mono">—</td>';
+        const b = num(base[f[0]]);
+        let badge = "";
+        if (isFinite(b) && d !== base && Math.abs(v - b) >= 0.1) {
+          const diff = v - b;
+          // Bel/kalça/kilo düşerse iyi haber; kol/bacak artışı kas olabilir.
+          const shrinkGood = ["waist", "hips", "weight", "chest"].includes(f[0]);
+          const cls = shrinkGood ? (diff < 0 ? "green" : "rose") : (diff > 0 ? "ochre" : "");
+          badge = ` <span class="tag ${cls}" style="margin-left:3px">${diff > 0 ? "+" : ""}${diff.toFixed(1)}</span>`;
+        }
+        return `<td class="mono">${say(v)}${badge}</td>`;
+      }).join("");
+      return `<tr class="pick${d.date === S.measureEditDate ? " sel" : ""}" data-date="${esc(d.date)}">
+        <td class="mono">${esc(fmtDate(d.date))}</td>${cells}</tr>`;
+    }).join("") + "</tbody></table></div>";
+
+  $$("tr.pick", el).forEach(tr => tr.addEventListener("click", () => mEdit(tr.dataset.date)));
+}
+
+$("#m-save").addEventListener("click", () => {
+  const entry = { date: $("#m-date").value || todayISO() };
+  let any = false;
+  M_FIELDS.forEach(f => {
+    const v = num($("#m-" + f[0]).value);
+    entry[f[0]] = isFinite(v) ? v : "";
+    if (isFinite(v)) any = true;
+  });
+  const st = $("#m-status");
+  if (!any) { st.textContent = "fill in at least one measurement"; setTimeout(() => { st.textContent = ""; }, 2600); return; }
+  S.measure = S.measure.filter(d => d.date !== entry.date && d.date !== S.measureEditDate);
+  S.measure.push(entry);
+  const was = S.measureEditDate;
+  mClear();
+  renderMeasure();
+  st.textContent = was ? "updated ✓" : "saved ✓";
+  setTimeout(() => { st.textContent = ""; }, 2200);
+});
+$("#m-cancel").addEventListener("click", () => { mClear(); renderMeasure(); });
+$("#m-delete").addEventListener("click", () => {
+  if (!S.measureEditDate) return;
+  S.measure = S.measure.filter(d => d.date !== S.measureEditDate);
+  mClear();
+  renderMeasure();
+});
+$("#m-clear").addEventListener("click", () => { S.measure = []; mClear(); renderMeasure(); });
+
+/* ===========================================================================
+   8) İLK ÇİZİM
+   =========================================================================== */
+$("#today-stamp").textContent = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+dClear();
+mClear();
+libFormMode();
+libClearForm();
+renderLibrary();
+renderDaily();
+renderMeasure();
+renderPlan();
+
+// Hesap makinesi dolu açılsın: demoyu açan ilk saniyede ne yaptığını görsün.
+[
+  ["Chicken breast, raw", 180],
+  ["Bulgur, cooked",      150],
+  ["Olive oil",            10],
+  ["Greek yogurt 2%",     120],
+  ["Blueberries",          80]
+].forEach(([name, amount]) => {
+  const it = S.items.find(i => i.name === name);
+  if (it) S.calcRows.push({ itemId: it.id, amount, portions: null });
+});
+renderCalcRows();
+renderCalcResult();
+
+/* ===========================================================================
+   9) GİRİŞ EKRANI + ÖNİZLEME KANCASI
+   =========================================================================== */
+function closeLogin() { $("#login").style.display = "none"; }
+
+/* Site bu demoyu küçük önizleme olarak gömdüğünde çağırır: önizleme tıklanamaz,
+   giriş ekranında kilitli kalmasın. Tam ekranda ÇAĞRILMAZ → giriş akışı görünür. */
+window.__onizleme = function () {
+  closeLogin();
+  document.documentElement.dataset.preview = "1";
+};
+
+$("#login-form").addEventListener("submit", e => {
+  e.preventDefault();
+  if (!$("#l-phone").value.trim() || !$("#l-pass").value) {
+    $("#l-err").textContent = "Both fields are needed (any value works in the demo).";
+    return;
+  }
+  closeLogin();
+});
+$("#l-skip").addEventListener("click", closeLogin);
+
+// Şifre yazarken tavşan gözlerini kapatıyor — "bakmıyorum" demek.
+const eyes = [$("#eye-l"), $("#eye-r")];
+$("#l-pass").addEventListener("focus", () => eyes.forEach(e => e.setAttribute("ry", "1")));
+$("#l-pass").addEventListener("blur",  () => eyes.forEach(e => e.setAttribute("ry", "5.4")));
+</script>
+</body>
+</html>

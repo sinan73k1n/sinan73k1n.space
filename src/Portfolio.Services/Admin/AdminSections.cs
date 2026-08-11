@@ -77,8 +77,6 @@ public static class AdminSections
             {
                 new("demosTitle", "Bölüm başlığı"),
                 new("demosLead",  "Bölüm açıklaması", AlanTipi.CokSatir),
-                new("demosHint",  "Önizleme altı ipucu"),
-                new("demosSlot",  "Boş demo etiketi"),
                 new("openDemo",   "\"Tam ekran aç\" butonu"),
                 new("close",      "\"Kapat\" butonu")
             }, ListeTipi.Demolar),
