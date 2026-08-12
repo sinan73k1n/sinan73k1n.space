@@ -10,14 +10,14 @@ appsettings.Local.json
 *.key
 *.pfx
 secrets.json
-# ⛔ Claude Code çalışma alanı — TAMAMI depo dışı. Kanca betikleri yerel ikinci
-# beyin kasasının yolunu taşıyor, ayarlar dosyası da sunucu adresi/izin listesi
+# ⛔ Claude Code çalışma alanı — TAMAMI depo dışı. Kanca betikleri yerel not
+# klasörümün yolunu taşıyor, ayarlar dosyası da sunucu adresi/izin listesi
 # içeriyor. Başka bir makinede işe yaramazlar; herkese açık depoda ise kişisel
 # çalışma düzenini ele veriyorlar.
 .claude/
 
 # Projenin bana özel çalışma brifingi: yerel not klasörümün yolunu ve sunucu
-# notlarını taşıyor. Sürümlemesi özel uzakta (gitea) yapılır, GitHub'da durmaz.
+# notlarını taşıyor. Sürümlemesi özel uzakta yapılır, GitHub'da durmaz.
 CLAUDE.md
 
 # Geliştirme içeriği: ilk çalıştırmada SeedIcerik'ten ÜRETİLİR, sonra yerel
