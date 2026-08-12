@@ -12,10 +12,11 @@
 set -euo pipefail
 
 # ⛔ Sunucu adresi REPOYA YAZILMAZ (kural: vault wiki/workflow-rules §1).
-# Değeri depo dışındaki ortam notlarımda
+# Değeri depo DIŞINDAKİ ortam notlarımda; makine adı da dahil hiçbir sunucu
+# ayrıntısı buraya yazılmaz.
 # Kullanım:  PORTFOLIO_SUNUCU=kullanici@adres ./tools/deploy.sh
 #   ya da kalıcı olarak:  echo 'export PORTFOLIO_SUNUCU=...' >> ~/.zshrc
-: "${PORTFOLIO_SUNUCU:?PORTFOLIO_SUNUCU tanımlı değil. Sunucu adresi repoda tutulmaz; ortam değişkeni olarak ver .}"
+: "${PORTFOLIO_SUNUCU:?PORTFOLIO_SUNUCU tanımlı değil. Sunucu adresi repoda tutulmaz; ortam değişkeni olarak verin: PORTFOLIO_SUNUCU=kullanici@adres ./tools/deploy.sh}"
 SUNUCU="$PORTFOLIO_SUNUCU"
 HEDEF="${PORTFOLIO_HEDEF:-~/publish/portfolio/}"
 KOK="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

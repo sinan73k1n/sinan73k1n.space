@@ -4,10 +4,15 @@
  * Kullanım: uygulama :5099'da ayaktayken `node tools/olc.js`
  */
 const { chromium } = require('playwright');
+const path = require('path');
+// Yol depoya göre çözülür: mutlak yol yazınca hem başka makinede kırılıyor
+// hem de kullanıcı adı/dizin düzeni herkese açık depoya sızıyordu.
+const PROTOTIP = 'file://' + path.resolve(__dirname, '..',
+  'design_handoff_portfolio/live-html/index.html');
 (async () => {
   const b = await chromium.launch();
   for (const [ad, url] of [
-    ['PROTOTİP', 'file://REPO_KOKU/design_handoff_portfolio/live-html/index.html'],
+    ['PROTOTİP', PROTOTIP],
     ['BENİM   ', 'http://127.0.0.1:5099/']
   ]) {
     const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
