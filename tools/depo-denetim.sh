@@ -22,6 +22,8 @@ cd "$KOK" || { echo "Dizin yok: $KOK"; exit 2; }
 git rev-parse --git-dir >/dev/null 2>&1 || { echo "Burası bir git deposu değil: $KOK"; exit 2; }
 
 BULGU=0
+# Bu betik arama kalıplarını düz metin taşır — kendini eşleştirmesin.
+HARIC=(":!tools/depo-denetim.sh" ":!demos/" ":!*Tests*")
 baslik() { printf "\n\033[1m%s\033[0m\n" "$1"; }
 sorun()  { printf "  \033[31m✗\033[0m %s\n" "$1"; BULGU=1; }
 tamam()  { printf "  \033[32m✓\033[0m %s\n" "$1"; }
@@ -30,7 +32,7 @@ uyari()  { printf "  \033[33m!\033[0m %s\n" "$1"; }
 # --- 1) KİMLİK BİLGİSİ: sızarsa biri içeri girer ------------------------------
 SIR='pbkdf2\$[A-Za-z0-9+/]{8,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY|(Password|Pwd)=[^;"'"'"' ]{4,}|api[_-]?key["'"'"' :=]+[A-Za-z0-9_\-]{16,}'
 baslik "1) Kimlik bilgisi (parola · token · anahtar · bağlantı dizesi)"
-if git grep -nEI "$SIR" -- . >/tmp/dd.$$ 2>/dev/null && [ -s /tmp/dd.$$ ]; then
+if git grep -nEI "$SIR" -- . "${HARIC[@]}" >/tmp/dd.$$ 2>/dev/null && [ -s /tmp/dd.$$ ]; then
   sorun "çalışan ağaçta eşleşme:"; sed 's/^/      /' /tmp/dd.$$ | head -10
 else tamam "çalışan ağaç temiz"; fi
 rm -f /tmp/dd.$$
@@ -39,7 +41,7 @@ rm -f /tmp/dd.$$
 # Mutlak ev dizini yolları, yapay zekâ araç klasörleri, ikinci beyin/kasa yolları.
 KISI='/Users/[a-z0-9._-]+/|/home/[a-z0-9._-]+/|C:\\\\Users\\\\|GenelClaude|Obsidian|second-brain|ikinci beyin'
 baslik "2) Kişisel yol ve çalışma düzeni"
-if git grep -nEI "$KISI" -- . >/tmp/dd.$$ 2>/dev/null && [ -s /tmp/dd.$$ ]; then
+if git grep -nEI "$KISI" -- . "${HARIC[@]}" >/tmp/dd.$$ 2>/dev/null && [ -s /tmp/dd.$$ ]; then
   sorun "mutlak/kişisel yol geçiyor:"; sed 's/^/      /' /tmp/dd.$$ | head -10
 else tamam "mutlak ev dizini yolu yok"; fi
 rm -f /tmp/dd.$$
@@ -56,7 +58,7 @@ MAKINE='servernath|@[a-z0-9-]+\.local'
 IP4='([^0-9.]|^)(10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|192\.168\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}|100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3})([^0-9.]|$)'
 ALTYAPI="$MAKINE|/home/[a-z][a-z0-9_-]*/|$IP4"
 baslik "3) Altyapı izi (makine adı · özel ağ IP'si)"
-if git grep -nEI "$ALTYAPI" -- . ":!demos/" ":!*Tests*" >/tmp/dd.$$ 2>/dev/null && [ -s /tmp/dd.$$ ]; then
+if git grep -nEI "$ALTYAPI" -- . "${HARIC[@]}" >/tmp/dd.$$ 2>/dev/null && [ -s /tmp/dd.$$ ]; then
   sorun "eşleşme:"; sed 's/^/      /' /tmp/dd.$$ | head -10
 else tamam "makine adı / özel IP yok (demolar ve testler hariç: oradakiler bilerek kurgu)"; fi
 rm -f /tmp/dd.$$
@@ -66,7 +68,7 @@ baslik "4) Geçmiş (silinen dosya eski commit'lerde kalır)"
 N=$(git rev-list --count HEAD 2>/dev/null || echo 0)
 GECMIS=0
 while read -r c; do
-  if git grep -lIE "$SIR|$KISI|$MAKINE" "$c" -- . ":!demos/" ":!*Tests*" 2>/dev/null | head -1 | grep -q .; then
+  if git grep -lIE "$SIR|$KISI|$MAKINE" "$c" -- . "${HARIC[@]}" 2>/dev/null | head -1 | grep -q .; then
     GECMIS=$((GECMIS+1))
   fi
 done < <(git rev-list HEAD 2>/dev/null)
