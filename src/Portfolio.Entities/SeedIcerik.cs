@@ -153,7 +153,8 @@ public static class SeedIcerik
             "$ serve ./demo/*",
             "→ ServerAdminPanel  ready",
             "→ NutritionTracker  ready",
-            "→ ForumEtkilesim    ready",
+            "→ CommunityHub      ready",
+            "→ RewardWheel       ready",
             "→ GameLauncher      ready",
             "$ open portfolio ▸",
         },
@@ -225,19 +226,27 @@ public static class SeedIcerik
             },
             new()
             {
-                Path = "demo/ForumEtkilesim",
-                Name = "Forum Etkileşim",
-                Tags = new() { "HTML", "JS", "Community" },
+                Path = "demo/CommunityHub",
+                Name = "Community Hub",
+                Tags = new() { "HTML", "JS", "Realtime" },
                 Html = "",
-                Desc = new() { Tr = "Konu akışı, oylama ve bildirim etkileşimleri olan forum arayüzü.", En = "Forum interface with topic feed, voting and notifications.", Ru = "Интерфейс форума: лента тем, голосование и уведомления." },
+                Desc = new() { Tr = "Konu akışı, canlı sohbet, promosyon kodu panosu ve moderasyon kuyruğu olan oyun topluluğu arayüzü.", En = "Game community interface with a topic feed, live chat, promo code board and moderation queue.", Ru = "Интерфейс игрового сообщества: лента тем, живой чат, доска промокодов и очередь модерации." },
+            },
+            new()
+            {
+                Path = "demo/RewardWheel",
+                Name = "Reward Wheel",
+                Tags = new() { "HTML", "JS", "Probability" },
+                Html = "",
+                Desc = new() { Tr = "Yayımlanmış olasılıklar, merhamet sayacı ve tohumlu çekilişi olan oyun içi ödül çarkı; binlerce çevirim simüle edilip tabloyla karşılaştırılabiliyor.", En = "In-game reward wheel with published odds, a pity counter and a seeded draw — simulate thousands of spins and check them against the table.", Ru = "Внутриигровое колесо наград: опубликованные шансы, счётчик гарантии и розыгрыш по сид-значению; тысячи прокруток можно смоделировать и сверить с таблицей." },
             },
             new()
             {
                 Path = "demo/GameLauncher",
                 Name = "Game Launcher",
-                Tags = new() { "HTML", "JS", "UI" },
+                Tags = new() { "HTML", "JS", "Desktop UI" },
                 Html = "",
-                Desc = new() { Tr = "Oyun kütüphanesi ve güncelleme akışı olan masaüstü tarzı arayüz.", En = "Desktop-style interface with a game library and update flow.", Ru = "Интерфейс в стиле десктопа: библиотека игр и обновления." },
+                Desc = new() { Tr = "Oyun kütüphanesi, sürüm notları ve canlı indirme kuyruğu olan masaüstü tarzı arayüz; bant genişliği tavanı ile eşzamanlı indirme sınırı ayarlanabiliyor.", En = "Desktop-style interface with a game library, patch notes and a live download queue — the bandwidth cap and concurrency limit are yours to change.", Ru = "Интерфейс в стиле десктопа: библиотека игр, патчноуты и живая очередь загрузок с настраиваемым лимитом скорости и параллельности." },
             },
         },
 

@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Game Launcher — demo</title>
+<!--
+  ============================================================================
+  GAME LAUNCHER — TEK DOSYA DEMO
+  ============================================================================
+  Masaüstü oyun vitrini/başlatıcısı arayüzünün gezilebilir taklidi. Portfolyodaki
+  demo alanına yapıştırılır, iframe içinde `sandbox="allow-scripts"` ile çalışır.
+
+  🎮 EKSEN: İNDİRME KUYRUĞU. Bir launcher'ın asıl işi kütüphaneyi listelemek
+     değil, bant genişliğini paylaştırmak ve her paketi durum makinesinde
+     yürütmek. Demoda görünen de bu:
+       queued → downloading → verifying → installing → ready
+     Eşzamanlı indirme sınırı ve bant genişliği tavanı AYARLANABİLİR; değiştirdiğin
+     anda hızlar ve kalan süreler yeniden bölüşülür. Duraklat/sürdür/iptal gerçekten
+     çalışır.
+
+  🔗 Community Hub demosuyla aynı kurgu oyunları kullanır — iki demo aynı evrende
+     geçiyor. Oyun ve stüdyo adlarının hepsi UYDURMA; gerçek marka geçmez.
+
+  ⛔ ANONİM: kütüphane, sürüm notu, başarım, disk ve yol bilgisi kurgu. Gerçek
+     makine adı, disk düzeni veya kişisel kitaplık buraya taşınmadı.
+
+  🌍 ARAYÜZ DİLİ İNGİLİZCE (karar: 2026-07-30). Kod yorumları Türkçe kalır.
+
+  Kısıtlar (bilinçli):
+   · Tek dosya, sıfır dış istek — font/CDN/görsel YOK. Kapaklar CSS gradyanı,
+     rozetler harf; hiçbir resim indirilmiyor.
+   · localStorage/cookie KULLANILMAZ (`allow-same-origin` verilmiyor). Durum
+     bellekte (`S` nesnesi).
+   · İndirme saati `setInterval` ile yürür, requestAnimationFrame ile DEĞİL:
+     rAF arka plandaki sekmede tamamen duruyor (Reward Wheel demosunda ölçüldü)
+     ve indirme orada asılı kalırdı. setInterval kısılır ama durmaz.
+   · prefers-reduced-motion: reduce → parlama/geçiş yok; indirme yine ilerler
+     (o bir süreç, süs değil), sadece animasyonsuz.
+   · `window.__onizleme()`: site bu demoyu KÜÇÜK ÖNİZLEME olarak gömdüğünde
+     çağırır → giriş ekranı atlanır.
+  ============================================================================
+-->
+<style>
+:root{
+  --bg:#0a0c10; --chrome:#12151c; --panel:#151922; --panel-2:#1b202b; --hover:#222836;
+  --line:#242b39; --line-soft:#1b212c;
+  --text:#e8edf5; --dim:#8d97ab; --dimmer:#606b80;
+  --cyan:#22d3ee; --cyan-soft:#0c2c34;
+  --lime:#84cc16; --amber:#f59e0b; --rose:#fb7185; --violet:#a78bfa;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:12.5px;line-height:1.45}
+button{font-family:inherit;font-size:inherit;color:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+
+@keyframes slide{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{from{background-position:-180px 0}to{background-position:180px 0}}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ---------- pencere iskeleti ---------- */
+.app{height:100vh;display:grid;grid-template-rows:38px 1fr 30px}
+
+.titlebar{background:var(--chrome);border-bottom:1px solid var(--line);display:flex;align-items:center;
+  gap:12px;padding:0 12px;-webkit-user-select:none;user-select:none}
+.lights{display:flex;gap:7px;flex:none}
+.lights i{width:11px;height:11px;border-radius:50%;display:block}
+.tb-name{font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.tb-name .logo{width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,var(--cyan),#3b82f6);
+  display:grid;place-items:center;font-size:10px;color:#04202a;font-weight:900}
+.tb-search{margin-left:auto;position:relative;flex:0 1 260px}
+/* ⛔ Seçici `input[type=text]` ile YAZILMAK ZORUNDA: aşağıdaki ayarlar
+   bölümünde genel bir `input[type=text]{padding:6px 9px}` kuralı var, özgüllüğü
+   `.tb-search input` ile eşit ve sonra geldiği için kazanıyordu. Sol boşluk
+   düşünce yer tutucu metin büyütecin üstüne biniyor, "Search" okunmuyordu. */
+.tb-search input[type=text]{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:7px;
+  padding:5px 10px 5px 30px;color:var(--text);font-family:inherit;font-size:12px;outline:none}
+.tb-search input[type=text]:focus{border-color:var(--cyan)}
+/* Büyüteç EMOJİ DEĞİL satır içi SVG: 11px'te emoji bir noktaya dönüşüyordu
+   ve yer tutucu metnin üstüne biniyordu. SVG her platformda aynı çizilir,
+   rengi de temadan gelir. */
+.tb-search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  width:12px;height:12px;color:var(--dimmer);pointer-events:none}
+.tb-user{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:11.5px;flex:none}
+.tb-user .av{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#a78bfa,#6366f1);
+  display:grid;place-items:center;font-size:9px;font-weight:800;color:#12081f}
+
+.body{display:grid;grid-template-columns:246px 1fr;min-height:0}
+
+/* ---------- kütüphane rayı ---------- */
+.rail{background:var(--chrome);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.rail-head{padding:11px 12px 8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rail-head h2{margin:0;font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--dimmer)}
+.rail-head select{background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--dim);
+  font-family:inherit;font-size:11px;padding:3px 6px;outline:none;cursor:pointer}
+.rail-list{flex:1;overflow-y:auto;padding:0 8px 8px;min-height:0}
+.g-row{display:flex;align-items:center;gap:9px;padding:7px;border-radius:8px;cursor:pointer;width:100%;
+  background:none;border:0;text-align:left;color:inherit;transition:background .12s}
+.g-row:hover{background:var(--hover)}
+.g-row.on{background:var(--cyan-soft);box-shadow:inset 2px 0 0 var(--cyan)}
+.cover{width:34px;height:44px;border-radius:5px;flex:none;display:grid;place-items:center;
+  font-weight:900;font-size:13px;color:#0a0c10;letter-spacing:-.04em;position:relative;overflow:hidden}
+.cover::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,#fff3 0%,transparent 42%)}
+.cover.sm{width:24px;height:31px;font-size:10px;border-radius:4px}
+.cover.lg{width:104px;height:134px;font-size:34px;border-radius:9px}
+.g-row .nm{min-width:0;flex:1}
+.g-row .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-row .s{font-size:10.5px;color:var(--dimmer);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-row .s.up{color:var(--amber)}
+.g-row .s.dl{color:var(--cyan)}
+.mini-bar{height:3px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:3px}
+.mini-bar i{display:block;height:100%;background:var(--cyan)}
+.rail-foot{border-top:1px solid var(--line);padding:9px 12px}
+.disk{font-size:10.5px;color:var(--dimmer);font-family:var(--mono);display:flex;justify-content:space-between;margin-bottom:5px}
+.disk-bar{height:5px;border-radius:3px;background:var(--panel-2);overflow:hidden;display:flex}
+.disk-bar i{display:block;height:100%}
+.disk-bar .games{background:var(--cyan)}
+.disk-bar .other{background:#3a4457}
+
+/* ---------- içerik ---------- */
+.main{overflow-y:auto;min-height:0}
+.demobar{display:flex;gap:9px;align-items:flex-start;background:#1a1608;border-bottom:1px solid #3a3016;
+  padding:9px 18px;color:#d9c48a;font-size:11px;line-height:1.6}
+.demobar b{color:var(--amber);font-family:var(--mono);font-size:10px;letter-spacing:.1em;flex:none;padding-top:1px}
+
+.hero{display:flex;gap:18px;padding:20px 22px 16px;align-items:flex-start;
+  background:linear-gradient(180deg,var(--panel) 0%,transparent 100%)}
+.hero .meta{min-width:0;flex:1}
+.hero h1{margin:0 0 4px;font-size:23px;font-weight:800;letter-spacing:-.02em}
+.hero .studio{color:var(--dim);font-size:12px;margin-bottom:10px}
+.facts{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+.fact .l{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--dimmer)}
+.fact .v{font-family:var(--mono);font-size:13px;margin-top:1px}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.btn{background:var(--cyan);color:#04202a;border:0;border-radius:7px;padding:9px 20px;font-weight:700;
+  cursor:pointer;transition:filter .12s,transform .07s}
+.btn:hover{filter:brightness(1.09)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.4);transform:none}
+.btn.play{background:var(--lime);color:#111f04}
+.btn.warn{background:var(--amber);color:#251902}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--dim);font-weight:600}
+.btn.ghost:hover{background:var(--hover);color:var(--text)}
+.btn.mini{padding:5px 11px;font-size:11.5px;border-radius:6px}
+.btn.danger{background:var(--rose);color:#2a0710}
+
+.tabs{display:flex;gap:2px;padding:0 22px;border-bottom:1px solid var(--line);position:sticky;top:0;
+  background:var(--bg);z-index:5}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:9px 14px;color:var(--dim);
+  cursor:pointer;font-weight:600;transition:color .12s,border-color .12s}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+.panel{padding:18px 22px 30px;animation:slide .18s ease-out}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px}
+.card+.card{margin-top:10px}
+h3.sect{margin:0 0 4px;font-size:13px;font-weight:700}
+p.note{color:var(--dim);margin:0 0 12px;line-height:1.6}
+.hint{color:var(--dimmer);font-size:11px;line-height:1.6}
+.sep{height:1px;background:var(--line);margin:14px 0}
+.mono{font-family:var(--mono)}
+.right{text-align:right}
+.rowsplit{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.tag{display:inline-block;font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:6px;
+  background:var(--panel-2);color:var(--dim)}
+.tag.c{background:var(--cyan-soft);color:var(--cyan)}
+.tag.a{background:#2e2205;color:var(--amber)}
+.tag.l{background:#1c2a08;color:var(--lime)}
+.tag.r{background:#2e1219;color:var(--rose)}
+.grid{display:grid;gap:10px}
+
+/* indirme */
+.dl{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px 14px}
+.dl+.dl{margin-top:8px}
+.dl.active{border-color:#1f4653}
+.dl-top{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.dl-top .nm{font-weight:600;flex:1;min-width:0}
+.dl-top .ph{font-family:var(--mono);font-size:10.5px;color:var(--cyan)}
+.dl-top .ph.q{color:var(--dimmer)}
+.dl-top .ph.p{color:var(--amber)}
+.pbar{height:7px;border-radius:4px;background:var(--panel-2);overflow:hidden;position:relative}
+.pbar i{display:block;height:100%;background:linear-gradient(90deg,#0891b2,var(--cyan));transition:width .45s linear}
+.pbar.ind i{width:100%;background:linear-gradient(90deg,#0e7490,#22d3ee,#0e7490);background-size:180px 100%;
+  animation:shimmer 1.1s linear infinite}
+.dl-num{display:flex;justify-content:space-between;gap:10px;margin-top:7px;font-family:var(--mono);
+  font-size:10.5px;color:var(--dimmer);flex-wrap:wrap}
+.dl-acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--dimmer);text-align:left;
+  padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:700}
+td{padding:7px 9px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+tr:last-child td{border-bottom:none}
+
+/* başarımlar */
+.ach{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--line-soft);align-items:center}
+.ach:last-child{border-bottom:none}
+.ach .ic{width:34px;height:34px;border-radius:8px;background:var(--panel-2);display:grid;place-items:center;
+  font-size:15px;flex:none;filter:grayscale(1);opacity:.3}
+.ach:not(.got) .ic::after{content:"🔒";position:absolute;font-size:9px;transform:translate(11px,11px);filter:none;opacity:.9}
+.ach .ic{position:relative}
+.ach.got .ic{filter:none;opacity:1;background:var(--cyan-soft);box-shadow:inset 0 0 0 1px #1f4653}
+.ach .bd{flex:1;min-width:0}
+.ach .nm{font-weight:600}
+.ach .ds{color:var(--dimmer);font-size:11px}
+.ach .rar{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);flex:none;text-align:right}
+
+/* Etkinlik satırı. Bir ara .ach sınıfını ödünç alıyordu ve başarımlara eklenen
+   kilit rozeti buraya da düşüyordu — "2h oynadın" satırında asma kilit çıkıyordu. */
+.act{display:flex;gap:11px;padding:8px 0;border-bottom:1px solid var(--line-soft);align-items:center}
+.act:last-child{border-bottom:none}
+.act .ic{width:28px;height:28px;border-radius:8px;background:var(--panel-2);display:grid;place-items:center;
+  font-size:13px;flex:none}
+.act .bd{flex:1;min-width:0;font-size:12px}
+.act .wh{font-family:var(--mono);font-size:10.5px;color:var(--dimmer);flex:none}
+
+/* sürüm notları */
+.patch{border-left:2px solid var(--line);padding-left:14px;margin-left:4px}
+.patch .v{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.patch .v b{font-family:var(--mono);font-size:12.5px}
+.patch ul{margin:0 0 16px;padding-left:17px;color:var(--dim)}
+.patch li{margin-bottom:3px}
+.patch li b{color:var(--text);font-weight:600}
+
+/* ayarlar */
+.set{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;
+  border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.set:last-child{border-bottom:none}
+.set .lb{font-weight:600}
+.set .ds{color:var(--dimmer);font-size:11px;margin-top:1px;max-width:56ch}
+.set .ctl{flex:none;display:flex;align-items:center;gap:8px}
+input[type=text],input[type=number],select{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;
+  color:var(--text);padding:6px 9px;font-family:var(--mono);font-size:12px;outline:none;min-width:0}
+input:focus,select:focus{border-color:var(--cyan)}
+input[type=range]{accent-color:var(--cyan);width:150px}
+.sw{width:38px;height:21px;border-radius:11px;background:var(--panel-2);border:1px solid var(--line);
+  position:relative;cursor:pointer;flex:none;transition:background .14s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;
+  background:var(--dim);transition:left .14s,background .14s}
+.sw.on{background:var(--cyan-soft);border-color:var(--cyan)}
+.sw.on::after{left:19px;background:var(--cyan)}
+
+/* durum çubuğu */
+.status{background:var(--chrome);border-top:1px solid var(--line);display:flex;align-items:center;gap:16px;
+  padding:0 14px;font-family:var(--mono);font-size:10.5px;color:var(--dimmer)}
+.status .s{display:flex;align-items:center;gap:6px}
+.status .pip{width:6px;height:6px;border-radius:50%;background:var(--lime)}
+.status .pip.dl{background:var(--cyan);animation:blip 1.3s infinite}
+.status .right{margin-left:auto;display:flex;gap:16px}
+
+.empty{border:1px dashed var(--line);border-radius:9px;padding:26px;text-align:center;color:var(--dimmer)}
+
+/* giriş */
+.login{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:22px;background:var(--bg)}
+.login::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(700px 400px at 22% -8%,#0d3a45 0%,transparent 62%),
+             radial-gradient(620px 380px at 100% 108%,#1c1a45 0%,transparent 60%)}
+.login-box{position:relative;width:min(360px,100%);background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:24px}
+.login-box h2{margin:14px 0 3px;font-size:16px}
+.login-box p.s{color:var(--dimmer);margin:0 0 18px}
+.login-box .f{margin-bottom:11px}
+.login-box label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--dimmer);margin-bottom:4px}
+.login-box input{width:100%}
+.login-err{color:var(--rose);font-size:11px;min-height:16px;margin:2px 0 6px}
+
+@media (max-width:860px){
+  .body{grid-template-columns:64px 1fr}
+  .rail-head,.rail-foot,.g-row .nm{display:none}
+  .g-row{justify-content:center}
+  .hero{flex-direction:column}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="titlebar">
+    <div class="lights"><i style="background:#fb7185"></i><i style="background:#f59e0b"></i><i style="background:#84cc16"></i></div>
+    <div class="tb-name"><span class="logo">▶</span>Orbit Launcher</div>
+    <div class="tb-search">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4 L14 14" stroke-linecap="round"/>
+      </svg>
+      <input id="search" type="text" placeholder="Search library…" autocomplete="off">
+    </div>
+    <div class="tb-user"><span class="av">NR</span><span id="tb-user">nova_rift</span></div>
+  </div>
+
+  <div class="body">
+    <aside class="rail">
+      <div class="rail-head">
+        <h2>Library · <span id="lib-count">0</span></h2>
+        <select id="sortby">
+          <option value="name">A–Z</option>
+          <option value="played">Recently played</option>
+          <option value="size">Size</option>
+          <option value="state">State</option>
+        </select>
+      </div>
+      <div class="rail-list" id="rail"></div>
+      <div class="rail-foot">
+        <div class="disk"><span>Disk</span><span id="disk-txt">—</span></div>
+        <div class="disk-bar">
+          <i class="games" id="disk-games" style="width:0%"></i>
+          <i class="other" id="disk-other" style="width:0%"></i>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main"></main>
+  </div>
+
+  <div class="status">
+    <div class="s"><span class="pip" id="st-pip"></span><span id="st-net">idle</span></div>
+    <div class="s" id="st-queue">no downloads</div>
+    <div class="right">
+      <span id="st-disk">—</span>
+      <span id="st-ver">client 4.2.0 · demo build</span>
+    </div>
+  </div>
+</div>
+
+<div class="login" id="login">
+  <form class="login-box" id="login-form" autocomplete="off">
+    <div class="tb-name" style="font-size:15px"><span class="logo">▶</span>Orbit Launcher</div>
+    <h2>Sign in</h2>
+    <p class="s">Your library follows the account, not the machine.</p>
+    <div class="f"><label for="l-u">Account</label><input id="l-u" type="text" value="nova_rift"></div>
+    <div class="f"><label for="l-p">Password</label><input id="l-p" type="password" value="demo1234"></div>
+    <div class="login-err" id="l-err"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" type="submit" style="flex:1">Sign in</button>
+      <button class="btn ghost" type="button" id="l-skip">Skip</button>
+    </div>
+    <p class="hint" style="margin:15px 0 0">Demo: any value signs you in. Downloads, patches and achievements
+    below are simulated locally — nothing is fetched and nothing is written to disk.</p>
+  </form>
+</div>
+
+<script>
+"use strict";
+
+/* ===========================================================================
+   0) YARDIMCILAR
+   =========================================================================== */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const AZALT = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const gb = n => (n >= 100 ? n.toFixed(0) : n.toFixed(1)) + " GB";
+const mb = n => n.toFixed(0) + " MB/s";
+const yuzde = (a, b) => (b > 0 ? Math.min(100, (a / b) * 100) : 0);
+function sure(sn) {
+  if (!isFinite(sn) || sn <= 0) return "—";
+  if (sn < 60) return Math.ceil(sn) + "s";
+  if (sn < 3600) return Math.floor(sn / 60) + "m " + Math.round(sn % 60) + "s";
+  return Math.floor(sn / 3600) + "h " + Math.round((sn % 3600) / 60) + "m";
+}
+let uid = 300;
+const nextId = () => ++uid;
+
+/** Kapak görseli indirilmiyor: ad → sabit gradyan + baş harfler. */
+const KAPAK = [["#22d3ee","#3b82f6"],["#a78bfa","#6366f1"],["#84cc16","#059669"],
+               ["#f59e0b","#ef4444"],["#fb7185","#a21caf"],["#38bdf8","#0ea5e9"],
+               ["#fbbf24","#84cc16"],["#f472b6","#8b5cf6"]];
+function kapakStil(ad) {
+  let h = 0;
+  for (let i = 0; i < ad.length; i++) h = (h * 31 + ad.charCodeAt(i)) >>> 0;
+  const [a, b] = KAPAK[h % KAPAK.length];
+  return `background:linear-gradient(150deg,${a},${b})`;
+}
+function bashar(ad) {
+  const p = ad.replace(/[^A-Za-z0-9 ]/g, "").trim().split(/\s+/);
+  return ((p[0] || "?")[0] + (p[1] ? p[1][0] : "")).toUpperCase();
+}
+const kapak = (ad, sinif) =>
+  `<div class="cover ${sinif || ""}" style="${kapakStil(ad)}">${esc(bashar(ad))}</div>`;
+
+/* ===========================================================================
+   1) ÖRNEK VERİ — tamamı kurgu (Community Hub demosuyla aynı evren)
+   =========================================================================== */
+const S = {
+  hesap: "nova_rift",
+  sekme: "overview",
+  secili: null,
+  arama: "",
+  siralama: "name",
+  diskToplam: 1000,      // GB
+  diskDiger: 214,        // oyun dışı kullanım
+  ayar: {
+    bant: 120,           // Mbps tavan
+    esZamanli: 2,        // aynı anda kaç indirme
+    otoGuncelle: true,
+    calisirkenDurdur: true,
+    yol: "D:\\Games\\OrbitLibrary"
+  },
+  keyNot: "Any text works here — it adds a made-up title to the library.",
+  oyunlar: [],
+  indirmeler: []
+};
+
+/* [ad, stüdyo, boyut GB, sürüm, kurulu, güncellemeGB, oynananSaat, sonOynanan, etiketler] */
+[
+  ["Nebula Drift",   "Cindercast Studio", 42.6, "2.3.9", true,  3.2, 128, "2 days ago",  ["racing","co-op"]],
+  ["Tidewalker",     "Salt & Iron",       18.3, "1.7.2", true,  0,    41, "yesterday",   ["adventure"]],
+  ["Hollow Signal",  "Quiet Volt",         9.4, "1.1.0", true,  0,     6, "3 weeks ago", ["puzzle","story"]],
+  ["Orbit Rally",    "Cindercast Studio", 27.9, "4.0.1", false, 0,     0, "never",       ["racing"]],
+  ["Paper Kingdoms", "Foldworks",          4.1, "2.0.0", false, 0,    17, "5 months ago",["strategy"]],
+  ["Frost Circuit",  "Salt & Iron",       31.2, "0.9.4", false, 0,     0, "never",       ["survival","early access"]]
+].forEach(r => S.oyunlar.push({
+  id: nextId(), ad: r[0], studyo: r[1], boyut: r[2], surum: r[3],
+  kurulu: r[4], guncelleme: r[5], saat: r[6], son: r[7], etiket: r[8],
+  notlar: [], basarimlar: []
+}));
+
+const oyun = id => S.oyunlar.find(g => g.id === id);
+const adla = ad => S.oyunlar.find(g => g.ad === ad);
+
+/* --- sürüm notları --- */
+const NOTLAR = {
+  "Nebula Drift": [
+    ["2.4.1", "3.2 GB", "pending", [
+      ["Thrust falloff", "above 400 units top-end drops by roughly an eighth; short boosts unchanged"],
+      ["Hangar", "slot limit raised from 12 to 16"],
+      ["Fixed", "leaderboard ghosts loading a lap behind on slow connections"]
+    ]],
+    ["2.3.9", "—", "installed", [
+      ["Fixed", "crash when opening the map during a boost"],
+      ["Audio", "engine layer no longer ducks the music in menus"]
+    ]]
+  ],
+  "Tidewalker": [
+    ["1.7.2", "—", "installed", [
+      ["Fixed", "third dive crash reported by the community — the map buffer was freed twice"],
+      ["Balance", "oxygen drain in trenches reduced by 12%"]
+    ]]
+  ],
+  "Hollow Signal": [
+    ["1.1.0", "—", "installed", [
+      ["Chapter 2", "added, nine new rooms"],
+      ["Accessibility", "full subtitle sizing and a reduced-flashing mode"]
+    ]]
+  ],
+  "Orbit Rally":   [["4.0.1", "—", "not installed", [["Season 4", "new grid, three tracks, tune kit rework"]]]],
+  "Paper Kingdoms":[["2.0.0", "—", "not installed", [["Rewrite", "campaign rebuilt around the banner system"]]]],
+  "Frost Circuit": [["0.9.4", "—", "not installed", [["Early access", "weekly builds, expect rough edges"]]]]
+};
+Object.entries(NOTLAR).forEach(([ad, list]) => {
+  const g = adla(ad);
+  if (g) g.notlar = list.map(n => ({ surum: n[0], boyut: n[1], durum: n[2], satir: n[3] }));
+});
+
+/* --- başarımlar --- */
+const BASARIM = {
+  "Nebula Drift": [
+    ["🏁", "First lap", "Finish any race", true, 92.4],
+    ["🌌", "Deep field", "Reach the outer belt without a repair", true, 31.8],
+    ["⚡", "Clean run", "Win with no collisions", true, 12.6],
+    ["🛠️", "Full hangar", "Fill every hangar slot", false, 4.1],
+    ["👑", "Drift king", "Hold first place for a whole season", false, 0.7]
+  ],
+  "Tidewalker": [
+    ["🌊", "First descent", "Complete the opening dive", true, 96.1],
+    ["🐚", "Collector", "Find 30 shells", true, 44.2],
+    ["🕯️", "Lights out", "Finish a trench with no lamp", false, 8.9]
+  ],
+  "Hollow Signal": [
+    ["📻", "Tuned in", "Finish chapter 1", true, 88.7],
+    ["🔇", "Nine seconds", "Notice the silence before an encounter", false, 22.5]
+  ],
+  "Orbit Rally":   [["🏎️", "Grid start", "Complete the tutorial", false, 97.0]],
+  "Paper Kingdoms":[["📜", "First banner", "Raise a banner", true, 90.2],
+                    ["🏰", "Cartographer", "Reveal the whole map", false, 15.4]],
+  "Frost Circuit": [["❄️", "Cold open", "Survive the first night", false, 71.3]]
+};
+Object.entries(BASARIM).forEach(([ad, list]) => {
+  const g = adla(ad);
+  if (g) g.basarimlar = list.map(a => ({ ic: a[0], ad: a[1], ds: a[2], alindi: a[3], oran: a[4] }));
+});
+
+/* Son yedi günün oturumları (saat) ve oyun başına etkinlik akışı. Kurulu
+   olmayan başlıklarda ikisi de boş — "hiç oynanmadı" da bir bilgi. */
+const OTURUM = {
+  "Nebula Drift":  [1.5, 0, 2.2, 3.1, 0, 1.8, 2.6],
+  "Tidewalker":    [0, 0.8, 0, 0, 1.4, 0, 0.5],
+  "Hollow Signal": [0, 0, 0, 0, 0, 0, 0],
+  "Paper Kingdoms":[0, 0, 0, 0, 0, 0, 0]
+};
+const OLAY = {
+  "Nebula Drift": [
+    ["🎮", "Played for 2h 36m", "2 days ago"],
+    ["⚡", "Unlocked “Clean run”", "2 days ago"],
+    ["⬇️", "Patch 2.3.9 installed", "1 week ago"],
+    ["🎮", "Played for 3h 06m", "1 week ago"]
+  ],
+  "Tidewalker": [
+    ["🎮", "Played for 30m", "yesterday"],
+    ["🐚", "Unlocked “Collector”", "4 days ago"],
+    ["⬇️", "Patch 1.7.2 installed", "2 weeks ago"]
+  ],
+  "Hollow Signal": [
+    ["📻", "Unlocked “Tuned in”", "3 weeks ago"],
+    ["⬇️", "Installed", "3 weeks ago"]
+  ]
+};
+S.oyunlar.forEach(g => {
+  g.gunler = OTURUM[g.ad] || [0, 0, 0, 0, 0, 0, 0];
+  g.olaylar = OLAY[g.ad] || [];
+});
+
+S.secili = S.oyunlar[0].id;
+
+/* ===========================================================================
+   2) İNDİRME DURUM MAKİNESİ
+   ---------------------------------------------------------------------------
+   Bir launcher'ın asıl işi burada. Her paket şu sırayı izler:
+     queued → downloading → verifying → installing → ready
+   `queued`, eşzamanlı indirme sınırı doluyken bekleyen paket demek. Bant
+   genişliği tavanı AKTİF indirmeler arasında bölüşülür; ayarı değiştirdiğin
+   anda hızlar ve kalan süreler yeniden hesaplanır.
+   =========================================================================== */
+const FAZ_AD = { queued:"queued", downloading:"downloading", paused:"paused",
+                 verifying:"verifying", installing:"installing", ready:"ready" };
+
+function indirmeBaslat(g, tur) {
+  if (S.indirmeler.some(d => d.oyunId === g.id)) return;
+  const boyut = tur === "update" ? g.guncelleme : g.boyut;
+  S.indirmeler.push({
+    id: nextId(), oyunId: g.id, tur, boyut,
+    inen: 0, faz: "queued", hiz: 0, fazSayac: 0
+  });
+  ciz();
+}
+
+const aktifler = () => S.indirmeler.filter(d => d.faz === "downloading");
+/** Kuyruktan sıradakini başlat: eşzamanlılık sınırı serbest kaldıysa. */
+function kuyruguSurukle() {
+  const yer = S.ayar.esZamanli - aktifler().length;
+  if (yer <= 0) return;
+  S.indirmeler.filter(d => d.faz === "queued").slice(0, yer).forEach(d => { d.faz = "downloading"; });
+}
+
+/**
+ * Saat. requestAnimationFrame DEĞİL setInterval: rAF arka plandaki sekmede
+ * tamamen duruyor (Reward Wheel demosunda ölçüldü) ve indirme orada asılı
+ * kalırdı. setInterval kısılır ama durmaz.
+ */
+const TIK = 500;
+setInterval(() => {
+  if (!S.indirmeler.length) return;
+  kuyruguSurukle();
+
+  const akt = aktifler();
+  // Tavan aktif indirmeler arasında bölüşülür; ±%12 gerçekçi dalgalanma.
+  const pay = akt.length ? S.ayar.bant / akt.length : 0;
+  let degisti = false;
+
+  S.indirmeler.forEach(d => {
+    if (d.faz === "downloading") {
+      const mbps = Math.max(1, pay * (0.88 + Math.random() * 0.24));
+      d.hiz = mbps / 8;                                   // Mbps → MB/s
+      d.inen = Math.min(d.boyut, d.inen + (d.hiz * (TIK / 1000)) / 1024);
+      if (d.inen >= d.boyut - 1e-9) { d.faz = "verifying"; d.fazSayac = 0; d.hiz = 0; }
+      degisti = true;
+    } else if (d.faz === "verifying") {
+      d.fazSayac += TIK;
+      if (d.fazSayac >= 2500) { d.faz = "installing"; d.fazSayac = 0; }
+      degisti = true;
+    } else if (d.faz === "installing") {
+      d.fazSayac += TIK;
+      if (d.fazSayac >= 3000) {
+        d.faz = "ready";
+        const g = oyun(d.oyunId);
+        if (g) {
+          if (d.tur === "update") {
+            // Güncelleme bitince sürüm ilerler, yama boyutu kütüphaneye eklenir.
+            const bekleyen = g.notlar.find(n => n.durum === "pending");
+            if (bekleyen) { bekleyen.durum = "installed"; g.surum = bekleyen.surum; }
+            g.boyut += d.boyut * 0.35;                    // yama diski biraz büyütür
+            g.guncelleme = 0;
+          } else {
+            g.kurulu = true;
+          }
+        }
+        degisti = true;
+      } else degisti = true;
+    }
+  });
+
+  // Biten kayıtlar bir tur ekranda kalır, sonra listeden düşer.
+  S.indirmeler = S.indirmeler.filter(d => {
+    if (d.faz !== "ready") return true;
+    d.fazSayac += TIK;
+    return d.fazSayac < 2500;
+  });
+
+  if (!degisti) return;
+
+  /* ⛔ Burada ciz() ÇAĞRILMIYOR. Saat yarım saniyede bir tam yeniden çizim
+     yapınca `.panel` beliriş animasyonu her turda baştan oynuyor ve ekran
+     sürekli göz kırpıyordu; üstelik ayarlar sekmesinde kaydırıcı sürüklenirken
+     odak düşüyordu. Yapı değişmediyse (aynı paketler, aynı fazlar, aynı sekme)
+     yalnız SAYILAR yerinde güncelleniyor. */
+  const yeni = imza();
+  if (yeni !== sonImza) { sonImza = yeni; ciz(); }
+  else tikGuncelle();
+}, TIK);
+
+/** Yeniden çizimi gerektiren yapısal durum. Sayılar buraya GİRMEZ. */
+function imza() {
+  return S.indirmeler.map(d => d.id + ":" + d.faz).join(",")
+    + "|" + S.oyunlar.map(g => g.id + (g.kurulu ? "i" : "-") + (g.guncelleme > 0 ? "u" : "")).join(",")
+    + "|" + S.sekme + "|" + S.secili + "|" + S.oyunlar.length;
+}
+let sonImza = "";
+
+/** Yalnız değişen sayıları yerinde yazar: innerHTML yok, animasyon yeniden başlamaz. */
+function tikGuncelle() {
+  durumCiz();
+  S.indirmeler.forEach(d => {
+    const g = oyun(d.oyunId);
+    const p = yuzde(d.inen, d.boyut);
+
+    const rt = $(`[data-dltxt="${d.oyunId}"]`);
+    if (rt) rt.textContent = `${FAZ_AD[d.faz]} · ${p.toFixed(0)}%`;
+    const rb = $(`[data-dlbar="${d.oyunId}"]`);
+    if (rb) rb.style.width = p + "%";
+
+    const pb = $(`[data-pbar="${d.id}"]`);
+    if (pb) pb.style.width = p + "%";
+    const pn = $(`[data-pnum="${d.id}"]`);
+    if (pn) pn.textContent = `${gb(d.inen)} / ${gb(d.boyut)} · ${p.toFixed(1)}%`;
+    const ps = $(`[data-pspd="${d.id}"]`);
+    if (ps) ps.textContent = d.faz === "downloading" ? mb(d.hiz) : "—";
+    const pe = $(`[data-peta="${d.id}"]`);
+    if (pe && d.faz === "downloading") {
+      const eta = d.hiz > 0 ? ((d.boyut - d.inen) * 1024) / d.hiz : NaN;
+      pe.textContent = "ETA " + sure(eta);
+    }
+    if (g && g.id === S.secili) {
+      // Kahraman bölümündeki tek değişken sayı: yok. Faz imzada, o yüzden burada iş yok.
+    }
+  });
+}
+
+/* ===========================================================================
+   3) ÇİZİM
+   =========================================================================== */
+function ciz() {
+  railCiz();
+  durumCiz();
+  const g = oyun(S.secili);
+  const el = $("#main");
+  if (!g) { el.innerHTML = '<div class="panel"><div class="empty">Nothing selected.</div></div>'; return; }
+  el.innerHTML = DEMOBAR + hero(g) + sekmeler() + `<div class="panel">${panel(g)}</div>`;
+  bagla();
+  sonImza = imza();
+}
+
+const DEMOBAR = `<div class="demobar"><b>DEMO</b>
+  <span>Nothing is downloaded and nothing touches your disk — the games, studios, patch notes, achievements
+  and the drive itself are invented for this demo. The download queue is a real state machine running on a
+  timer: change the bandwidth cap or the concurrent-download limit in Settings and watch the speeds and the
+  ETAs redistribute. State lives in memory and resets on reload.</span></div>`;
+
+function railCiz() {
+  let list = S.oyunlar.slice();
+  const q = S.arama.trim().toLowerCase();
+  if (q) list = list.filter(g => g.ad.toLowerCase().includes(q) || g.studyo.toLowerCase().includes(q));
+
+  const durumSira = g => (indirmesi(g) ? 0 : g.guncelleme > 0 ? 1 : g.kurulu ? 2 : 3);
+  list.sort((a, b) =>
+    S.siralama === "size"   ? b.boyut - a.boyut :
+    S.siralama === "played" ? b.saat - a.saat :
+    S.siralama === "state"  ? durumSira(a) - durumSira(b) || a.ad.localeCompare(b.ad, "en") :
+                              a.ad.localeCompare(b.ad, "en"));
+
+  $("#lib-count").textContent = S.oyunlar.length;
+  $("#rail").innerHTML = list.length ? list.map(g => {
+    const d = indirmesi(g);
+    const alt = d
+      ? `<div class="s dl" data-dltxt="${g.id}">${FAZ_AD[d.faz]} · ${yuzde(d.inen, d.boyut).toFixed(0)}%</div>
+         <div class="mini-bar"><i data-dlbar="${g.id}" style="width:${yuzde(d.inen, d.boyut)}%"></i></div>`
+      : g.guncelleme > 0 ? `<div class="s up">update · ${gb(g.guncelleme)}</div>`
+      : g.kurulu ? `<div class="s">${gb(g.boyut)} · ${g.son}</div>`
+      : `<div class="s">not installed</div>`;
+    return `<button class="g-row${g.id === S.secili ? " on" : ""}" data-g="${g.id}">
+      ${kapak(g.ad)}
+      <span class="nm"><span class="t">${esc(g.ad)}</span>${alt}</span>
+    </button>`;
+  }).join("") : '<div class="empty" style="margin:10px 4px">Nothing matches that search.</div>';
+
+  const kuruluGb = S.oyunlar.filter(g => g.kurulu).reduce((t, g) => t + g.boyut, 0);
+  const bosGb = S.diskToplam - S.diskDiger - kuruluGb;
+  $("#disk-txt").textContent = `${gb(bosGb)} free of ${S.diskToplam} GB`;
+  $("#disk-games").style.width = (kuruluGb / S.diskToplam) * 100 + "%";
+  $("#disk-other").style.width = (S.diskDiger / S.diskToplam) * 100 + "%";
+  $("#st-disk").textContent = `${gb(kuruluGb)} in library · ${gb(bosGb)} free`;
+
+  $$("#rail .g-row").forEach(b => b.addEventListener("click", () => {
+    S.secili = Number(b.dataset.g);
+    ciz();
+  }));
+}
+
+const indirmesi = g => S.indirmeler.find(d => d.oyunId === g.id);
+
+function durumCiz() {
+  const akt = aktifler();
+  const toplamHiz = akt.reduce((t, d) => t + d.hiz, 0);
+  $("#st-pip").className = "pip" + (akt.length ? " dl" : "");
+  $("#st-net").textContent = akt.length
+    ? `${mb(toplamHiz)} · cap ${S.ayar.bant} Mbps`
+    : `idle · cap ${S.ayar.bant} Mbps`;
+  const bekleyen = S.indirmeler.filter(d => d.faz === "queued").length;
+  $("#st-queue").textContent = S.indirmeler.length
+    ? `${S.indirmeler.length} in queue${bekleyen ? ` · ${bekleyen} waiting for a slot` : ""}`
+    : "no downloads";
+}
+
+function hero(g) {
+  const d = indirmesi(g);
+  const bosGb = S.diskToplam - S.diskDiger - S.oyunlar.filter(x => x.kurulu).reduce((t, x) => t + x.boyut, 0);
+  const yerYok = !g.kurulu && g.boyut > bosGb;
+
+  let dugmeler;
+  if (d) {
+    dugmeler = `<button class="btn ghost" data-act="cancel" data-d="${d.id}">Cancel</button>
+      ${d.faz === "paused"
+        ? `<button class="btn" data-act="resume" data-d="${d.id}">Resume</button>`
+        : `<button class="btn ghost" data-act="pause" data-d="${d.id}">Pause</button>`}`;
+  } else if (g.guncelleme > 0) {
+    dugmeler = `<button class="btn warn" data-act="update">Update · ${gb(g.guncelleme)}</button>
+      <button class="btn play" data-act="play">Play anyway</button>`;
+  } else if (g.kurulu) {
+    dugmeler = `<button class="btn play" data-act="play">Play</button>
+      <button class="btn ghost" data-act="verify">Verify files</button>
+      <button class="btn ghost" data-act="uninstall">Uninstall</button>`;
+  } else {
+    dugmeler = `<button class="btn" data-act="install" ${yerYok ? "disabled" : ""}>Install · ${gb(g.boyut)}</button>
+      ${yerYok ? `<span class="tag r">not enough space — ${gb(bosGb)} free</span>` : ""}`;
+  }
+
+  return `<div class="hero">
+    ${kapak(g.ad, "lg")}
+    <div class="meta">
+      <h1>${esc(g.ad)}</h1>
+      <div class="studio">${esc(g.studyo)} · ${g.etiket.map(t => `<span class="tag">${esc(t)}</span>`).join(" ")}</div>
+      <div class="facts">
+        <div class="fact"><div class="l">Status</div><div class="v">${
+          d ? `<span style="color:var(--cyan)">${FAZ_AD[d.faz]}</span>`
+            : g.guncelleme > 0 ? '<span style="color:var(--amber)">update ready</span>'
+            : g.kurulu ? '<span style="color:var(--lime)">installed</span>' : "not installed"}</div></div>
+        <div class="fact"><div class="l">Version</div><div class="v">${esc(g.surum)}</div></div>
+        <div class="fact"><div class="l">Size on disk</div><div class="v">${g.kurulu ? gb(g.boyut) : "—"}</div></div>
+        <div class="fact"><div class="l">Playtime</div><div class="v">${g.saat} h</div></div>
+        <div class="fact"><div class="l">Last played</div><div class="v">${esc(g.son)}</div></div>
+      </div>
+      <div class="actions">${dugmeler}</div>
+    </div>
+  </div>`;
+}
+
+const SEKMELER = [["overview","Overview"],["patch","Patch notes"],["ach","Achievements"],
+                  ["dl","Downloads"],["set","Settings"]];
+
+function sekmeler() {
+  return `<div class="tabs">${SEKMELER.map(([id, ad]) => {
+    const rozet = id === "dl" && S.indirmeler.length ? ` (${S.indirmeler.length})` : "";
+    return `<button class="tab${S.sekme === id ? " on" : ""}" data-tab="${id}">${ad}${rozet}</button>`;
+  }).join("")}</div>`;
+}
+
+function panel(g) {
+  return S.sekme === "overview" ? panelOzet(g)
+       : S.sekme === "patch"    ? panelNot(g)
+       : S.sekme === "ach"      ? panelBasarim(g)
+       : S.sekme === "dl"       ? panelIndirme()
+       :                          panelAyar();
+}
+
+/* --- Overview --- */
+function panelOzet(g) {
+  const alinan = g.basarimlar.filter(a => a.alindi).length;
+  const bekleyen = g.notlar.find(n => n.durum === "pending");
+  return `
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
+    <div class="card">
+      <h3 class="sect">Install</h3>
+      <table style="margin-top:8px">
+        <tr><td class="mono" style="color:var(--dimmer)">path</td><td class="mono">${esc(S.ayar.yol)}\\${esc(g.ad.replace(/\s+/g, ""))}</td></tr>
+        <tr><td class="mono" style="color:var(--dimmer)">version</td><td class="mono">${esc(g.surum)}</td></tr>
+        <tr><td class="mono" style="color:var(--dimmer)">size</td><td class="mono">${g.kurulu ? gb(g.boyut) : gb(g.boyut) + " (download)"}</td></tr>
+        <tr><td class="mono" style="color:var(--dimmer)">auto-update</td><td class="mono">${S.ayar.otoGuncelle ? "on" : "off"}</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3 class="sect">Achievements</h3>
+      <p class="hint" style="margin:6px 0 8px">${alinan} of ${g.basarimlar.length} unlocked</p>
+      <div class="pbar"><i style="width:${yuzde(alinan, g.basarimlar.length)}%"></i></div>
+      <div class="hint" style="margin-top:8px">${g.basarimlar.length
+        ? "Rarest one you hold: " + (g.basarimlar.filter(a => a.alindi).sort((a, b) => a.oran - b.oran)[0]?.ad || "none yet")
+        : "No achievements in this title."}</div>
+    </div>
+    <div class="card">
+      <h3 class="sect">${bekleyen ? "Update waiting" : "Up to date"}</h3>
+      ${bekleyen
+        ? `<p class="hint" style="margin:6px 0 10px">Version <b class="mono">${esc(bekleyen.surum)}</b> ·
+             ${esc(bekleyen.boyut)} patch. A patch downloads only the changed blocks, which is why it is far
+             smaller than the game.</p>
+           <button class="btn warn mini" data-act="update">Download the patch</button>`
+        : `<p class="hint" style="margin:6px 0 0">Client checked a few minutes ago. Nothing to fetch for this
+             title — the last patch is already installed.</p>`}
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);margin-top:10px">
+    <div class="card">
+      <div class="rowsplit"><h3 class="sect" style="margin:0">Last seven days</h3>
+        <span class="hint">${gunToplam(g) > 0 ? gunToplam(g).toFixed(1) + " h this week" : "no sessions"}</span></div>
+      ${gunToplam(g) > 0 ? gunGrafik(g)
+        : `<div class="hint" style="padding:14px 0 4px">Nothing logged in the last week.
+           ${g.saat > 0 ? "Total playtime is still " + g.saat + " h." : "This one has never been launched."}</div>`}
+    </div>
+    <div class="card">
+      <h3 class="sect">Activity</h3>
+      ${g.olaylar.length
+        ? g.olaylar.map(o => `<div class="act">
+            <div class="ic">${o[0]}</div>
+            <div class="bd">${esc(o[1])}</div>
+            <div class="wh">${esc(o[2])}</div></div>`).join("")
+        : '<div class="hint" style="padding:12px 0 4px">No activity recorded for this title yet.</div>'}
+    </div>
+  </div>`;
+}
+
+const GUN_AD = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const gunToplam = g => (g.gunler || []).reduce((t, h) => t + h, 0);
+
+/** Küçük oturum grafiği — kütüphane yok, salt div; yükseklik saate oranlı. */
+function gunGrafik(g) {
+  const enBuyuk = Math.max(...g.gunler, 1);
+  return `<div style="display:flex;align-items:flex-end;gap:8px;height:96px;margin-top:12px">
+    ${g.gunler.map((h, i) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%">
+      <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+        <div title="${h.toFixed(1)} h" style="width:100%;border-radius:4px 4px 0 0;
+          height:${h > 0 ? Math.max(4, (h / enBuyuk) * 100) : 2}%;
+          background:${h > 0 ? "linear-gradient(180deg,var(--cyan),#0891b2)" : "var(--line)"}"></div>
+      </div>
+      <div class="mono" style="font-size:9.5px;color:var(--dimmer)">${GUN_AD[i]}</div>
+    </div>`).join("")}
+  </div>
+  <div class="hint" style="margin-top:8px">Peak day ${enBuyuk.toFixed(1)} h · sessions are logged locally by the
+  client and only totals leave the machine.</div>`;
+}
+
+/* --- Patch notes --- */
+function panelNot(g) {
+  if (!g.notlar.length) return '<div class="empty">No patch notes for this title.</div>';
+  const bekleyen = g.notlar.find(n => n.durum === "pending");
+  const yamaGb = bekleyen ? parseFloat(bekleyen.boyut) : 0;
+  return `<div class="grid" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)">
+    <div class="card"><div class="patch">${g.notlar.map(n => `
+      <div class="v">
+        <b>${esc(n.surum)}</b>
+        <span class="tag ${n.durum === "pending" ? "a" : n.durum === "installed" ? "l" : ""}">${esc(n.durum)}</span>
+        ${n.boyut !== "—" ? `<span class="mono" style="color:var(--dimmer);font-size:11px">${esc(n.boyut)}</span>` : ""}
+      </div>
+      <ul>${n.satir.map(x => `<li><b>${esc(x[0])}</b> — ${esc(x[1])}</li>`).join("")}</ul>`).join("")}</div></div>
+
+    <div class="card">
+      <h3 class="sect">Why a patch is small</h3>
+      <p class="hint" style="margin:6px 0 12px">A patch ships only the blocks that changed, not the game. For
+      this title that is the difference between these two bars:</p>
+      <div style="margin-bottom:10px">
+        <div class="hint" style="display:flex;justify-content:space-between"><span>full install</span><span class="mono">${gb(g.boyut)}</span></div>
+        <div class="pbar" style="margin-top:4px"><i style="width:100%;background:#3a4457"></i></div>
+      </div>
+      <div>
+        <div class="hint" style="display:flex;justify-content:space-between"><span>${bekleyen ? "pending patch" : "last patch"}</span>
+          <span class="mono">${yamaGb > 0 ? gb(yamaGb) : "—"}</span></div>
+        <div class="pbar" style="margin-top:4px"><i style="width:${yamaGb > 0 ? yuzde(yamaGb, g.boyut) : 0}%"></i></div>
+      </div>
+      <p class="hint" style="margin:12px 0 0">${yamaGb > 0
+        ? `About ${yuzde(yamaGb, g.boyut).toFixed(1)}% of the install — which is also why the client verifies
+           afterwards: a partial write to the wrong block breaks a game that never finished downloading.`
+        : `Nothing pending. When a patch arrives the client fetches it, verifies the result and only then swaps
+           the files in.`}</p>
+    </div>
+  </div>`;
+}
+
+/* --- Achievements --- */
+function panelBasarim(g) {
+  if (!g.basarimlar.length) return '<div class="empty">No achievements in this title.</div>';
+  const sirali = g.basarimlar.slice().sort((a, b) => (b.alindi - a.alindi) || a.oran - b.oran);
+  const alinan = g.basarimlar.filter(a => a.alindi);
+  const kalan = g.basarimlar.filter(a => !a.alindi).sort((a, b) => b.oran - a.oran);
+  const enNadir = alinan.slice().sort((a, b) => a.oran - b.oran)[0];
+  // Tamamlama puanı: nadir başarım daha çok değer taşır (1/oran ağırlıklı).
+  const agirlik = a => 1 / Math.max(a.oran, 0.5);
+  const toplamA = g.basarimlar.reduce((t, a) => t + agirlik(a), 0);
+  const puan = toplamA > 0 ? (alinan.reduce((t, a) => t + agirlik(a), 0) / toplamA) * 100 : 0;
+
+  return `<div class="grid" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)">
+    <div class="card">
+      <div class="rowsplit"><h3 class="sect" style="margin:0">${alinan.length} of ${g.basarimlar.length} unlocked</h3>
+        <span class="hint">the percentage is how many players hold it</span></div>
+      ${sirali.map(a => `<div class="ach${a.alindi ? " got" : ""}">
+        <div class="ic">${a.ic}</div>
+        <div class="bd"><div class="nm">${esc(a.ad)}</div><div class="ds">${esc(a.ds)}</div></div>
+        <div class="rar">${a.oran.toFixed(1)}%<br><span style="color:${a.oran < 5 ? "var(--violet)" : "var(--dimmer)"}">${
+          a.oran < 5 ? "rare" : a.oran < 25 ? "uncommon" : "common"}</span></div>
+      </div>`).join("")}
+    </div>
+
+    <div>
+      <div class="card">
+        <h3 class="sect">Completion</h3>
+        <p class="hint" style="margin:6px 0 8px">${alinan.length} of ${g.basarimlar.length} by count</p>
+        <div class="pbar"><i style="width:${yuzde(alinan.length, g.basarimlar.length)}%"></i></div>
+        <div class="sep" style="margin:12px 0"></div>
+        <p class="hint" style="margin:0 0 8px">${puan.toFixed(0)}% weighted — rarer achievements count for more,
+        so the two counts disagree on purpose.</p>
+        <div class="pbar"><i style="width:${puan}%;background:linear-gradient(90deg,#7c3aed,var(--violet))"></i></div>
+      </div>
+      <div class="card">
+        <h3 class="sect">Where you stand</h3>
+        <table style="margin-top:6px">
+          <tr><td style="color:var(--dimmer)">Rarest held</td>
+            <td class="right">${enNadir ? esc(enNadir.ad) + ` <span class="mono" style="color:var(--violet)">${enNadir.oran.toFixed(1)}%</span>` : "none yet"}</td></tr>
+          <tr><td style="color:var(--dimmer)">Closest miss</td>
+            <td class="right">${kalan[0] ? esc(kalan[0].ad) + ` <span class="mono">${kalan[0].oran.toFixed(1)}%</span>` : "all unlocked"}</td></tr>
+          <tr><td style="color:var(--dimmer)">Hardest left</td>
+            <td class="right">${kalan.length ? esc(kalan[kalan.length - 1].ad) + ` <span class="mono">${kalan[kalan.length - 1].oran.toFixed(1)}%</span>` : "—"}</td></tr>
+        </table>
+        <p class="hint" style="margin:10px 0 0">Percentages are the share of players holding each one, published
+        by the title. Anything under 5% is marked rare.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* --- Downloads --- */
+function panelIndirme() {
+  if (!S.indirmeler.length) {
+    return `<div class="empty">Queue is empty.<br>
+      <span class="hint">Install or update a title from the library and it appears here with live speed,
+      progress and an ETA.</span></div>`;
+  }
+  const akt = aktifler();
+  const pay = akt.length ? S.ayar.bant / akt.length : 0;
+
+  return `
+  <div class="card" style="margin-bottom:10px">
+    <div class="rowsplit" style="margin:0">
+      <div>
+        <h3 class="sect">Bandwidth is shared, not multiplied</h3>
+        <p class="hint" style="margin:4px 0 0">Cap is <b class="mono">${S.ayar.bant} Mbps</b> across
+        <b class="mono">${akt.length}</b> active download${akt.length === 1 ? "" : "s"} —
+        about <b class="mono">${pay.toFixed(0)} Mbps (${(pay / 8).toFixed(1)} MB/s)</b> each. Anything past the
+        concurrency limit of <b class="mono">${S.ayar.esZamanli}</b> waits in the queue instead of making
+        everything slower.</p>
+      </div>
+      <button class="btn ghost mini" data-act="clearq">Cancel all</button>
+    </div>
+  </div>
+  ${S.indirmeler.map(d => {
+    const g = oyun(d.oyunId);
+    if (!g) return "";
+    const p = yuzde(d.inen, d.boyut);
+    const kalan = d.boyut - d.inen;
+    const eta = d.faz === "downloading" && d.hiz > 0 ? (kalan * 1024) / d.hiz : NaN;
+    const belirsiz = d.faz === "verifying" || d.faz === "installing";
+    return `<div class="dl${d.faz === "downloading" ? " active" : ""}">
+      <div class="dl-top">
+        ${kapak(g.ad, "sm")}
+        <span class="nm">${esc(g.ad)} <span class="tag">${d.tur === "update" ? "patch" : "full install"}</span></span>
+        <span class="ph ${d.faz === "queued" ? "q" : d.faz === "paused" ? "p" : ""}">${FAZ_AD[d.faz]}</span>
+      </div>
+      <div class="pbar${belirsiz && !AZALT ? " ind" : ""}">
+        ${belirsiz ? "" : `<i data-pbar="${d.id}" style="width:${p}%"></i>`}
+      </div>
+      <div class="dl-num">
+        <span data-pnum="${d.id}">${gb(d.inen)} / ${gb(d.boyut)} · ${p.toFixed(1)}%</span>
+        <span data-pspd="${d.id}">${d.faz === "downloading" ? mb(d.hiz) : belirsiz ? "no network — working on disk" : "—"}</span>
+        <span data-peta="${d.id}">${d.faz === "downloading" ? "ETA " + sure(eta)
+              : d.faz === "queued" ? "waiting for a slot"
+              : d.faz === "paused" ? "paused by you" : FAZ_AD[d.faz]}</span>
+      </div>
+      <div class="dl-acts">
+        ${d.faz === "paused"
+          ? `<button class="btn mini" data-act="resume" data-d="${d.id}">Resume</button>`
+          : d.faz === "downloading" || d.faz === "queued"
+            ? `<button class="btn ghost mini" data-act="pause" data-d="${d.id}">Pause</button>` : ""}
+        ${d.faz !== "ready" ? `<button class="btn ghost mini" data-act="cancel" data-d="${d.id}">Cancel</button>` : ""}
+        ${d.faz === "queued" ? `<button class="btn ghost mini" data-act="top" data-d="${d.id}">Move to top</button>` : ""}
+      </div>
+    </div>`;
+  }).join("")}`;
+}
+
+/* --- Settings --- */
+function panelAyar() {
+  return `
+  <div class="card">
+    <h3 class="sect">Downloads</h3>
+    <p class="note">These two knobs decide how the queue behaves. Change either one and the Downloads tab
+    redistributes immediately — no restart, no re-queue.</p>
+
+    <div class="set">
+      <div><div class="lb">Bandwidth cap</div>
+        <div class="ds">Split evenly across active downloads. Lower it and every active transfer slows in the
+        same proportion; the ETAs follow.</div></div>
+      <div class="ctl">
+        <input type="range" id="s-band" min="20" max="600" step="10" value="${S.ayar.bant}">
+        <span class="mono" style="width:74px;text-align:right">${S.ayar.bant} Mbps</span>
+      </div>
+    </div>
+
+    <div class="set">
+      <div><div class="lb">Concurrent downloads</div>
+        <div class="ds">Anything beyond this waits in the queue. More at once does not mean faster — the cap
+        is the same, it just arrives more slowly for everything.</div></div>
+      <div class="ctl">
+        <select id="s-conc">${[1,2,3,4].map(n => `<option value="${n}"${S.ayar.esZamanli === n ? " selected" : ""}>${n}</option>`).join("")}</select>
+      </div>
+    </div>
+
+    <div class="set">
+      <div><div class="lb">Update games automatically</div>
+        <div class="ds">Patches are fetched as soon as they are published.</div></div>
+      <div class="ctl"><div class="sw${S.ayar.otoGuncelle ? " on" : ""}" id="s-auto" role="switch"
+        aria-checked="${S.ayar.otoGuncelle}" tabindex="0"></div></div>
+    </div>
+
+    <div class="set">
+      <div><div class="lb">Pause downloads while a game is running</div>
+        <div class="ds">Keeps the connection free for whatever you are playing.</div></div>
+      <div class="ctl"><div class="sw${S.ayar.calisirkenDurdur ? " on" : ""}" id="s-pause" role="switch"
+        aria-checked="${S.ayar.calisirkenDurdur}" tabindex="0"></div></div>
+    </div>
+
+    <div class="set">
+      <div><div class="lb">Install folder</div>
+        <div class="ds">Where new titles land. Existing installs stay where they are.</div></div>
+      <div class="ctl"><input type="text" id="s-path" value="${esc(S.ayar.yol)}" style="width:210px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="sect">Library</h3>
+    <p class="note">Add a title with a key, or drop one you no longer want. Both change the disk bar on the
+    left straight away.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="s-key" placeholder="ORBIT-XXXX-XXXX" style="width:190px">
+      <button class="btn mini" id="s-redeem">Redeem key</button>
+      <span class="hint" id="s-keymsg">${esc(S.keyNot)}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="sect">Storage</h3>
+    ${S.oyunlar.filter(g => g.kurulu).length
+      ? `<table><thead><tr><th>Title</th><th class="right">Size</th><th class="right">Playtime</th><th></th></tr></thead>
+        <tbody>${S.oyunlar.filter(g => g.kurulu).sort((a, b) => b.boyut - a.boyut).map(g => `
+          <tr><td>${esc(g.ad)}</td><td class="right mono">${gb(g.boyut)}</td>
+            <td class="right mono">${g.saat} h</td>
+            <td class="right"><button class="btn ghost mini" data-act="uninstall" data-g="${g.id}">Uninstall</button></td></tr>`).join("")}
+        </tbody></table>`
+      : '<div class="empty">Nothing installed.</div>'}
+  </div>`;
+}
+
+/* ===========================================================================
+   4) OLAY BAĞLARI
+   =========================================================================== */
+function bagla() {
+  $$(".tab").forEach(b => b.addEventListener("click", () => { S.sekme = b.dataset.tab; ciz(); }));
+
+  $$("[data-act]").forEach(b => b.addEventListener("click", () => {
+    const g = oyun(b.dataset.g ? Number(b.dataset.g) : S.secili);
+    const d = b.dataset.d ? S.indirmeler.find(x => x.id === Number(b.dataset.d)) : null;
+    switch (b.dataset.act) {
+      case "install":  indirmeBaslat(g, "install"); S.sekme = "dl"; ciz(); break;
+      case "update":   indirmeBaslat(g, "update");  S.sekme = "dl"; ciz(); break;
+      case "pause":    if (d) { d.faz = "paused"; d.hiz = 0; } ciz(); break;
+      case "resume":   if (d) d.faz = "queued"; ciz(); break;
+      case "cancel":   S.indirmeler = S.indirmeler.filter(x => x !== d); ciz(); break;
+      case "clearq":   S.indirmeler = []; ciz(); break;
+      case "top":      if (d) { S.indirmeler = [d].concat(S.indirmeler.filter(x => x !== d)); } ciz(); break;
+      case "verify":   dogrulamaBaslat(g); break;
+      case "uninstall":
+        if (g) {
+          g.kurulu = false; g.guncelleme = 0;
+          S.indirmeler = S.indirmeler.filter(x => x.oyunId !== g.id);
+        }
+        ciz();
+        break;
+      case "play":
+        // Oynatma taklit edilmiyor; ayarın gerçekten bir etkisi olduğunu göstermek
+        // için indirmeleri duraklatıyor — kural ekranda yazılı, burada uygulanıyor.
+        if (S.ayar.calisirkenDurdur) {
+          aktifler().forEach(x => { x.faz = "paused"; x.hiz = 0; });
+          not(`Launching ${g.ad} — downloads paused while a game is running (Settings)`);
+        } else not(`Launching ${g.ad}…`);
+        ciz();
+        break;
+    }
+  }));
+
+  const band = $("#s-band");
+  if (band) band.addEventListener("input", () => {
+    S.ayar.bant = Number(band.value);
+    // Sadece etkilenen yerler tazelensin: kaydırıcı elde tutulurken tam çizim
+    // odağı düşürüp sürüklemeyi kesiyordu.
+    band.nextElementSibling.textContent = S.ayar.bant + " Mbps";
+    durumCiz();
+  });
+  const conc = $("#s-conc");
+  if (conc) conc.addEventListener("change", () => { S.ayar.esZamanli = Number(conc.value); kuyruguSurukle(); ciz(); });
+  const auto = $("#s-auto");
+  if (auto) auto.addEventListener("click", () => { S.ayar.otoGuncelle = !S.ayar.otoGuncelle; ciz(); });
+  const paus = $("#s-pause");
+  if (paus) paus.addEventListener("click", () => { S.ayar.calisirkenDurdur = !S.ayar.calisirkenDurdur; ciz(); });
+  const path = $("#s-path");
+  if (path) path.addEventListener("change", () => { S.ayar.yol = path.value.trim() || S.ayar.yol; ciz(); });
+
+  const red = $("#s-redeem");
+  if (red) red.addEventListener("click", () => {
+    const key = $("#s-key").value.trim();
+    if (!key) { $("#s-key").focus(); return; }
+    const adlar = ["Ember Vault","Static Harbor","Nine Lanterns","Ashfall Rally","Quiet Orbit","Tin Cathedral"];
+    const ad = adlar.find(a => !adla(a)) || ("Untitled " + nextId());
+    S.oyunlar.push({
+      id: nextId(), ad, studyo: "Unlisted Studio",
+      boyut: Math.round((3 + Math.random() * 28) * 10) / 10,
+      surum: "1.0.0", kurulu: false, guncelleme: 0, saat: 0, son: "never",
+      etiket: ["new"], notlar: [{ surum: "1.0.0", boyut: "—", durum: "not installed",
+        satir: [["Release", "first public build"]] }], basarimlar: []
+    });
+    $("#s-key").value = "";
+    // ⛔ Mesajı doğrudan DOM'a yazmak işe yaramıyor: hemen sonraki ciz() paneli
+    //    baştan basıp varsayılan metni geri getiriyordu. Mesaj da durumda tutulur.
+    S.keyNot = `“${ad}” added to your library — install it from the rail.`;
+    ciz();
+  });
+}
+
+/** Doğrulama: indirme olmadan da kullanılan faz — dosya bütünlüğü kontrolü. */
+function dogrulamaBaslat(g) {
+  if (!g || indirmesi(g)) return;
+  S.indirmeler.push({ id: nextId(), oyunId: g.id, tur: "verify", boyut: g.boyut,
+                      inen: g.boyut, faz: "verifying", hiz: 0, fazSayac: 0 });
+  S.sekme = "dl";
+  ciz();
+}
+
+/** Kısa bilgi şeridi — alert kullanılmıyor (iframe'de akışı kilitler). */
+function not(msg) {
+  $$(".toastbar").forEach(t => t.remove());
+  const el = document.createElement("div");
+  el.className = "toastbar";
+  el.style.cssText = "position:fixed;left:50%;bottom:44px;transform:translateX(-50%);z-index:60;" +
+    "background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 14px;" +
+    "font-size:12px;box-shadow:0 14px 30px -14px #000";
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+
+$("#search").addEventListener("input", e => { S.arama = e.target.value; railCiz(); });
+$("#sortby").addEventListener("change", e => { S.siralama = e.target.value; railCiz(); });
+
+/* ===========================================================================
+   5) İLK DURUM + GİRİŞ
+   =========================================================================== */
+// Demo açılır açılmaz canlı bir indirme görünsün: yama yarı yolda.
+(function acilisDurumu() {
+  const g = adla("Nebula Drift");
+  if (g) S.indirmeler.push({ id: nextId(), oyunId: g.id, tur: "update", boyut: g.guncelleme,
+                             inen: g.guncelleme * 0.34, faz: "downloading", hiz: 15, fazSayac: 0 });
+})();
+ciz();
+
+function girisiKapat() { $("#login").style.display = "none"; }
+
+/* Site bu demoyu küçük önizleme olarak gömdüğünde çağırır. */
+window.__onizleme = function () {
+  girisiKapat();
+  document.documentElement.dataset.preview = "1";
+};
+
+$("#login-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const u = $("#l-u").value.trim();
+  if (!u || !$("#l-p").value) { $("#l-err").textContent = "Both fields are needed (any value works here)."; return; }
+  S.hesap = u;
+  $("#tb-user").textContent = u;
+  girisiKapat();
+});
+$("#l-skip").addEventListener("click", girisiKapat);
+</script>
+</body>
+</html>

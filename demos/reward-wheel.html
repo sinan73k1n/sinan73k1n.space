@@ -1,0 +1,1179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reward Wheel — demo</title>
+<!--
+  ============================================================================
+  REWARD WHEEL — TEK DOSYA DEMO
+  ============================================================================
+  Yazdığım ödül çarkı + çekiliş sisteminin gezilebilir taklidi. Portfolyodaki
+  demo alanına yapıştırılır, iframe içinde `sandbox="allow-scripts"` ile çalışır.
+
+  🎯 EKSEN: ŞEFFAFLIK. Demo "şansını dene" demiyor, "şans nasıl hesaplanıyor"
+     diyor. Üç bilinçli karar:
+       1. Dilim BÜYÜKLÜĞÜ = olasılık. Efsanevi ödül %1 ise ekranda da kıl payı
+          bir dilim. Eşit dilimli çark görsel olarak yalan söyler.
+       2. Sonuç ÇEVİRMEDEN ÖNCE belirlenir; animasyon yalnızca sunum. Ekranda
+          da böyle yazıyor — kod da öyle çalışıyor.
+       3. Simülasyon bölümü binlerce çevirimi çalıştırıp beklenen dağılımla
+          karşılaştırır. Ödül tablosu ayarlanabilir, olasılıklar anında yeniden
+          hesaplanır.
+     Para girişi/çıkışı yok: puanlar uygulama içinde kazanılır, ödüller oyun içi.
+
+  ⛔ ANONİM: oyun adı, ödül, kullanıcı, bilet — hepsi kurgu. Gerçek sistemin
+     yapılandırması, kullanıcıları ve çekiliş kayıtları buraya taşınmadı.
+
+  🌍 ARAYÜZ DİLİ İNGİLİZCE (karar: 2026-07-30). Kod yorumları Türkçe kalır.
+
+  Kısıtlar (bilinçli):
+   · Tek dosya, sıfır dış istek — font/CDN/görsel YOK. Çark SVG ile çiziliyor.
+   · localStorage/cookie KULLANILMAZ (`allow-same-origin` verilmiyor). Durum
+     bellekte (`S` nesnesi).
+   · prefers-reduced-motion: reduce → çark DÖNMEZ, sonuç doğrudan yazılır.
+     Sayaçlar da animasyonsuz. Simülasyon aynen çalışır.
+   · `window.__onizleme()`: site bu demoyu KÜÇÜK ÖNİZLEME olarak gömdüğünde
+     çağırır → giriş ekranı atlanır.
+  ============================================================================
+-->
+<style>
+:root{
+  --bg:#120e1c; --bg-2:#1a1428; --surface:#1e1830; --surface-2:#272040; --hover:#2f2750;
+  --border:#332a52; --border-soft:#281f42;
+  --text:#efeaff; --dim:#a79ec9; --dimmer:#71689a;
+  --gold:#f7c948; --gold-soft:#3a2f10;
+  --teal:#38d9c0; --teal-soft:#0f322f;
+  --violet:#a78bfa; --rose:#f2557a; --blue:#6aa8ff;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  background:
+    radial-gradient(880px 520px at 15% -8%, #2a1c4d 0%, transparent 62%),
+    radial-gradient(720px 460px at 102% 106%, #0f3b39 0%, transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+  color:var(--text);font-family:var(--sans);font-size:13.5px;line-height:1.5;
+  padding:22px 20px 64px;
+}
+button{font-family:inherit;font-size:inherit;color:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px}
+
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 #f7c94833}50%{box-shadow:0 0 0 12px #f7c94800}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.wrap{max-width:1180px;margin:0 auto}
+
+/* ---------- başlık ---------- */
+.head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.head .brand{display:flex;align-items:center;gap:12px}
+.head .mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--gold),#e8890c);
+  display:grid;place-items:center;font-size:19px;flex:none}
+.head h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em}
+.head .sub{font-family:var(--mono);font-size:11.5px;color:var(--dimmer)}
+.wallet{display:flex;gap:9px;flex-wrap:wrap}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 14px;
+  display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px}
+.chip b{color:var(--gold);font-size:13.5px}
+.chip.teal b{color:var(--teal)}
+
+.demobar{display:flex;gap:10px;align-items:flex-start;border:1px solid #4a3a12;background:#241c07;
+  border-radius:12px;padding:11px 14px;margin-bottom:18px;color:#dcc78d;font-size:11.5px;line-height:1.65}
+.demobar b{color:var(--gold);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;flex:none;padding-top:1px}
+
+/* ---------- sekmeler ---------- */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.tab{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:9px 16px;
+  color:var(--dim);cursor:pointer;font-weight:600;transition:background .14s,color .14s,border-color .14s}
+.tab:hover{background:var(--hover);color:var(--text)}
+.tab.on{background:linear-gradient(135deg,var(--gold),#e8890c);color:#231704;border-color:transparent}
+
+/* ---------- ortak ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px}
+.card+.card{margin-top:12px}
+h2.sect{font-size:15px;margin:0 0 4px;font-weight:800}
+p.note{color:var(--dim);font-size:12.5px;margin:0 0 14px;line-height:1.6}
+.hint{color:var(--dimmer);font-size:11.5px;line-height:1.65}
+.sep{height:1px;background:var(--border);margin:16px 0}
+.mono{font-family:var(--mono)}
+.right{text-align:right}
+.rowsplit{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+
+.btn{background:linear-gradient(135deg,var(--gold),#e8890c);color:#231704;border:0;border-radius:12px;
+  padding:11px 22px;font-weight:800;cursor:pointer;transition:filter .14s,transform .08s}
+.btn:hover{filter:brightness(1.07)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:grayscale(.4)}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--dim);font-weight:600}
+.btn.ghost:hover{background:var(--hover);color:var(--text)}
+.btn.teal{background:linear-gradient(135deg,var(--teal),#189e8b);color:#04241f}
+.btn.mini{padding:6px 12px;font-size:12px;border-radius:9px}
+.btn.big{padding:14px 34px;font-size:15px;border-radius:14px}
+
+input,select{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);padding:9px 11px;font-family:var(--mono);font-size:13px;outline:none;
+  transition:border-color .13s,box-shadow .13s}
+input:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px #f7c94826}
+label.lb{display:block;font-size:10.5px;color:var(--dimmer);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.grid{display:grid;gap:11px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--dimmer);text-align:left;
+  padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-weight:700}
+td{padding:8px 10px;border-bottom:1px solid var(--border-soft);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.swatch{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:8px;vertical-align:-1px;flex:none}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:8px;
+  background:var(--surface-2);color:var(--dim)}
+.tag.gold{background:var(--gold-soft);color:var(--gold)}
+.tag.teal{background:var(--teal-soft);color:var(--teal)}
+
+/* ---------- çark ---------- */
+/* align-items:start iken sag sutun kisa kaliyor ve altinda kocaman bir
+   bosluk oluyordu; sutun artik gerildi, son kart bosluğu yutuyor. */
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:stretch}
+.side{display:flex;flex-direction:column;gap:12px;min-height:0}
+.side .card+.card{margin-top:0}
+.side .card.grow{flex:1;display:flex;flex-direction:column;min-height:0}
+.wheel-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;
+  display:flex;flex-direction:column;align-items:center;gap:14px}
+.wheel-holder{position:relative;width:min(430px,84vw);aspect-ratio:1}
+.wheel-holder svg{width:100%;height:100%;display:block}
+/* Donus CSS gecisiyle DEGIL, JS ile canlandiriliyor (bkz. cevir()). */
+.hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:21%;aspect-ratio:1;border-radius:50%;
+  background:var(--surface-2);border:2px solid var(--border);display:grid;place-items:center;z-index:2;
+  font-family:var(--mono);font-size:10.5px;color:var(--dimmer);text-align:center;line-height:1.3;padding:6px}
+
+.result{width:100%;border-radius:14px;padding:14px 16px;border:1px solid var(--border);background:var(--surface-2);
+  text-align:center;animation:pop .3s ease-out}
+.result .l{font-size:11px;color:var(--dimmer);text-transform:uppercase;letter-spacing:.07em}
+.result .v{font-size:22px;font-weight:800;margin-top:3px}
+.result.rare{border-color:var(--gold);background:linear-gradient(180deg,#33280c,#221b34);animation:pop .3s ease-out,glow 1.8s ease-out 2}
+
+.legend{display:flex;flex-wrap:wrap;gap:7px 14px;justify-content:center;width:100%}
+.legend .lg{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--dim)}
+.legend .lg b{font-family:var(--mono);color:var(--gold);font-size:11px}
+
+.side .k{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border-soft);font-size:12.5px}
+.side .k:last-child{border-bottom:none}
+.side .k b{font-family:var(--mono)}
+.bar{height:7px;border-radius:5px;background:var(--surface-2);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#e8890c);transition:width .3s}
+.hist{flex:1;overflow-y:auto;min-height:0}
+.hist .h{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--border-soft);font-size:12px}
+.hist .h:last-child{border-bottom:none}
+.hist .h .t{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--dimmer);flex:none}
+
+/* ---------- simülasyon ---------- */
+.simbar{display:flex;align-items:center;gap:8px;font-size:12px}
+.simbar .track{flex:1;height:16px;border-radius:5px;background:var(--surface-2);overflow:hidden;position:relative;min-width:80px}
+.simbar .track i{display:block;height:100%}
+.simbar .track u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text);opacity:.65;text-decoration:none}
+.dev{font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+.dev.ok{color:var(--teal)}
+.dev.hi{color:var(--gold)}
+
+/* ---------- çekiliş ---------- */
+.tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px}
+.tier{background:var(--surface-2);border:1px solid var(--border);border-radius:13px;padding:13px}
+.tier .n{font-weight:700;margin-bottom:3px}
+.winners .w{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-soft);animation:rise .28s ease-out}
+.winners .w:last-child{border-bottom:none}
+.winners .w.me{background:var(--gold-soft);border-radius:9px;padding:8px 10px;border-bottom:none;margin:2px 0}
+.rank{width:24px;height:24px;border-radius:8px;background:var(--surface);display:grid;place-items:center;
+  font-family:var(--mono);font-size:11px;flex:none;color:var(--dim)}
+.verify{background:#141024;border:1px dashed var(--border);border-radius:12px;padding:12px 14px;
+  font-family:var(--mono);font-size:11.5px;color:var(--dim);line-height:1.85;overflow-x:auto}
+.verify b{color:var(--gold)}
+
+/* ---------- yapılandırma ---------- */
+.prow{display:grid;grid-template-columns:26px minmax(110px,1.6fr) 62px 84px 84px 78px 32px;gap:9px;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--border-soft)}
+.prow:last-of-type{border-bottom:none}
+.prow .pct{font-family:var(--mono);font-size:13px;color:var(--gold);text-align:right}
+.rare-tg{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:5px 0;
+  cursor:pointer;font-size:12px;color:var(--dimmer);text-align:center}
+.rare-tg.on{background:var(--gold-soft);border-color:var(--gold);color:var(--gold)}
+.prow .x{background:none;border:0;color:var(--dimmer);cursor:pointer;font-size:16px;border-radius:7px;padding:2px 6px}
+.prow .x:hover{background:#3a1c28;color:var(--rose)}
+.phead{display:grid;grid-template-columns:26px minmax(110px,1.6fr) 62px 84px 84px 78px 32px;gap:9px;
+  font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--dimmer);padding-bottom:7px;
+  border-bottom:1px solid var(--border);font-weight:700}
+
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:70;background:var(--surface-2);
+  border:1px solid var(--border);border-radius:11px;padding:10px 16px;font-size:12.5px;animation:rise .2s ease-out;
+  box-shadow:0 16px 34px -16px #000}
+
+/* ---------- giriş ---------- */
+.login{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:22px;
+  background:radial-gradient(800px 460px at 20% -10%,#2a1c4d 0%,transparent 62%),
+             radial-gradient(680px 420px at 100% 108%,#0f3b39 0%,transparent 60%),var(--bg)}
+.login-box{width:min(380px,100%);background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px 24px}
+.login-box h2{margin:14px 0 3px;font-size:18px}
+.login-box p.s{color:var(--dimmer);font-size:12px;margin:0 0 20px}
+.login-box .f{margin-bottom:12px}
+.login-err{color:var(--rose);font-size:11.5px;min-height:17px;margin:2px 0 8px}
+
+@media (max-width:900px){ .stage{grid-template-columns:1fr} }
+@media (max-width:560px){
+  .prow,.phead{grid-template-columns:24px 1fr 52px 70px}
+  .prow input[data-k="deger"],.prow .pct,
+  .phead span:nth-child(5),.phead span:nth-child(6){display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="brand">
+      <div class="mark">🎯</div>
+      <div>
+        <h1>Reward Wheel</h1>
+        <div class="sub">daily spin · published odds · community draw</div>
+      </div>
+    </div>
+    <div class="wallet">
+      <div class="chip">◈ <b id="w-points">0</b> credits</div>
+      <div class="chip teal">🎟️ <b id="w-tickets">0</b> tickets</div>
+    </div>
+  </div>
+
+  <div class="demobar">
+    <b>DEMO</b>
+    <span>Nothing here is real and nothing costs money — the game, the rewards and the other entrants are
+    invented, credits are earned in-app and cannot be bought or cashed out. The point of this demo is the
+    machinery: the odds are published, the outcome is decided before the wheel starts turning, and you can
+    edit the prize table and simulate thousands of spins to check that the numbers hold. State lives in
+    memory and resets on reload.</span>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-t="wheel">🎯 Wheel</button>
+    <button class="tab" data-t="odds">📊 Odds &amp; simulation</button>
+    <button class="tab" data-t="draw">🎟️ Community draw</button>
+    <button class="tab" data-t="config">⚙️ Prize table</button>
+  </div>
+
+  <div id="page"></div>
+</div>
+
+<div class="login" id="login">
+  <form class="login-box" id="login-form" autocomplete="off">
+    <div class="brand" style="display:flex;align-items:center;gap:12px">
+      <div class="mark" style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#f7c948,#e8890c);display:grid;place-items:center;font-size:19px">🎯</div>
+      <div><div style="font-weight:800">Reward Wheel</div><div class="sub" style="font-family:var(--mono);font-size:11.5px;color:var(--dimmer)">player rewards</div></div>
+    </div>
+    <h2>Sign in to spin</h2>
+    <p class="s">Your daily spin is free. Extra spins cost credits you earned in-game.</p>
+    <div class="f"><label class="lb" for="l-u">Player</label><input id="l-u" type="text" value="nova_rift"></div>
+    <div class="f"><label class="lb" for="l-p">Password</label><input id="l-p" type="password" value="demo1234"></div>
+    <div class="login-err" id="l-err"></div>
+    <div style="display:flex;gap:9px">
+      <button class="btn" type="submit" style="flex:1">Sign in</button>
+      <button class="btn ghost" type="button" id="l-skip">Skip</button>
+    </div>
+    <p class="hint" style="margin:16px 0 0">Demo: any value signs you in. The real system hashes the password
+    and rate-limits both sign-ins and spins server-side — a client that asks for a spin twice gets one.</p>
+  </form>
+</div>
+
+<script>
+"use strict";
+
+/* ===========================================================================
+   0) YARDIMCILAR
+   =========================================================================== */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const AZALT = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const say = (n, d) => {
+  const dec = d === undefined ? 2 : d;
+  const r = Math.round(n * 10 ** dec) / 10 ** dec;
+  return Number.isInteger(r) ? String(r) : r.toFixed(dec);
+};
+const num = v => {
+  const n = parseFloat(String(v ?? "").trim().replace(",", "."));
+  return isFinite(n) ? n : NaN;
+};
+const bin = n => Math.round(n).toLocaleString("en-US");
+let uid = 200;
+const yeniId = () => ++uid;
+
+function toast(msg) {
+  $$(".toast").forEach(t => t.remove());
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+
+/**
+ * Tekrarlanabilir rastgelelik — sfc32, tohumu splitmix32 ile genişletilmiş.
+ *
+ * Çekilişte ve simülasyonda `Math.random()` KULLANILMIYOR: koşu bir tohumdan
+ * yürüyor, tohum ekranda yazılı, aynı tohum aynı sonucu veriyor. "Biz çektik,
+ * inanın"ın doğrulanabilir alternatifi bu.
+ *
+ * ⛔ Önce mulberry32 kullanıldı ve ÖLÇÜMDE DÜŞTÜ: tek başına iyi görünüyordu
+ *    (düzgün dağılım) ama ağırlıklı seçimde seri korelasyon veriyordu — tohum
+ *    1337'de %30'luk ödül 6σ sapıyor, %6'lık ödül %17 eksik çıkıyordu.
+ *    Simülasyon sayfası tam da bunu yakalamak için var; kendi aracı kendi
+ *    üretecini eledi. sfc32'de aynı sınav ±2.4σ içinde kalıyor.
+ *    Tohum doğrudan verilmiyor: splitmix32 ile dört duruma yayılıyor ve ilk
+ *    12 çıktı atılıyor (küçük tohumlarda ısınma gerekiyor).
+ */
+function tohumluRng(tohum) {
+  const genislet = (a => () => {
+    a |= 0; a = (a + 0x9e3779b9) | 0;
+    let t = a ^ (a >>> 16); t = Math.imul(t, 0x21f0aaad);
+    t = t ^ (t >>> 15);     t = Math.imul(t, 0x735a2d97);
+    return ((t = t ^ (t >>> 15)) >>> 0);
+  })(tohum >>> 0);
+
+  let a = genislet(), b = genislet(), c = genislet(), d = genislet();
+  const rng = function () {
+    a |= 0; b |= 0; c |= 0; d |= 0;
+    const t = ((a + b) | 0) + d | 0;
+    d = (d + 1) | 0;
+    a = b ^ (b >>> 9);
+    b = (c + (c << 3)) | 0;
+    c = (c << 21) | (c >>> 11);
+    c = (c + t) | 0;
+    return (t >>> 0) / 4294967296;
+  };
+  for (let i = 0; i < 12; i++) rng();   // ısınma
+  return rng;
+}
+/** FNV-1a — kısa, bağımlılıksız özet. Kriptografik değil, gösterim amaçlı. */
+function ozet(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+/* ===========================================================================
+   1) DURUM — hepsi kurgu
+   =========================================================================== */
+const S = {
+  page: "wheel",
+  oyuncu: "nova_rift",
+  puan: 1250,
+  bilet: 0,
+  odul: [
+    { id: 1, ad: "50 credits",        agirlik: 30, tur: "credits", deger: 50,  renk: "#6aa8ff" },
+    { id: 2, ad: "100 credits",       agirlik: 22, tur: "credits", deger: 100, renk: "#5b8cff" },
+    { id: 3, ad: "Repair kit ×2",     agirlik: 16, tur: "item",    deger: 0,   renk: "#38d9c0" },
+    { id: 4, ad: "24h booster",       agirlik: 12, tur: "item",    deger: 0,   renk: "#2bb8a3" },
+    { id: 5, ad: "250 credits",       agirlik: 10, tur: "credits", deger: 250, renk: "#a78bfa" },
+    { id: 6, ad: "Hangar slot",       agirlik:  6, tur: "item",    deger: 0,   renk: "#8b6df0" },
+    { id: 7, ad: "Aurora livery",     agirlik:  3, tur: "rare",    deger: 0,   renk: "#f2557a" },
+    { id: 8, ad: "Legendary frame",   agirlik:  1, tur: "rare",    deger: 0,   renk: "#f7c948" }
+  ],
+  ayar: {
+    bekleme: 30,       // saniye — gerçekte 4 saat, demoda kısaltıldı
+    ekstraUcret: 150,  // ücretsiz günlük çevirimden sonrası
+    merhamet: 25,      // bu kadar çevirimde nadir çıkmazsa garanti
+    biletUcret: 100,
+    biletUst: 5
+  },
+  sonCevirim: 0,
+  ucretsizVar: true,
+  nadirsiz: 0,        // son nadirden bu yana kaç çevirim
+  toplamCevirim: 0,
+  gecmis: [],
+  donuyor: false,
+  aci: 0,
+  sim: null,
+  cekilis: {
+    tohum: 20260812,
+    digerBilet: 128,
+    cekildi: false,
+    kazananlar: [],
+    kademe: [
+      { ad: "Legendary frame", adet: 1 },
+      { ad: "500 credits",     adet: 3 },
+      { ad: "24h booster",     adet: 10 }
+    ]
+  }
+};
+
+const toplamAgirlik = () => S.odul.reduce((t, o) => t + (o.agirlik > 0 ? o.agirlik : 0), 0);
+const olasilik = o => (toplamAgirlik() > 0 ? o.agirlik / toplamAgirlik() : 0);
+const nadirMi = o => o.tur === "rare";
+
+/**
+ * Ağırlıklı seçim. Ağırlıklar toplanır, [0,toplam) aralığından bir sayı
+ * çekilir, kümülatif toplam aşılınca durulur — sunucuda da bu.
+ */
+function agirlikliSec(rnd) {
+  const t = toplamAgirlik();
+  let r = (rnd || Math.random)() * t;
+  for (const o of S.odul) {
+    if (o.agirlik <= 0) continue;
+    r -= o.agirlik;
+    if (r < 0) return o;
+  }
+  return S.odul[S.odul.length - 1];
+}
+
+/** Merhamet sayacı: N çevirimdir nadir yoksa bir sonraki garanti nadir. */
+function nadirGarantiVar() {
+  return S.ayar.merhamet > 0 && S.nadirsiz >= S.ayar.merhamet - 1;
+}
+function nadirSec(rnd) {
+  const nadirler = S.odul.filter(nadirMi);
+  if (!nadirler.length) return agirlikliSec(rnd);
+  const t = nadirler.reduce((a, o) => a + o.agirlik, 0);
+  let r = (rnd || Math.random)() * t;
+  for (const o of nadirler) { r -= o.agirlik; if (r < 0) return o; }
+  return nadirler[nadirler.length - 1];
+}
+
+const beklemeKalan = () => Math.max(0, S.ayar.bekleme * 1000 - (Date.now() - S.sonCevirim));
+const cevirmeUcreti = () => (S.ucretsizVar ? 0 : S.ayar.ekstraUcret);
+
+/* ===========================================================================
+   2) İSKELET
+   =========================================================================== */
+$$(".tab").forEach(b => b.addEventListener("click", () => {
+  if (S.donuyor) return;                       // dönerken sekme değiştirme
+  S.page = b.dataset.t;
+  $$(".tab").forEach(x => x.classList.toggle("on", x === b));
+  ciz();
+}));
+
+function ciz() {
+  $("#w-points").textContent = bin(S.puan);
+  $("#w-tickets").textContent = S.bilet;
+  $("#page").innerHTML =
+    S.page === "wheel"  ? carkSayfasi() :
+    S.page === "odds"   ? oranSayfasi() :
+    S.page === "draw"   ? cekilisSayfasi() :
+                          ayarSayfasi();
+  bagla();
+}
+
+/* ===========================================================================
+   3) ÇARK
+   ---------------------------------------------------------------------------
+   Dilim açısı = olasılık. Eşit dilimli bir çark %1'lik ödülü %12,5 gibi
+   gösterir; burası bilerek öyle yapılmadı. Efsanevi ödül ekranda da kıl payı.
+   =========================================================================== */
+/**
+ * Çark çizimi.
+ *
+ * Yarıçap 400'lük tuvalde 152 — dışarıda etiket için yer kalsın diye. İnce
+ * dilimin üstüne yazı sığmıyor ve "hangi renk neydi" sorusu açıkta kalıyordu;
+ * dar dilimler artık çemberin DIŞINA, bağlantı çizgisiyle etiketleniyor.
+ * Dilim genişliği yine olasılığın kendisi — eşitlenmiyor.
+ */
+const CX = 215, CY = 215, RR = 186;   // tuval merkezi ve yarıçap (viewBox 430×430)
+
+function carkSvg() {
+  const R = RR, cx = CX, cy = CY;
+  const toplam = toplamAgirlik();
+  if (toplam <= 0) return '<text x="200" y="200" text-anchor="middle" fill="#a79ec9">no prizes</text>';
+
+  let aci = -90;   // tepe noktası = ibre
+  let dilimler = "", icYazi = "";
+  S.odul.forEach(o => {
+    if (o.agirlik <= 0) return;
+    const genislik = (o.agirlik / toplam) * 360;
+    const b = (aci * Math.PI) / 180, s = ((aci + genislik) * Math.PI) / 180;
+    const x1 = cx + R * Math.cos(b), y1 = cy + R * Math.sin(b);
+    const x2 = cx + R * Math.cos(s), y2 = cy + R * Math.sin(s);
+    const buyuk = genislik > 180 ? 1 : 0;
+    dilimler += `<path d="M${cx},${cy} L${x1},${y1} A${R},${R} 0 ${buyuk},1 ${x2},${y2} Z"
+      fill="${o.renk}" fill-opacity=".92" stroke="#120e1c" stroke-width="2"
+      ><title>${esc(o.ad)} — ${say(olasilik(o) * 100)}% (1 in ${olasilik(o) > 0 ? say(1 / olasilik(o), 0) : "—"})</title></path>`;
+
+    const ortaAci = aci + genislik / 2;
+    const m = (ortaAci * Math.PI) / 180;
+    const solda = Math.cos(m) < 0;
+
+    if (genislik >= 20) {
+      // Geniş dilim: yazı içeride, yarıçap boyunca.
+      const tx = cx + R * 0.62 * Math.cos(m), ty = cy + R * 0.62 * Math.sin(m);
+      const don = ortaAci + (solda ? 180 : 0);
+      icYazi += `<text x="${tx}" y="${ty}" fill="#12101c" font-size="12.5" font-weight="700"
+        text-anchor="middle" dominant-baseline="middle"
+        transform="rotate(${don} ${tx} ${ty})">${esc(o.ad)}</text>`;
+    }
+    /* ⛔ Dar dilimler için çemberin dışına etiket denendi ve KALDIRILDI: çark
+       dönünce o etiketler de dönüyor, yarısı baş aşağı kalıyordu. Dar dilimin
+       kimliği artık iki yerde: üzerine gelince çıkan ipucu ve altındaki renk
+       anahtarı. Dilim genişliği yine olasılık — eşitlenmiyor. */
+    aci += genislik;
+  });
+  return `<circle cx="${cx}" cy="${cy}" r="${R + 5}" fill="#241d3d"/>${dilimler}${icYazi}
+    <circle cx="${cx}" cy="${cy}" r="${R + 5}" fill="none" stroke="#4a3f74" stroke-width="3"/>`;
+}
+
+function carkSayfasi() {
+  const kalan = beklemeKalan();
+  const ucret = cevirmeUcreti();
+  const yeterli = S.puan >= ucret;
+  const garanti = nadirGarantiVar();
+  const nadirTop = S.odul.filter(nadirMi).reduce((a, o) => a + olasilik(o), 0);
+
+  return `
+  <div class="stage">
+    <div class="wheel-box">
+      <div class="wheel-holder">
+        <svg viewBox="0 0 430 430" role="img" aria-label="Prize wheel">
+          ${/* Dönüş merkezi CX/CY sabitinden geliyor — elle yazılmıştı ve çark
+                büyütülürken güncellenmeyi unuttu: dönerken doğru merkez, durunca
+                eski merkez kullanılıyordu, çark bitişte kayıyordu. */""}
+          <g id="wheel-rot" transform="rotate(${S.aci} ${CX} ${CY})">${carkSvg()}</g>
+          ${/* İbre SVG'nin İÇİNDE: HTML div olarak dururken çarkın tepesiyle
+                hizalanmıyordu, aralarında boşluk kalıyordu. */""}
+          <path d="M215,44 L201,8 L229,8 Z" fill="#f7c948"/>
+        </svg>
+        <div class="hub" id="hub">slice size<br>= chance</div>
+      </div>
+
+      <button class="btn big" id="spin" ${S.donuyor || kalan > 0 || !yeterli ? "disabled" : ""}>
+        ${S.donuyor ? "spinning…"
+          : kalan > 0 ? `ready in ${Math.ceil(kalan / 1000)}s`
+          : ucret === 0 ? "Spin — free daily"
+          : `Spin — ${ucret} credits`}
+      </button>
+      ${!yeterli && kalan === 0 && !S.donuyor
+        ? `<div class="hint">Not enough credits for an extra spin. Earn more in-game — they are never sold.</div>` : ""}
+      ${garanti ? `<div class="tag gold">next spin is a guaranteed rare (pity counter reached)</div>` : ""}
+      ${/* Azaltılmış hareket açıkken çark bilerek dönmüyor. Bunu yazmazsak
+            "tıkladım, dönmedi" gibi görünüyor — kural değil, arıza sanılıyor. */""}
+      ${AZALT ? `<div class="tag">your system asks for reduced motion — the wheel jumps straight to the result</div>` : ""}
+
+      <div id="result-slot" style="width:100%">${S.sonOdul ? sonucKutusu(S.sonOdul) : ""}</div>
+
+      ${/* İnce dilimlerin üstünde etiket sığmıyor — hangi rengin ne olduğu
+            burada yazılı. Yüzdeyi de buraya koymak "dilim = şans" iddiasını
+            göz kararı değil, okunur hâle getiriyor. */""}
+      <div class="legend">
+        ${S.odul.map(o => `<span class="lg">
+          <span class="swatch" style="background:${o.renk}"></span>${esc(o.ad)}
+          <b>${say(olasilik(o) * 100)}%</b>
+        </span>`).join("")}
+      </div>
+      <div class="hint" style="text-align:center;max-width:52ch">
+        Slice width is the prize's actual chance, so the legendary sliver really is that thin — the thin ones
+        are named in the key above, and hovering any slice shows its odds. The result is picked before the
+        wheel starts turning; the spin is presentation, not the draw.
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <h2 class="sect">This account</h2>
+        <div class="k"><span>Total spins</span><b>${S.toplamCevirim}</b></div>
+        <div class="k"><span>Spins since last rare</span><b>${S.nadirsiz}</b></div>
+        <div class="k"><span>Pity threshold</span><b>${S.ayar.merhamet || "off"}</b></div>
+        <div class="k"><span>Chance of a rare</span><b>${say(nadirTop * 100)}%</b></div>
+        ${S.ayar.merhamet ? `
+        <div style="margin-top:10px">
+          <div class="hint">progress to the guaranteed rare</div>
+          <div class="bar"><i style="width:${Math.min(100, (S.nadirsiz / S.ayar.merhamet) * 100)}%"></i></div>
+        </div>` : ""}
+        <div class="sep"></div>
+        <p class="hint" style="margin:0">The pity counter is what stops a fair coin from feeling unfair.
+        Raw odds mean a player can miss a 4% prize for a hundred spins and be entirely unlucky rather than
+        cheated — the counter turns that tail into a promise.</p>
+      </div>
+
+      <div class="card grow">
+        <div class="rowsplit" style="margin-bottom:8px">
+          <h2 class="sect" style="margin:0">Recent spins</h2>
+          ${S.gecmis.length ? `<button class="btn ghost mini" id="clr-hist">Clear</button>` : ""}
+        </div>
+        ${S.gecmis.length ? `<div class="hist">${S.gecmis.map(h => `
+          <div class="h">
+            <span class="swatch" style="background:${h.renk}"></span>
+            <span>${esc(h.ad)}</span>
+            ${h.nadir ? '<span class="tag gold">rare</span>' : ""}
+            ${h.garantili ? '<span class="tag teal">pity</span>' : ""}
+            <span class="t">#${h.no}</span>
+          </div>`).join("")}</div>`
+          : '<div class="hint">No spins yet. The result of every spin lands here with its number.</div>'}
+      </div>
+    </div>
+  </div>`;
+}
+
+function sonucKutusu(o) {
+  return `<div class="result${nadirMi(o) ? " rare" : ""}">
+    <div class="l">${nadirMi(o) ? "rare drop" : "you got"}</div>
+    <div class="v" style="color:${o.renk}">${esc(o.ad)}</div>
+    ${o.tur === "credits" ? `<div class="hint" style="margin-top:4px">+${o.deger} credits added to your balance</div>` : ""}
+  </div>`;
+}
+
+/**
+ * Çevirme.
+ *
+ * ⭐ Sıra önemli: ödül ÖNCE seçiliyor, animasyon sonra o ödüle göre kuruluyor.
+ * Tersi (dönen çarkın nerede durduğuna bakmak) hem kayan nokta hatalarına açık
+ * hem de sunucuyla doğrulanamaz. Gerçek sistemde de sonuç sunucudan geliyor,
+ * istemci yalnız oynatıyor.
+ */
+function cevir() {
+  if (S.donuyor) return;
+  const ucret = cevirmeUcreti();
+  if (S.puan < ucret) return;
+  if (beklemeKalan() > 0) return;
+
+  const garantili = nadirGarantiVar();
+  const odul = garantili ? nadirSec() : agirlikliSec();
+
+  S.puan -= ucret;
+  S.donuyor = true;
+  S.sonOdul = null;
+
+  /* ⛔ Burada ciz() ÇAĞRILMIYOR — bu bir hata düzeltmesi, üslup tercihi değil.
+     ciz() sayfayı innerHTML ile baştan basıyor, yani çarkın <g> düğümü yeniden
+     yaratılıyor. Yeni doğmuş bir düğümde CSS geçişi başlamıyor: tarayıcı
+     başlangıç ve bitiş değerini tek hesaba katlıyor, çark dönmeden sonuca
+     atlıyordu. (Önce zorunlu reflow denendi, SVG <g> için yetmedi.)
+     Çevirim boyunca DOM'a dokunulmuyor; yalnız düğme ve cüzdan elle güncelleniyor,
+     böylece geçiş yerinde duran düğüm üzerinde çalışıyor. */
+  $("#w-points").textContent = bin(S.puan);
+  const dugme = $("#spin");
+  if (dugme) { dugme.disabled = true; dugme.textContent = "spinning…"; }
+  const yuva = $("#result-slot");
+  if (yuva) yuva.innerHTML = "";
+
+  // Seçilen dilimin ORTASI ibrenin altına gelecek şekilde hedef açı.
+  const toplam = toplamAgirlik();
+  let bas = 0;
+  for (const o of S.odul) {
+    if (o.agirlik <= 0) continue;
+    if (o.id === odul.id) break;
+    bas += (o.agirlik / toplam) * 360;
+  }
+  const orta = bas + ((odul.agirlik / toplam) * 360) / 2;
+  const tur = AZALT ? 0 : 5;                        // tam tur sayısı
+  // Kalan açı DAİMA ileri yönde olmalı; çıplak % negatif verebiliyor ve çark
+  // son anda geri tepiyordu.
+  const kalanAci = (((-(orta + S.aci)) % 360) + 360) % 360;
+  const hedef = S.aci + tur * 360 + kalanAci;
+
+  const bitir = () => {
+    S.donuyor = false;
+    S.aci = hedef % 360;
+    S.sonOdul = odul;
+    S.toplamCevirim++;
+    S.ucretsizVar = false;
+    S.sonCevirim = Date.now();
+    if (nadirMi(odul)) S.nadirsiz = 0; else S.nadirsiz++;
+    if (odul.tur === "credits") S.puan += odul.deger;
+    S.gecmis.unshift({ no: S.toplamCevirim, ad: odul.ad, renk: odul.renk, nadir: nadirMi(odul), garantili });
+    S.gecmis = S.gecmis.slice(0, 12);
+    ciz();
+    if (nadirMi(odul)) toast("Rare drop: " + odul.ad);
+    geriSayimBaslat();
+  };
+
+  const g = $("#wheel-rot");
+  if (AZALT || !g) { bitir(); return; }
+
+  /* ⛔ CSS geçişi kullanılmıyor: `transition: transform` bir SVG <g> üzerinde
+     bu tarayıcıda hiç başlamadı — çark dönmeden sonuca atlıyordu (ölçüldü:
+     0° → 144°, arada tek ara kare yok). Dönüş burada elle canlandırılıyor;
+     `transform` bir SVG NİTELİĞİ olarak yazılıyor, CSS'e hiç bulaşmıyor.
+     Yavaşlama eğrisi: ters kübik — hızlı başlar, sonda süzülerek durur. */
+  const baslangic = S.aci, fark = hedef - baslangic, sure = 4600;
+  const t0 = performance.now();
+  let kapandi = false;
+  const kapat = () => { if (kapandi) return; kapandi = true; bitir(); };
+
+  const kare = (t) => {
+    if (kapandi) return;
+    const p = Math.min(1, (t - t0) / sure);
+    const e = 1 - Math.pow(1 - p, 3);
+    g.setAttribute("transform", `rotate(${baslangic + fark * e} ${CX} ${CY})`);
+    if (p < 1) requestAnimationFrame(kare);
+    else kapat();
+  };
+  requestAnimationFrame(kare);
+
+  /* Emniyet zamanlayıcısı: arka plandaki sekmede requestAnimationFrame
+     DURDURULUYOR (ölçüldü — görünmeyen sekmede 500 ms'de sıfır kare). O hâlde
+     çark "spinning…" yazısında sonsuza kadar asılı kalırdı. Zamanlayıcı
+     kısılsa da çalışır ve çevirimi kapatır; kimse bakmadığı için animasyonun
+     atlanması sorun değil, kilitlenmesi sorundur. */
+  setTimeout(kapat, sure + 600);
+}
+
+let geriSayim = null;
+function geriSayimBaslat() {
+  clearInterval(geriSayim);
+  geriSayim = setInterval(() => {
+    if (S.page !== "wheel") return;
+    if (beklemeKalan() <= 0) { clearInterval(geriSayim); ciz(); return; }
+    const b = $("#spin");
+    if (b && !S.donuyor) b.textContent = `ready in ${Math.ceil(beklemeKalan() / 1000)}s`;
+  }, 1000);
+}
+
+/* ===========================================================================
+   4) ORANLAR + SİMÜLASYON
+   ---------------------------------------------------------------------------
+   Demonun "hesap" tarafı: ağırlık → olasılık normalizasyonu tabloda açıkça
+   yazılı, altında da binlerce çevirimlik bir koşu var. Amaç "bize güvenin"
+   demek yerine sayıyı kullanıcının kendisine saydırmak.
+   =========================================================================== */
+function oranSayfasi() {
+  const T = toplamAgirlik();
+  const sim = S.sim;
+
+  return `
+  <div class="card">
+    <h2 class="sect">Published odds</h2>
+    <p class="note">Every prize carries a weight. A weight is not a percentage on its own — it becomes one
+    only after it is divided by the sum of all weights. That sum is <b class="mono">${T}</b> right now, so a
+    weight of 30 is <b class="mono">30 ÷ ${T} = ${say((30 / T) * 100)}%</b>. Change the table on the
+    <b>Prize table</b> tab and every number here moves with it.</p>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Prize</th><th class="right">Weight</th><th class="right">Chance</th><th class="right">1 in</th><th>Share of the wheel</th></tr></thead>
+      <tbody>${S.odul.map(o => {
+        const p = olasilik(o);
+        return `<tr>
+          <td><span class="swatch" style="background:${o.renk}"></span>${esc(o.ad)}
+            ${nadirMi(o) ? '<span class="tag gold" style="margin-left:6px">rare</span>' : ""}</td>
+          <td class="right mono">${o.agirlik}</td>
+          <td class="right mono" style="color:var(--gold)">${say(p * 100)}%</td>
+          <td class="right mono">${p > 0 ? say(1 / p, 0) : "—"}</td>
+          <td><div class="bar" style="min-width:90px"><i style="width:${p * 100}%;background:${o.renk}"></i></div></td>
+        </tr>`;
+      }).join("")}</tbody>
+      <tfoot><tr><th>Total</th><th class="right mono">${T}</th><th class="right mono">100%</th><th></th><th></th></tr></tfoot>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <div class="rowsplit">
+      <div>
+        <h2 class="sect">Run the numbers</h2>
+        <p class="note" style="margin:0">Spin it thousands of times and compare what came out with what was
+        promised. Small runs wander; large runs settle. That wandering is the whole reason a player can feel
+        cheated by an honest table.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost mini" data-sim="100">100</button>
+        <button class="btn ghost mini" data-sim="1000">1,000</button>
+        <button class="btn mini" data-sim="10000">10,000</button>
+        <button class="btn ghost mini" data-sim="100000">100,000</button>
+      </div>
+    </div>
+
+    ${sim ? `
+      <div style="overflow-x:auto"><table>
+        <thead><tr>
+          <th>Prize</th><th class="right">Table says</th>
+          <th class="right">Run, pity off</th><th class="right">Off by</th>
+          <th>Measured vs promised</th>
+          <th class="right">Run, pity on</th><th class="right">Lift</th>
+        </tr></thead>
+        <tbody>${S.odul.map(o => {
+          const p = olasilik(o);
+          const hamP = (sim.ham[o.id] || 0) / sim.n;
+          const gerP = (sim.gercek[o.id] || 0) / sim.n;
+          const sapma = p > 0 ? ((hamP - p) / p) * 100 : 0;
+          const kalkis = p > 0 ? ((gerP - p) / p) * 100 : 0;
+          const maxP = Math.max(...S.odul.map(olasilik)) || 1;
+          return `<tr>
+            <td><span class="swatch" style="background:${o.renk}"></span>${esc(o.ad)}
+              ${nadirMi(o) ? '<span class="tag gold" style="margin-left:6px">rare</span>' : ""}</td>
+            <td class="right mono">${say(p * 100)}%</td>
+            <td class="right mono">${say(hamP * 100)}%</td>
+            <td class="right dev ${Math.abs(sapma) < 6 ? "ok" : "hi"}">${sapma >= 0 ? "+" : ""}${say(sapma, 1)}%</td>
+            <td><div class="simbar"><div class="track">
+              <i style="width:${Math.min(100, (hamP / maxP) * 100)}%;background:${o.renk}"></i>
+              <u style="left:${Math.min(100, (p / maxP) * 100)}%" title="promised"></u>
+            </div></div></td>
+            <td class="right mono" style="color:var(--gold)">${say(gerP * 100)}%</td>
+            <td class="right dev ${nadirMi(o) ? "hi" : ""}">${sim.merhamet ? (kalkis >= 0 ? "+" : "") + say(kalkis, 1) + "%" : "—"}</td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table></div>
+      <div class="sep"></div>
+      <div class="verify">
+        <div>run <b>${bin(sim.n)}</b> spins each · seed <b>${sim.tohum}</b> · pity threshold <b>${sim.merhamet || "off"}</b></div>
+        <div><b>Column 3 is the table's exam.</b> With the pity rule switched off the run should land on the
+          published numbers; the largest miss here is <b>${say(sim.enBuyukSapma, 1)}%</b> on
+          <b>${esc(sim.enBuyukAd)}</b>${sim.n >= 10000 ? "" : " — small runs wander, try 10,000"}. Error falls
+          with the square root of the run, so ten times the spins means roughly a third of the noise.</div>
+        ${sim.merhamet ? `<div><b>Column 6 is what a player actually sees.</b> The pity rule forced
+          <b>${bin(sim.garanti)}</b> rares (${say((sim.garanti / sim.n) * 100, 2)}% of spins), lifting the rare
+          rate from <b>${say(sim.nadirHam * 100, 2)}%</b> to <b>${say(sim.nadirGercek * 100, 2)}%</b>. That gap is
+          the rule working, not the table lying — and it is the number worth publishing.</div>` : ""}
+      </div>
+      <p class="hint" style="margin-top:10px">The white tick on each bar is the promised share, the coloured fill
+      is what the run produced. Same seed, same result — press the same button twice and nothing changes.</p>`
+    : '<div class="hint">Pick a run length above. Nothing is precomputed; the simulation uses the same weighted picker as a real spin, and it runs twice — once with the pity rule off to test the table, once with it on to show what players experience.</div>'}
+  </div>`;
+}
+
+/**
+ * İKİ koşu yapılıyor, çünkü tek koşu yanıltıyor.
+ *
+ * Merhamet sayacı açıkken nadir oranı tablonun ÜSTÜNE çıkar; bunu tek sütunda
+ * gösterince tablo yalan söylüyormuş gibi duruyor (ilk denemede efsanevi satırda
+ * "%56 sapma" yazdı — hata simülasyonda değil, sunumdaydı).
+ *   1. koşu: merhamet KAPALI → tabloyu doğrular, sapma küçük olmalı.
+ *   2. koşu: merhamet AÇIK   → oyuncunun gerçekte gördüğü oran.
+ * Fark, kuralın kendisi; ikisi ayrı sütunda duruyor.
+ */
+function simulasyon(n) {
+  const tohum = 1337;
+
+  const kos = (merhametEsigi) => {
+    const rnd = tohumluRng(tohum);
+    const say2 = {};
+    S.odul.forEach(o => { say2[o.id] = 0; });
+    let nadirsiz = 0, garanti = 0;
+    for (let i = 0; i < n; i++) {
+      let o;
+      if (merhametEsigi > 0 && nadirsiz >= merhametEsigi - 1) { o = nadirSec(rnd); garanti++; }
+      else o = agirlikliSec(rnd);
+      say2[o.id] = (say2[o.id] || 0) + 1;
+      if (nadirMi(o)) nadirsiz = 0; else nadirsiz++;
+    }
+    return { say: say2, garanti };
+  };
+
+  const ham = kos(0);
+  const gercek = S.ayar.merhamet > 0 ? kos(S.ayar.merhamet) : ham;
+
+  // Sapma YALNIZCA merhametsiz koşuda ölçülür — tablonun sınavı o.
+  let enBuyukSapma = 0, enBuyukAd = "—";
+  S.odul.forEach(o => {
+    const bek = olasilik(o) * n;
+    if (bek <= 0) return;
+    const s = ((ham.say[o.id] - bek) / bek) * 100;
+    if (Math.abs(s) > Math.abs(enBuyukSapma)) { enBuyukSapma = s; enBuyukAd = o.ad; }
+  });
+
+  const nadirHam = S.odul.filter(nadirMi).reduce((a, o) => a + ham.say[o.id], 0) / n;
+  const nadirGercek = S.odul.filter(nadirMi).reduce((a, o) => a + gercek.say[o.id], 0) / n;
+
+  S.sim = { n, tohum, ham: ham.say, gercek: gercek.say, enBuyukSapma, enBuyukAd,
+            merhamet: S.ayar.merhamet, garanti: gercek.garanti, nadirHam, nadirGercek };
+}
+
+/* ===========================================================================
+   5) TOPLULUK ÇEKİLİŞİ
+   ---------------------------------------------------------------------------
+   Bilet puanla alınır, puan oyun içinde kazanılır. Çekim tohumlu RNG ile —
+   tohum ekranda, aynı tohum aynı sonuç. "Kazananları biz seçtik" demenin
+   doğrulanabilir alternatifi.
+   =========================================================================== */
+function cekilisSayfasi() {
+  const c = S.cekilis;
+  const toplamBilet = c.digerBilet + S.bilet;
+  const odulAdet = c.kademe.reduce((a, k) => a + k.adet, 0);
+  const sans = toplamBilet > 0 ? 1 - Math.pow(1 - S.bilet / toplamBilet, 1) : 0;
+  const enAzBir = toplamBilet > 0 && S.bilet > 0
+    ? 1 - hipergeometrikSifir(toplamBilet, S.bilet, odulAdet) : 0;
+
+  return `
+  <div class="card">
+    <div class="rowsplit">
+      <div>
+        <h2 class="sect">Weekly community draw</h2>
+        <p class="note" style="margin:0">Tickets cost credits you earned in-game — there is no way to buy
+        them and no way to turn a prize back into money. Max ${S.ayar.biletUst} per player, so a large balance
+        cannot buy the room.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn ghost mini" id="t-minus" ${S.bilet <= 0 ? "disabled" : ""}>− refund one</button>
+        <button class="btn mini" id="t-plus"
+          ${S.bilet >= S.ayar.biletUst || S.puan < S.ayar.biletUcret || c.cekildi ? "disabled" : ""}>
+          + buy ticket · ${S.ayar.biletUcret}</button>
+      </div>
+    </div>
+
+    <div class="tiers">
+      ${c.kademe.map(k => `<div class="tier"><div class="n">${esc(k.ad)}</div>
+        <div class="hint">${k.adet} winner${k.adet > 1 ? "s" : ""}</div></div>`).join("")}
+      <div class="tier" style="border-color:#4a3f74">
+        <div class="n">${bin(toplamBilet)} tickets in</div>
+        <div class="hint">${S.bilet} yours · ${bin(c.digerBilet)} from ${bin(Math.round(c.digerBilet / 2.6))} other players</div>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Your position</th><th class="right">Value</th><th>How it is worked out</th></tr></thead>
+      <tbody>
+        <tr><td>Tickets held</td><td class="right mono">${S.bilet} / ${S.ayar.biletUst}</td>
+          <td class="hint">${S.bilet * S.ayar.biletUcret} credits committed</td></tr>
+        <tr><td>Share of the pot</td><td class="right mono" style="color:var(--gold)">${say(sans * 100)}%</td>
+          <td class="hint mono">${S.bilet} ÷ ${bin(toplamBilet)}</td></tr>
+        <tr><td>Chance of winning something</td><td class="right mono" style="color:var(--teal)">${say(enAzBir * 100)}%</td>
+          <td class="hint">${odulAdet} prizes are drawn without replacement, so the odds of at least one hit are
+            higher than the single-draw share above</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="sep"></div>
+    <div class="rowsplit" style="margin:0">
+      <div class="hint" style="max-width:60ch">The draw runs from a published seed. Anyone can take the seed and
+      the ticket list and reproduce the exact same winners — that is the difference between “trust us” and
+      “check it yourself”.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${c.cekildi
+          ? `<button class="btn ghost mini" id="d-reset">Reset the draw</button>`
+          : `<button class="btn teal" id="d-run" ${toplamBilet <= 0 ? "disabled" : ""}>Run the draw</button>`}
+      </div>
+    </div>
+  </div>
+
+  ${c.cekildi ? `
+  <div class="card">
+    <h2 class="sect">Winners</h2>
+    <p class="note">Drawn without replacement: a ticket that already won is removed before the next pick.</p>
+    <div class="winners">
+      ${c.kazananlar.map((w, i) => `<div class="w${w.ben ? " me" : ""}">
+        <span class="rank">${i + 1}</span>
+        <span><b>${esc(w.odul)}</b></span>
+        <span class="hint">ticket #${w.bilet} · ${w.ben ? "<b>you</b>" : esc(w.sahip)}</span>
+      </div>`).join("")}
+    </div>
+    <div class="sep"></div>
+    <div class="verify">
+      <div>seed <b>${c.tohum}</b> · tickets <b>${bin(toplamBilet)}</b> · prizes <b>${odulAdet}</b></div>
+      <div>ticket-list digest <b>${ozet(c.tohum + ":" + toplamBilet + ":" + S.bilet)}</b></div>
+      <div>winning tickets <b>${c.kazananlar.map(w => "#" + w.bilet).join(" · ")}</b></div>
+      <div style="opacity:.75">Re-running with the same seed and the same ticket count reproduces this list
+      exactly. Change your ticket count and the draw is a different one.</div>
+    </div>
+  </div>` : ""}`;
+}
+
+/** Hiçbir ödül kazanmama olasılığı (yerine koymadan çekim). */
+function hipergeometrikSifir(toplam, benim, cekilen) {
+  let p = 1;
+  for (let i = 0; i < cekilen; i++) {
+    const kalanToplam = toplam - i, kalanDiger = toplam - benim - i;
+    if (kalanToplam <= 0 || kalanDiger < 0) return 0;
+    p *= kalanDiger / kalanToplam;
+  }
+  return p;
+}
+
+function cekilisiYurut() {
+  const c = S.cekilis;
+  const toplamBilet = c.digerBilet + S.bilet;
+  if (toplamBilet <= 0) return;
+
+  // Biletler numaralanıyor: son S.bilet tanesi bizim. Tohumlu RNG ile
+  // yerine koymadan çekim.
+  const rnd = tohumluRng(c.tohum + toplamBilet);
+  const havuz = [];
+  for (let i = 1; i <= toplamBilet; i++) havuz.push(i);
+  const benimIlk = toplamBilet - S.bilet + 1;
+
+  const kazananlar = [];
+  c.kademe.forEach(k => {
+    for (let i = 0; i < k.adet && havuz.length; i++) {
+      const idx = Math.floor(rnd() * havuz.length);
+      const bilet = havuz.splice(idx, 1)[0];
+      const ben = bilet >= benimIlk;
+      kazananlar.push({ odul: k.ad, bilet, ben, sahip: ben ? S.oyuncu : "player_" + ozet("p" + bilet).slice(0, 4) });
+    }
+  });
+  c.kazananlar = kazananlar;
+  c.cekildi = true;
+  const kazandim = kazananlar.filter(w => w.ben);
+  ciz();
+  toast(kazandim.length ? `You won: ${kazandim.map(w => w.odul).join(", ")}` : "No win this time — the seed is published, check it");
+}
+
+/* ===========================================================================
+   6) ÖDÜL TABLOSU (yapılandırma)
+   =========================================================================== */
+function ayarSayfasi() {
+  const T = toplamAgirlik();
+  return `
+  <div class="card">
+    <h2 class="sect">Prize table</h2>
+    <p class="note">This is the operator's screen. Edit a weight and watch the chance column, the wheel and the
+    whole odds page recalculate — no number is written down twice. Add a prize, remove one, set a weight to
+    zero to park it. Total weight is <b class="mono">${T}</b>.</p>
+
+    <div class="phead">
+      <span></span><span>Prize</span><span>Rare</span><span>Weight</span><span>Credits</span><span>Chance</span><span></span>
+    </div>
+    <div id="prow-list">
+      ${S.odul.map(o => `<div class="prow" data-p="${o.id}">
+        <input type="color" value="${o.renk}" data-k="renk" style="padding:0;height:26px;border-radius:7px;cursor:pointer">
+        <input type="text" value="${esc(o.ad)}" data-k="ad" maxlength="28" style="font-family:var(--sans)">
+        <button class="rare-tg${nadirMi(o) ? " on" : ""}" data-rare="${o.id}"
+          title="Rare prizes are the ones the pity counter guarantees">★</button>
+        <input type="text" inputmode="decimal" value="${o.agirlik}" data-k="agirlik">
+        <input type="text" inputmode="numeric" value="${o.deger}" data-k="deger" ${o.tur !== "credits" ? 'style="opacity:.45"' : ""}>
+        <span class="pct">${say(olasilik(o) * 100)}%</span>
+        <button class="x" data-del="${o.id}" aria-label="Remove">×</button>
+      </div>`).join("")}
+    </div>
+    <div style="display:flex;gap:9px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn ghost mini" id="p-add">+ Add prize</button>
+      <button class="btn ghost mini" id="p-reset">Reset to defaults</button>
+      <span class="hint" style="align-self:center">The ★ marks a prize as rare — those are the ones the pity
+      counter guarantees, and the ones the odds page reports separately. Toggle one and the wheel, the pity
+      progress bar and the simulation all follow.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="sect">Mechanics</h2>
+    <p class="note">The knobs an operator actually turns. Everything below feeds the wheel, the pity counter and
+    the draw at once.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(168px,1fr))">
+      <div><label class="lb">Cooldown (seconds)</label><input type="text" inputmode="numeric" id="s-cd" value="${S.ayar.bekleme}"></div>
+      <div><label class="lb">Extra spin cost</label><input type="text" inputmode="numeric" id="s-cost" value="${S.ayar.ekstraUcret}"></div>
+      <div><label class="lb">Pity threshold (0 = off)</label><input type="text" inputmode="numeric" id="s-pity" value="${S.ayar.merhamet}"></div>
+      <div><label class="lb">Ticket price</label><input type="text" inputmode="numeric" id="s-tp" value="${S.ayar.biletUcret}"></div>
+      <div><label class="lb">Tickets per player</label><input type="text" inputmode="numeric" id="s-tmax" value="${S.ayar.biletUst}"></div>
+      <div><label class="lb">Draw seed</label><input type="text" inputmode="numeric" id="s-seed" value="${S.cekilis.tohum}"></div>
+    </div>
+    <div style="display:flex;gap:9px;margin-top:12px;align-items:center;flex-wrap:wrap">
+      <button class="btn" id="s-save">Apply</button>
+      <span class="hint">Cooldown is 30 seconds here so the demo is walkable; in the real config it is four hours.</span>
+    </div>
+  </div>`;
+}
+
+/* ===========================================================================
+   7) OLAY BAĞLARI
+   =========================================================================== */
+function bagla() {
+  const spin = $("#spin");
+  if (spin) spin.addEventListener("click", cevir);
+  const clr = $("#clr-hist");
+  if (clr) clr.addEventListener("click", () => { S.gecmis = []; ciz(); });
+
+  $$("[data-sim]").forEach(b => b.addEventListener("click", () => {
+    const n = Number(b.dataset.sim);
+    b.disabled = true; b.textContent = "running…";
+    // Büyük koşu ana iş parçacığını kilitler; düğme "çalışıyor" diyebilsin.
+    setTimeout(() => { simulasyon(n); ciz(); }, 20);
+  }));
+
+  const tp = $("#t-plus");
+  if (tp) tp.addEventListener("click", () => {
+    if (S.puan < S.ayar.biletUcret || S.bilet >= S.ayar.biletUst) return;
+    S.puan -= S.ayar.biletUcret; S.bilet++;
+    S.cekilis.cekildi = false;              // bilet değişti → eski çekim geçersiz
+    ciz();
+  });
+  const tm = $("#t-minus");
+  if (tm) tm.addEventListener("click", () => {
+    if (S.bilet <= 0) return;
+    S.puan += S.ayar.biletUcret; S.bilet--;
+    S.cekilis.cekildi = false;
+    ciz();
+  });
+  const dr = $("#d-run");
+  if (dr) dr.addEventListener("click", cekilisiYurut);
+  const drs = $("#d-reset");
+  if (drs) drs.addEventListener("click", () => { S.cekilis.cekildi = false; S.cekilis.kazananlar = []; ciz(); });
+
+  /* --- ödül tablosu --- */
+  $$("#prow-list .prow").forEach(row => {
+    const o = S.odul.find(x => x.id === Number(row.dataset.p));
+    if (!o) return;
+    $$("[data-k]", row).forEach(inp => {
+      const olay = inp.type === "color" ? "input" : "change";
+      inp.addEventListener(olay, () => {
+        const k = inp.dataset.k;
+        if (k === "ad") o.ad = inp.value.trim() || o.ad;
+        if (k === "renk") o.renk = inp.value;
+        if (k === "agirlik") { const v = num(inp.value); o.agirlik = isFinite(v) && v >= 0 ? v : o.agirlik; }
+        if (k === "deger")  { const v = num(inp.value); o.deger = isFinite(v) && v >= 0 ? Math.round(v) : o.deger; }
+        S.sim = null;               // tablo değişti → eski simülasyon yanıltmasın
+        ciz();
+      });
+    });
+  });
+  $$("[data-rare]").forEach(b => b.addEventListener("click", () => {
+    const o = S.odul.find(x => x.id === Number(b.dataset.rare));
+    if (!o) return;
+    o.tur = nadirMi(o) ? (o.deger > 0 ? "credits" : "item") : "rare";
+    S.sim = null;
+    ciz();
+  }));
+  $$("[data-del]").forEach(b => b.addEventListener("click", () => {
+    if (S.odul.length <= 2) { toast("Keep at least two prizes on the wheel"); return; }
+    S.odul = S.odul.filter(o => o.id !== Number(b.dataset.del));
+    S.sim = null;
+    ciz();
+  }));
+  const padd = $("#p-add");
+  if (padd) padd.addEventListener("click", () => {
+    S.odul.push({ id: yeniId(), ad: "New prize", agirlik: 5, tur: "item", deger: 0,
+                  renk: "#" + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0") });
+    S.sim = null;
+    ciz();
+  });
+  const pres = $("#p-reset");
+  if (pres) pres.addEventListener("click", () => { location.reload(); });
+
+  const ss = $("#s-save");
+  if (ss) ss.addEventListener("click", () => {
+    const al = (id, kucuk, buyuk) => {
+      const v = num($("#" + id).value);
+      return isFinite(v) ? Math.min(Math.max(Math.round(v), kucuk), buyuk) : null;
+    };
+    const cd = al("s-cd", 0, 86400);      if (cd !== null) S.ayar.bekleme = cd;
+    const ct = al("s-cost", 0, 100000);   if (ct !== null) S.ayar.ekstraUcret = ct;
+    const pt = al("s-pity", 0, 500);      if (pt !== null) S.ayar.merhamet = pt;
+    const tpz = al("s-tp", 1, 100000);    if (tpz !== null) S.ayar.biletUcret = tpz;
+    const tmx = al("s-tmax", 1, 100);     if (tmx !== null) S.ayar.biletUst = tmx;
+    const sd = al("s-seed", 1, 999999999);if (sd !== null) S.cekilis.tohum = sd;
+    S.cekilis.cekildi = false;
+    S.sim = null;
+    toast("Applied — the wheel, the odds page and the draw all use these now");
+    ciz();
+  });
+}
+
+/* ===========================================================================
+   8) İLK ÇİZİM + GİRİŞ
+   =========================================================================== */
+ciz();
+
+function girisiKapat() { $("#login").style.display = "none"; }
+
+/* Site bu demoyu küçük önizleme olarak gömdüğünde çağırır. */
+window.__onizleme = function () {
+  girisiKapat();
+  document.documentElement.dataset.preview = "1";
+};
+
+$("#login-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const u = $("#l-u").value.trim();
+  if (!u || !$("#l-p").value) { $("#l-err").textContent = "Both fields are needed (any value works here)."; return; }
+  S.oyuncu = u;
+  girisiKapat();
+});
+$("#l-skip").addEventListener("click", girisiKapat);
+</script>
+</body>
+</html>
